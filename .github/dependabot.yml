@@ -1,0 +1,43 @@
+version: 2
+updates:
+  # Bumps the SHA-pinned actions in .github/workflows (and their # vX.Y.Z comments).
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    # Let new releases settle for a week before proposing them.
+    cooldown:
+      default-days: 7
+    groups:
+      actions:
+        patterns: ["*"]
+
+  # Python dependencies in uv.lock.
+  - package-ecosystem: uv
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      python:
+        patterns: ["*"]
+
+  # Frontend dependencies in frontend/package-lock.json.
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      npm:
+        patterns: ["*"]
+
+  # The postgres image in compose.yaml.
+  - package-ecosystem: docker-compose
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7

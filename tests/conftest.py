@@ -15,13 +15,17 @@ def test_db_url() -> Iterator[URL]:
     # CREATE/DROP DATABASE can't run inside a transaction, hence AUTOCOMMIT.
     admin = create_engine(url.set(database="postgres"), isolation_level="AUTOCOMMIT")
     with admin.connect() as conn:
-        conn.execute(text(f'DROP DATABASE IF EXISTS "{test_url.database}" WITH (FORCE)'))
+        conn.execute(
+            text(f'DROP DATABASE IF EXISTS "{test_url.database}" WITH (FORCE)')
+        )
         conn.execute(text(f'CREATE DATABASE "{test_url.database}"'))
 
     yield test_url
 
     with admin.connect() as conn:
-        conn.execute(text(f'DROP DATABASE IF EXISTS "{test_url.database}" WITH (FORCE)'))
+        conn.execute(
+            text(f'DROP DATABASE IF EXISTS "{test_url.database}" WITH (FORCE)')
+        )
     admin.dispose()
 
 

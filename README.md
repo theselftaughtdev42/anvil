@@ -7,6 +7,9 @@ requirements refinement for organisations
 # build the React frontend (served by FastAPI from frontend/dist)
 cd frontend && npm install && npm run build && cd ..
 
+# install the git pre-commit hook (lint, format and type checks)
+uv run pre-commit install
+
 # create your local config (git-ignored)
 cp .env.example .env
 
@@ -43,3 +46,16 @@ uv run pytest
 ```
 
 Migration tests run against a throwaway `<db>_test` database on the same server as `DATABASE_URL`, created and dropped by the test session; your dev database is never touched.
+
+## Checks
+
+Pre-commit (`.pre-commit-config.yaml`) blocks commits directly to `main`, runs general file hygiene checks, Ruff (lint + format) and ty on Python changes, and oxlint and tsc on frontend changes. It fixes what it can and blocks the commit so you can re-stage. CI (`.github/workflows/ci.yml`) runs on every PR and push to `main`:
+
+```bash
+uv run ruff check && uv run ruff format --check   # lint + format
+uv run ty check                                   # types
+uv run pytest                                     # tests (against Postgres)
+cd frontend && npm run lint && npm run build      # oxlint + tsc + vite
+```
+
+New Alembic migrations are run through Ruff automatically on generation.
