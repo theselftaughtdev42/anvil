@@ -1,5 +1,6 @@
 import uuid
 
+from pydantic import EmailStr
 from sqlmodel import Field, SQLModel
 
 
@@ -9,4 +10,4 @@ class PointOfContact(SQLModel, table=True):
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     name: str = Field(max_length=255)
-    email: str = Field(max_length=320, unique=True)
+    email: EmailStr = Field(max_length=320, unique=True)

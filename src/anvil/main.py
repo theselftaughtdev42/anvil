@@ -1,8 +1,8 @@
-from pathlib import Path
-
 from fastapi import APIRouter, FastAPI, HTTPException
 
-FRONTEND_DIST = Path(__file__).resolve().parents[2] / "frontend" / "dist"
+from anvil import PROJECT_ROOT
+
+FRONTEND_DIST = PROJECT_ROOT / "frontend" / "dist"
 
 app = FastAPI()
 

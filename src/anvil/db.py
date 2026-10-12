@@ -6,7 +6,7 @@ from sqlmodel import Session, create_engine
 
 from anvil.settings import settings
 
-engine = create_engine(settings.database_url)
+engine = create_engine(str(settings.database_url))
 
 
 def get_session() -> Iterator[Session]:
