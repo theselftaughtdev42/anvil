@@ -1,15 +1,12 @@
-import os
 from collections.abc import Iterator
 from typing import Annotated
 
 from fastapi import Depends
 from sqlmodel import Session, create_engine
 
-DATABASE_URL = os.environ.get(
-    "DATABASE_URL", "postgresql+psycopg://anvil:anvil@localhost:5432/anvil"
-)
+from anvil.settings import settings
 
-engine = create_engine(DATABASE_URL)
+engine = create_engine(settings.database_url)
 
 
 def get_session() -> Iterator[Session]:

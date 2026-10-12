@@ -7,6 +7,9 @@ requirements refinement for organisations
 # build the React frontend (served by FastAPI from frontend/dist)
 cd frontend && npm install && npm run build && cd ..
 
+# create your local config (git-ignored)
+cp .env.example .env
+
 # start Postgres and apply migrations
 docker compose up -d --wait
 uv run alembic upgrade head
@@ -30,4 +33,4 @@ uv run alembic upgrade head
 uv run alembic check
 ```
 
-The connection string comes from `DATABASE_URL` and defaults to the Compose database.
+The connection string comes from `DATABASE_URL`, read from the environment or `.env`. It is required: the app and Alembic refuse to start without it.
