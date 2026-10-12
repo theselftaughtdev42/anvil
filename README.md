@@ -34,3 +34,12 @@ uv run alembic check
 ```
 
 The connection string comes from `DATABASE_URL`, read from the environment or `.env`. It is required: the app and Alembic refuse to start without it.
+
+## Tests
+
+```bash
+docker compose up -d --wait   # tests need the Compose Postgres
+uv run pytest
+```
+
+Migration tests run against a throwaway `<db>_test` database on the same server as `DATABASE_URL`, created and dropped by the test session; your dev database is never touched.
