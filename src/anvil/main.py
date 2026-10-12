@@ -1,15 +1,18 @@
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import APIRouter, FastAPI
 
 FRONTEND_DIST = Path(__file__).resolve().parents[2] / "frontend" / "dist"
 
 app = FastAPI()
 
+api = APIRouter(prefix="/api")
 
-@app.get("/api/health")
+
+@api.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
+app.include_router(api)
 app.frontend("/", directory=FRONTEND_DIST)
