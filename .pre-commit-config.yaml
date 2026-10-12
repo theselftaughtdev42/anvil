@@ -1,0 +1,54 @@
+# Install once with: uv run pre-commit install
+# Local hooks run the tool versions pinned in uv.lock / frontend/package-lock.json,
+# so they match CI.
+exclude: ^\.claude/ # skills are vendored docs, not project code
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: no-commit-to-branch # main is PR-only
+      - id: check-merge-conflict
+      - id: check-case-conflict # macOS is case-insensitive, CI isn't
+      - id: check-added-large-files
+      - id: detect-private-key
+      - id: check-yaml
+      - id: check-toml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: ruff check
+        entry: uv run ruff check --fix --force-exclude
+        language: system
+        types_or: [python, pyi]
+      - id: ruff-format
+        name: ruff format
+        entry: uv run ruff format --force-exclude
+        language: system
+        types_or: [python, pyi]
+      # Type checkers look at the whole project (a change in one file can break
+      # another), so they get no filenames and run when any relevant file changes.
+      - id: ty
+        name: ty check
+        entry: uv run ty check
+        language: system
+        types_or: [python, pyi]
+        pass_filenames: false
+      - id: oxlint
+        name: oxlint
+        entry: npm --prefix frontend run lint
+        language: system
+        files: ^frontend/
+        types_or: [javascript, jsx, ts, tsx]
+        pass_filenames: false
+      - id: tsc
+        name: tsc
+        entry: npm --prefix frontend run typecheck
+        language: system
+        files: ^frontend/
+        types_or: [ts, tsx, json]
+        pass_filenames: false

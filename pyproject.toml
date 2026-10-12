@@ -26,7 +26,39 @@ entrypoint = "anvil.main:app"
 script_location = "%(here)s/alembic"
 file_template = "%%(year)d_%%(month).2d_%%(day).2d_%%(hour).2d%%(minute).2d-%%(rev)s_%%(slug)s"
 
+# Lint and format each newly generated migration so it passes pre-commit/CI.
+[[tool.alembic.post_write_hooks]]
+name = "ruff_check"
+type = "module"
+module = "ruff"
+options = "check --fix REVISION_SCRIPT_FILENAME"
+
+[[tool.alembic.post_write_hooks]]
+name = "ruff_format"
+type = "module"
+module = "ruff"
+options = "format REVISION_SCRIPT_FILENAME"
+
 [dependency-groups]
 dev = [
+    "pre-commit>=4.6.2",
     "pytest>=9.1.1",
+    "ruff>=0.17.0",
+    "ty>=0.0.86",
 ]
+
+[tool.ruff]
+# Skills' docs aren't project code.
+extend-exclude = [".claude"]
+
+[tool.ruff.lint]
+extend-select = ["I", "B", "UP", "FAST"]
+
+[tool.ruff.lint.isort]
+# The local alembic/ migrations directory would otherwise make ruff treat
+# the alembic package as first-party.
+known-third-party = ["alembic"]
+
+[tool.ruff.lint.per-file-ignores]
+# Keep the template's op/sa/sqlmodel imports for hand-written migrations.
+"alembic/versions/*" = ["F401"]
