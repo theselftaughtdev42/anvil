@@ -9,19 +9,19 @@ jobs:
   backend:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       # Postgres comes from compose.yaml + .env.example, same as local dev.
       # .env also gives the app and tests their DATABASE_URL.
       - run: cp .env.example .env
       # Pull the image in the background so it overlaps with the steps below.
       - run: docker compose pull --quiet > /dev/null 2>&1 &
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
       - run: uv sync --locked
       - run: uv run ruff check
       - run: uv run ruff format --check
       - run: uv run ty check
       # Build the frontend so the /api 404 test runs instead of skipping.
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
           cache: npm
@@ -39,8 +39,8 @@ jobs:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
           cache: npm
