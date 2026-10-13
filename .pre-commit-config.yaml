@@ -52,3 +52,18 @@ repos:
         files: ^frontend/
         types_or: [ts, tsx, json]
         pass_filenames: false
+      # Workflow mistakes (bad expressions, unknown keys) plus shellcheck on
+      # `run:` scripts, using the shellcheck from shellcheck-py in the venv.
+      - id: actionlint
+        name: actionlint
+        entry: uv run actionlint
+        language: system
+        files: ^\.github/workflows/.*\.ya?ml$
+      # Workflow security: script injection, broad permissions, unpinned
+      # actions. Offline, so it needs no token and gives the same result
+      # locally and in CI.
+      - id: zizmor
+        name: zizmor
+        entry: uv run zizmor --offline
+        language: system
+        files: ^\.github/(workflows/.*|dependabot)\.ya?ml$
