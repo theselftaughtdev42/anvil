@@ -10,6 +10,12 @@ on:
 permissions:
   contents: read
 
+# Runs for the same tag queue rather than race each other through the
+# already-released check below.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   promote:
     runs-on: ubuntu-latest
@@ -65,18 +71,24 @@ jobs:
           echo "digest=$(tr -d '"' <<< "$digest")" >> "$GITHUB_OUTPUT"
 
       # A version tag is never moved: re-running for the same image is fine,
-      # pointing it at a different image is not.
+      # pointing it at a different image is not. Only "not found" means the
+      # version is new; any other error (auth, network) must stop the run, or
+      # the tag step would overwrite a released version.
       - name: Check the version isn't already released
         env:
           VERSION: ${{ steps.version.outputs.version }}
           DIGEST: ${{ steps.source.outputs.digest }}
         run: |
-          if existing=$(docker buildx imagetools inspect "$IMAGE:$VERSION" --format '{{json .Manifest.Digest}}' 2> /dev/null); then
+          if existing=$(docker buildx imagetools inspect "$IMAGE:$VERSION" --format '{{json .Manifest.Digest}}' 2> inspect.err); then
             existing=$(tr -d '"' <<< "$existing")
             if [[ "$existing" != "$DIGEST" ]]; then
               echo "::error::$IMAGE:$VERSION already exists as $existing, a different image. Release a new version instead."
               exit 1
             fi
+          elif ! grep -q ': not found$' inspect.err; then
+            cat inspect.err >&2
+            echo "::error::Could not check whether $IMAGE:$VERSION already exists."
+            exit 1
           fi
 
       # --prefer-index=false copies the manifest as is. The default would wrap
