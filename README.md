@@ -23,6 +23,13 @@ uv run fastapi dev
 
 For hot reload on the frontend, run `npm run dev` in `frontend/` alongside `fastapi dev`; Vite proxies `/api` to FastAPI.
 
+## Health probes
+
+For hosting platforms to poll:
+
+- `GET /api/health/live` (liveness): the process is up. Returns `{"status": "ok", "commit": "<sha>"}`, where `commit` comes from the `GIT_COMMIT` environment variable set at image build time (`"unknown"` in local dev). It never touches the database, so a database outage doesn't get instances restarted.
+- `GET /api/health/ready` (readiness): this instance can serve traffic. Runs `SELECT 1` and returns 200 `{"status": "ok"}`, or 503 when the database is unreachable, so the platform stops routing traffic here until it recovers.
+
 ## Database migrations
 
 Models are SQLModel classes in `src/anvil/models/`. Each new model module must be imported in `src/anvil/models/__init__.py`, or Alembic won't see it.

@@ -38,3 +38,17 @@ def test_environment_overrides_env_file(
     monkeypatch.setenv("DATABASE_URL", URL)
 
     assert str(Settings(_env_file=env_file).database_url) == URL
+
+
+def test_git_commit_defaults_to_unknown(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("DATABASE_URL", URL)
+    monkeypatch.delenv("GIT_COMMIT", raising=False)
+
+    assert Settings(_env_file=None).git_commit == "unknown"
+
+
+def test_git_commit_from_environment(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("DATABASE_URL", URL)
+    monkeypatch.setenv("GIT_COMMIT", "abc123")
+
+    assert Settings(_env_file=None).git_commit == "abc123"
