@@ -1,0 +1,97 @@
+name: Release
+
+# Pushing a vX.Y.Z tag adds an X.Y.Z tag to the image CI already built and
+# smoke-tested for that commit. Nothing is rebuilt, so the release is
+# byte-for-byte the image that was tested.
+on:
+  push:
+    tags: ["v*.*.*"]
+
+permissions:
+  contents: read
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      packages: write
+    env:
+      IMAGE: ghcr.io/theselftaughtdev42/anvil
+    steps:
+      # Full history, so the tagged commit can be checked against main.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      # The glob above also matches tags like v1.2.3-rc1; only plain X.Y.Z
+      # versions are released.
+      - id: version
+        name: Read version and commit
+        run: |
+          if [[ ! "$GITHUB_REF_NAME" =~ ^v([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+            echo "::error::Tag $GITHUB_REF_NAME is not of the form vX.Y.Z."
+            exit 1
+          fi
+          echo "version=${BASH_REMATCH[1]}" >> "$GITHUB_OUTPUT"
+          # HEAD is the tagged commit, whether the tag is lightweight or annotated.
+          echo "commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Check the commit is on main
+        env:
+          COMMIT: ${{ steps.version.outputs.commit }}
+        run: |
+          if ! git merge-base --is-ancestor "$COMMIT" origin/main; then
+            echo "::error::$GITHUB_REF_NAME points at $COMMIT, which is not on main. Releases must come from merged code."
+            exit 1
+          fi
+
+      - name: Log in to GHCR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin <<< "$GH_TOKEN"
+
+      - id: source
+        name: Check the commit's image exists
+        env:
+          COMMIT: ${{ steps.version.outputs.commit }}
+        run: |
+          if ! digest=$(docker buildx imagetools inspect "$IMAGE:sha-$COMMIT" --format '{{json .Manifest.Digest}}'); then
+            echo "::error::No image $IMAGE:sha-$COMMIT. CI publishes it when the commit's push to main passes; if that run is still going, wait for it and re-run this workflow."
+            exit 1
+          fi
+          echo "digest=$(tr -d '"' <<< "$digest")" >> "$GITHUB_OUTPUT"
+
+      # A version tag is never moved: re-running for the same image is fine,
+      # pointing it at a different image is not.
+      - name: Check the version isn't already released
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          DIGEST: ${{ steps.source.outputs.digest }}
+        run: |
+          if existing=$(docker buildx imagetools inspect "$IMAGE:$VERSION" --format '{{json .Manifest.Digest}}' 2> /dev/null); then
+            existing=$(tr -d '"' <<< "$existing")
+            if [[ "$existing" != "$DIGEST" ]]; then
+              echo "::error::$IMAGE:$VERSION already exists as $existing, a different image. Release a new version instead."
+              exit 1
+            fi
+          fi
+
+      # --prefer-index=false copies the manifest as is. The default would wrap
+      # it in a new image index, with a different digest.
+      - name: Tag the image
+        env:
+          COMMIT: ${{ steps.version.outputs.commit }}
+          VERSION: ${{ steps.version.outputs.version }}
+          DIGEST: ${{ steps.source.outputs.digest }}
+        run: |
+          docker buildx imagetools create --prefer-index=false \
+            --tag "$IMAGE:$VERSION" "$IMAGE:sha-$COMMIT@$DIGEST"
+          released=$(docker buildx imagetools inspect "$IMAGE:$VERSION" --format '{{json .Manifest.Digest}}' | tr -d '"')
+          if [[ "$released" != "$DIGEST" ]]; then
+            echo "::error::$IMAGE:$VERSION is $released, expected $DIGEST."
+            exit 1
+          fi
+          echo "Released $IMAGE:$VERSION ($DIGEST), built from $COMMIT." >> "$GITHUB_STEP_SUMMARY"
