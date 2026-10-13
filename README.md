@@ -31,8 +31,9 @@ Every merge to `main` publishes an image (linux/amd64) to `ghcr.io/theselftaught
 
 - `sha-<full commit sha>`: one per commit on `main`, never moved. Deploy these.
 - `main`: moves to the latest `main` build, for quick inspection only.
+- `X.Y.Z`: a release (see [Releases](#releases)), the same image as that commit's `sha-` tag.
 
-There is no `latest` tag. Pull requests build and smoke-test the image but never publish it. The commit an image was built from is in its `org.opencontainers.image.revision` label and in the `commit` field of `/api/health/live`.
+There is no `latest` tag, and no moving `X.Y` or `X` tags. Pull requests build and smoke-test the image but never publish it. The commit an image was built from is in its `org.opencontainers.image.revision` label and in the `commit` field of `/api/health/live`.
 
 To build and test the image locally:
 
@@ -52,6 +53,30 @@ make image-down   # remove the app; the dev database keeps running, data intact
 ```
 
 If your dev database has a migration from another branch applied, the image's `alembic upgrade head` fails; use `make image-smoke` for a fresh database instead.
+
+### Releases
+
+A release is a git tag; the version lives nowhere else. To cut one, tag a commit on `main` whose CI run has published its image, and push the tag:
+
+```bash
+git switch main && git pull
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+The Release workflow then adds the `0.1.0` tag to that commit's `sha-<sha>` image, without rebuilding it, so the release is byte-for-byte the image CI tested. It fails, and tags nothing, if:
+
+- the tag isn't `vX.Y.Z` (no pre-release suffixes);
+- the commit isn't on `main`;
+- the commit has no image yet. If its CI run on `main` is still going, wait for it, then re-run the failed Release run;
+- `X.Y.Z` already points at a different image. Versions are never moved; release a new one.
+
+To find the image for a version, pull `ghcr.io/theselftaughtdev42/anvil:X.Y.Z`. Its digest matches the `sha-` tag of the commit `vX.Y.Z` points at, and that commit is in its `org.opencontainers.image.revision` label:
+
+```bash
+docker buildx imagetools inspect ghcr.io/theselftaughtdev42/anvil:0.1.0
+git rev-list -n 1 v0.1.0   # the commit; its image is also tagged sha-<this>
+```
 
 ### Commands
 
