@@ -1,0 +1,13 @@
+# Keep local config, build output and tooling out of the build context.
+# .env especially: local credentials must never reach a published image.
+.env
+.env.*
+.venv
+**/node_modules
+frontend/dist
+**/__pycache__
+.pytest_cache
+.ruff_cache
+.git
+.github
+.claude

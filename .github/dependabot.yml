@@ -41,3 +41,14 @@ updates:
       interval: weekly
     cooldown:
       default-days: 7
+
+  # The digest-pinned base images in the Dockerfile.
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      docker:
+        patterns: ["*"]
