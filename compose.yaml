@@ -21,17 +21,17 @@ services:
   # migrations as a one-off run, then the app, as in a production deploy.
   migrate:
     profiles: [image]
-    image: ${APP_IMAGE:-anvil:local}
+    image: &app-image ${APP_IMAGE:-anvil:local}
     command: ["alembic", "upgrade", "head"]
     environment: &app-env
-      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:?set POSTGRES_USER in .env}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:?set POSTGRES_DB in .env}
     depends_on:
       db:
         condition: service_healthy
 
   app:
     profiles: [image]
-    image: ${APP_IMAGE:-anvil:local}
+    image: *app-image
     environment: *app-env
     ports:
       - "${APP_PORT:-8001}:8000"

@@ -1,13 +1,18 @@
 # Build and test the production image locally. Needs Docker.
 
 IMAGE ?= anvil:local
-COMMIT := $(shell git rev-parse HEAD)
+# The commit the image is built from, with a -dirty suffix when the working tree
+# has uncommitted or untracked changes (they'd be in the build context too).
+COMMIT := $(shell git rev-parse HEAD)$(shell test -z "$$(git status --porcelain)" || echo -dirty)
+# Extra `docker build` flags (CI adds its platform and layer cache).
+BUILD_FLAGS ?=
 
 .PHONY: image image-smoke image-up image-logs image-down
 
-# Build the production image, stamped with the current commit.
+# Build the production image, stamped with the current commit. CI builds
+# through this target too.
 image:
-	docker build \
+	docker build $(BUILD_FLAGS) \
 		--build-arg GIT_COMMIT=$(COMMIT) \
 		--build-arg BUILD_DATE=$$(date -u +%Y-%m-%dT%H:%M:%SZ) \
 		--tag $(IMAGE) \

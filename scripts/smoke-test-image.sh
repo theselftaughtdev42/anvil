@@ -12,6 +12,10 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
+if [ $# -ne 2 ]; then
+  echo "Usage: $0 <image> <expected commit>" >&2
+  exit 2
+fi
 export APP_IMAGE=$1 POSTGRES_PORT=0 APP_PORT=0
 commit=$2
 
@@ -42,6 +46,7 @@ echo "live: $live"
 [ "$(jq -r .commit <<< "$live")" = "$commit" ] \
   || fail "live reports commit $(jq -r .commit <<< "$live"), expected $commit"
 curl -sf "$base/api/health/ready" > /dev/null || fail "/api/health/ready"
-curl -sf "$base/" | grep -q '<div id="root">' || fail "/ doesn't serve the SPA"
+spa=$(curl -sf "$base/") || fail "/"
+grep -q '<div id="root">' <<< "$spa" || fail "/ doesn't serve the SPA"
 
 echo "Smoke test passed."
