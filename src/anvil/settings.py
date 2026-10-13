@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=PROJECT_ROOT / ".env", extra="ignore")
 
     database_url: PostgresDsn
+    # Baked into the image at build time; nothing sets it in local dev.
+    git_commit: str = "unknown"
 
 
 settings = Settings()
