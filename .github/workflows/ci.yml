@@ -62,3 +62,44 @@ jobs:
       # healthcheck in compose.yaml.
       - run: docker compose up -d --wait
       - run: uv run pytest
+
+  # Builds the production image. PRs only build it (catching a broken
+  # Dockerfile); pushes to main also smoke-test it and publish to GHCR.
+  build:
+    needs: [lint, test]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+    env:
+      IMAGE: ghcr.io/theselftaughtdev42/anvil
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: >-
+          docker build
+          --platform linux/amd64
+          --build-arg GIT_COMMIT="$GITHUB_SHA"
+          --build-arg BUILD_DATE="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          --tag anvil:ci
+          .
+
+      # Runs migrations inside the image against a fresh Postgres, then starts
+      # the app and checks its probes and the SPA (compose.yaml's `image`
+      # profile). Nothing is pushed unless this passes.
+      - if: github.event_name == 'push'
+        name: Smoke test
+        run: scripts/smoke-test-image.sh anvil:ci "$GITHUB_SHA"
+
+      - if: github.event_name == 'push'
+        name: Push to GHCR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin <<< "$GH_TOKEN"
+          for tag in "sha-$GITHUB_SHA" main; do
+            docker tag anvil:ci "$IMAGE:$tag"
+            docker push "$IMAGE:$tag"
+          done

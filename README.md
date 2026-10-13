@@ -23,6 +23,66 @@ uv run fastapi dev
 
 For hot reload on the frontend, run `npm run dev` in `frontend/` alongside `fastapi dev`; Vite proxies `/api` to FastAPI.
 
+## Production
+
+### Image
+
+Every merge to `main` publishes an image (linux/amd64) to `ghcr.io/theselftaughtdev42/anvil`, after CI has built it, run migrations in it and checked its probes and SPA. It contains the API, the built SPA, and Alembic with the migrations. Tags:
+
+- `sha-<full commit sha>`: one per commit on `main`, never moved. Deploy these.
+- `main`: moves to the latest `main` build, for quick inspection only.
+
+There is no `latest` tag. Pull requests build the image but never publish it. The commit an image was built from is in its `org.opencontainers.image.revision` label and in the `commit` field of `/api/health/live`.
+
+To build and test the image locally:
+
+```bash
+make image         # build anvil:local, stamped with the current commit
+make image-smoke   # build, then migrate, start and check it, as CI does
+```
+
+The smoke test runs `compose.yaml`'s `image` profile (migrations, then the app) as a separate Compose project with its own empty database and free ports, so it can run alongside your dev stack and never touches your dev data. CI runs the same script before publishing.
+
+To try the image by hand against your dev database:
+
+```bash
+make image-up     # build, migrate the dev database, serve the app on http://localhost:8001
+make image-logs   # follow the app's logs
+make image-down   # remove the app; the dev database keeps running, data intact
+```
+
+If your dev database has a migration from another branch applied, the image's `alembic upgrade head` fails; use `make image-smoke` for a fresh database instead.
+
+### Commands
+
+```bash
+# default command: the app on port 8000 (one Uvicorn process; scale with more containers)
+docker run -p 8000:8000 -e DATABASE_URL=... -e FORWARDED_ALLOW_IPS=... ghcr.io/theselftaughtdev42/anvil:sha-<sha>
+
+# migrations: a one-off run of the same image before rolling out the new version
+docker run --rm -e DATABASE_URL=... ghcr.io/theselftaughtdev42/anvil:sha-<sha> alembic upgrade head
+```
+
+The app never migrates on startup, so replicas can't race each other and a failed migration blocks the deploy instead of crash-looping the app.
+
+### Environment variables
+
+Configuration comes only from environment variables; the image contains no `.env`.
+
+- `DATABASE_URL` (required): e.g. `postgresql+psycopg://user:password@host:5432/anvil`.
+- `FORWARDED_ALLOW_IPS`: the proxies trusted to set `X-Forwarded-For`/`X-Forwarded-Proto`, so client IPs and the scheme are right behind a load balancer. Defaults to `127.0.0.1,::1`, so forwarded headers are effectively ignored. Set it per platform:
+  - a load balancer in a known network (e.g. a VPC or Kubernetes ingress): its address range, e.g. `10.0.0.0/8`
+  - a managed platform where only the platform's proxy can reach the container (e.g. Fly.io, Render, Cloud Run): `*`
+  - no proxy in front: leave it unset. Never use `*` when clients can reach the container directly, or they can spoof their IP.
+
+### Migrations must work with the running version
+
+Migrations run before the new version rolls out, so the old version keeps serving traffic against the new schema for a while. Every migration must therefore work with the app version that is currently running. Make destructive changes (dropping or renaming a column or table, tightening a constraint) with expand/contract across releases:
+
+1. Expand: add the new structure alongside the old one (e.g. a new nullable column), and backfill it.
+2. Switch: release code that uses the new structure.
+3. Contract: in a later release, once nothing running uses the old structure, remove it.
+
 ## Health probes
 
 For hosting platforms to poll:
