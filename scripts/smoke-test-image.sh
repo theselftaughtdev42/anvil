@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Smoke-test a built production image, as CI does before publishing: run
-# migrations inside it, start the app, then check the probes and the SPA.
+# Smoke-test a built production image, as CI does on every run: check it runs
+# as non-root with no .env, run migrations inside it, start the app, then check
+# the probes and the SPA.
 #
 # Usage: scripts/smoke-test-image.sh <image> <expected commit>
 #
@@ -33,6 +34,11 @@ fail() {
   compose logs migrate app >&2
   exit 1
 }
+
+# The image must run as non-root and carry no config: production supplies
+# everything through environment variables.
+[ "$(docker run --rm "$APP_IMAGE" id -u)" != 0 ] || fail "image runs as root"
+docker run --rm "$APP_IMAGE" test ! -e /app/.env || fail "image contains /app/.env"
 
 # Waits for the database, runs migrations to completion, then starts the app.
 compose up --detach --wait || fail "compose up (database, migrations or app start)"

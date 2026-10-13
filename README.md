@@ -32,7 +32,7 @@ Every merge to `main` publishes an image (linux/amd64) to `ghcr.io/theselftaught
 - `sha-<full commit sha>`: one per commit on `main`, never moved. Deploy these.
 - `main`: moves to the latest `main` build, for quick inspection only.
 
-There is no `latest` tag. Pull requests build the image but never publish it. The commit an image was built from is in its `org.opencontainers.image.revision` label and in the `commit` field of `/api/health/live`.
+There is no `latest` tag. Pull requests build and smoke-test the image but never publish it. The commit an image was built from is in its `org.opencontainers.image.revision` label and in the `commit` field of `/api/health/live`.
 
 To build and test the image locally:
 
@@ -41,7 +41,7 @@ make image         # build anvil:local, stamped with the current commit
 make image-smoke   # build, then migrate, start and check it, as CI does
 ```
 
-The smoke test runs `compose.yaml`'s `image` profile (migrations, then the app) as a separate Compose project with its own empty database and free ports, so it can run alongside your dev stack and never touches your dev data. CI runs the same script before publishing.
+The smoke test runs `compose.yaml`'s `image` profile (migrations, then the app) as a separate Compose project with its own empty database and free ports, so it can run alongside your dev stack and never touches your dev data. CI runs the same script on every PR and before publishing.
 
 To try the image by hand against your dev database:
 

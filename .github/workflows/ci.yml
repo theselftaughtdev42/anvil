@@ -63,8 +63,8 @@ jobs:
       - run: docker compose up -d --wait
       - run: uv run pytest
 
-  # Builds the production image. PRs only build it (catching a broken
-  # Dockerfile); pushes to main also smoke-test it and publish to GHCR.
+  # Builds and smoke-tests the production image on every run, so a PR that
+  # breaks the image fails before merge. Only pushes to main publish to GHCR.
   build:
     needs: [lint, test]
     runs-on: ubuntu-latest
@@ -92,11 +92,7 @@ jobs:
           BUILD_FLAGS="--platform linux/amd64 --load
           --cache-from type=gha --cache-to type=gha,mode=max"
 
-      # Runs migrations inside the image against a fresh Postgres, then starts
-      # the app and checks its probes and the SPA (compose.yaml's `image`
-      # profile). Nothing is pushed unless this passes.
-      - if: github.event_name == 'push'
-        name: Smoke test
+      - name: Smoke test
         run: scripts/smoke-test-image.sh anvil:ci "$GITHUB_SHA"
 
       - if: github.event_name == 'push'
