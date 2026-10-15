@@ -3,25 +3,14 @@ requirements refinement for organisations
 
 ## Development
 
+Run everything from the repo root through `make`; `make help` lists the targets.
+
 ```bash
-# build the React frontend (served by FastAPI from frontend/dist)
-cd frontend && npm install && npm run build && cd ..
-
-# install the git pre-commit hook (lint, format and type checks)
-uv run pre-commit install
-
-# create your local config (git-ignored)
-cp .env.example .env
-
-# start Postgres and apply migrations
-docker compose up -d --wait
-uv run alembic upgrade head
-
-# run the API + frontend on http://127.0.0.1:8000
-uv run fastapi dev
+make install # install Python and frontend deps and the pre-commit hook, create .env
+make dev     # build the SPA, start Postgres, migrate, and serve on http://127.0.0.1:8000
 ```
 
-For hot reload on the frontend, run `npm run dev` in `frontend/` alongside `fastapi dev`; Vite proxies `/api` to FastAPI.
+For hot reload on the frontend, run `make frontend-dev` alongside `make dev`; Vite proxies `/api` to FastAPI. Don't run `npm` in the repo root: the frontend's `package.json` is in `frontend/`, and the targets pass `--prefix frontend` for you.
 
 ## Production
 
@@ -121,8 +110,8 @@ Models are SQLModel classes in `src/anvil/models/`. Each new model module must b
 
 ```bash
 # after changing models, generate a migration and review it before committing
-uv run alembic revision --autogenerate -m "describe the change"
-uv run alembic upgrade head
+make migration m="describe the change"
+make migrate
 
 # fail if models and migrations have drifted apart
 uv run alembic check
@@ -133,8 +122,7 @@ The connection string comes from `DATABASE_URL`, read from the environment or `.
 ## Tests
 
 ```bash
-docker compose up -d --wait   # tests need the Compose Postgres
-uv run pytest
+make test   # starts the Compose Postgres the tests need, then runs pytest
 ```
 
 Migration tests run against a throwaway `<db>_test` database on the same server as `DATABASE_URL`, created and dropped by the test session; your dev database is never touched.
@@ -144,10 +132,12 @@ Migration tests run against a throwaway `<db>_test` database on the same server 
 Pre-commit (`.pre-commit-config.yaml`) blocks commits directly to `main`, runs general file hygiene checks, Ruff (lint + format) and ty on Python changes, and oxlint and tsc on frontend changes. It fixes what it can and blocks the commit so you can re-stage. CI (`.github/workflows/ci.yml`) runs on every PR and push to `main`:
 
 ```bash
-uv run ruff check && uv run ruff format --check   # lint + format
-uv run ty check                                   # types
-uv run pytest                                     # tests (against Postgres)
-cd frontend && npm run lint && npm run build      # oxlint + tsc + vite
+make lint             # every pre-commit hook over all tracked files, as CI does
+make frontend-build   # tsc + vite
+make test             # pytest, against Postgres
+make check            # all three
 ```
+
+`make format` formats and auto-fixes the Python. `make lint` only sees files git tracks, so `git add` new files first.
 
 New Alembic migrations are run through Ruff automatically on generation.
