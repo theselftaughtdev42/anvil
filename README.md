@@ -88,6 +88,7 @@ Configuration comes only from environment variables; the image contains no `.env
   - a load balancer in a known network (e.g. a VPC or Kubernetes ingress): its address range, e.g. `10.0.0.0/8`
   - a managed platform where only the platform's proxy can reach the container (e.g. Fly.io, Render, Cloud Run): `*`
   - no proxy in front: leave it unset. Never use `*` when clients can reach the container directly, or they can spoof their IP.
+- `STUB_USER_NAME` and `STUB_USER_EMAIL`: until there is authentication, every request acts as the Point of Contact with this email, created on first use. Default to `Dev User` and `dev@example.com`.
 
 ### Migrations must work with the running version
 

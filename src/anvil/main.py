@@ -3,7 +3,9 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlmodel import text
 
 from anvil import PROJECT_ROOT
+from anvil.auth import CurrentUserDep
 from anvil.db import SessionDep
+from anvil.models import PointOfContact
 from anvil.settings import settings
 
 FRONTEND_DIST = PROJECT_ROOT / "frontend" / "dist"
@@ -28,6 +30,12 @@ def ready(session: SessionDep) -> dict[str, str]:
     except SQLAlchemyError as e:
         raise HTTPException(status_code=503, detail="database unreachable") from e
     return {"status": "ok"}
+
+
+# Who the request is acting as, e.g. for the header avatar's initials.
+@api.get("/me")
+def me(user: CurrentUserDep) -> PointOfContact:
+    return user
 
 
 # Keep last: unmatched /api paths must 404 rather than fall through to the
