@@ -122,7 +122,7 @@ The connection string comes from `DATABASE_URL`, read from the environment or `.
 ## Tests
 
 ```bash
-make test               # starts the Compose Postgres the tests need, then runs pytest
+make test               # starts the Compose Postgres and builds the SPA the tests need, then runs pytest
 make frontend-unit      # Vitest: renders React components on their own
 make frontend-e2e       # Playwright: checks the built SPA follows docs/design/
 make frontend-e2e-ui    # the same tests in Playwright's UI, to watch and debug them

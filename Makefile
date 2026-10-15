@@ -43,8 +43,8 @@ frontend-unit: ## Test React components on their own, in headless Chromium (Vite
 
 # Builds the SPA, serves it with `vite preview` and runs Playwright against it.
 # Reuses a preview server that's already on port 4173.
-frontend-e2e: ## Check the SPA follows the design rules, in a real browser (Playwright)
-	$(FRONTEND) run test:e2e
+frontend-e2e: frontend-build ## Check the SPA follows the design rules, in a real browser (Playwright)
+	E2E_PREBUILT=1 $(FRONTEND) run test:e2e
 
 # Playwright's UI: pick tests, watch them run, and step through each action's
 # DOM snapshot. Runs on the Vite dev server, so source edits need no rebuild.
@@ -59,7 +59,8 @@ format: ## Format and auto-fix Python
 	uv run ruff check --fix
 	uv run ruff format
 
-test: db ## Run the Python tests (the /api 404 test needs `make frontend-build` first)
+# Builds the SPA too, so the /api 404 test runs instead of skipping.
+test: db frontend-build ## Run the Python tests
 	uv run pytest
 
 check: lint frontend-build frontend-unit frontend-e2e test ## Everything CI checks, short of the image

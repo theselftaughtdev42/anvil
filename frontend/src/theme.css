@@ -9,6 +9,7 @@
   --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
   /* The ANVIL wordmark, and nothing else */
   --font-wordmark: "Archivo", ui-sans-serif, system-ui, sans-serif;
+  --tracking-wordmark: 0.04em;
 
   /* Type sizes (text-page-heading, ...), each with its weight */
   --text-page-heading: 1.875rem; /* 30px */

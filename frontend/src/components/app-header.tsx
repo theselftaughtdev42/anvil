@@ -11,7 +11,7 @@ export function AppHeader({ initials }: { initials: string }) {
           className="-mx-1 flex items-center gap-2 rounded-md px-1 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
         >
           <AnvilMark className="w-9" />
-          <span className="font-wordmark text-lg leading-none font-black tracking-[0.04em]">
+          <span className="font-wordmark text-lg leading-none font-black tracking-wordmark">
             ANVIL
           </span>
         </a>

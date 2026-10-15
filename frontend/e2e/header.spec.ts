@@ -30,30 +30,41 @@ test('the account button is round and shows initials', async ({ page }) => {
 })
 
 test.describe('content column', () => {
-  // Content sits from the column's padding edge to the other.
-  async function contentEdges(page: Page) {
-    const box = (await column(page).boundingBox())!
-    const padding = await column(page).evaluate((el) => ({
-      left: parseFloat(getComputedStyle(el).paddingLeft),
-      right: parseFloat(getComputedStyle(el).paddingRight),
-    }))
-    return { left: box.x + padding.left, right: box.x + box.width - padding.right }
-  }
+  // Content sits from the column's padding edge to the other. Uses the client
+  // rect, not boundingBox(), which is null for an empty <main>.
+  const contentEdges = (target: Locator) =>
+    target.evaluate((el) => {
+      const box = el.getBoundingClientRect()
+      const style = getComputedStyle(el)
+      return {
+        left: box.left + parseFloat(style.paddingLeft),
+        right: box.right - parseFloat(style.paddingRight),
+      }
+    })
 
   test('is capped and centred on a wide screen', async ({ page }) => {
     await page.setViewportSize({ width: 1920, height: 1080 })
-    const { left, right } = await contentEdges(page)
+    const { left, right } = await contentEdges(column(page))
     expect(left).toBeGreaterThan(100) // capped, not full width
     expect(left).toBeCloseTo(1920 - right, 0)
   })
 
   test('keeps even gutters, with no sideways scroll, at phone width', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 })
-    const { left, right } = await contentEdges(page)
+    const { left, right } = await contentEdges(column(page))
     expect(left).toBeGreaterThan(0)
     expect(left).toBeCloseTo(390 - right, 0)
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390)
   })
+
+  for (const width of [1920, 390]) {
+    test(`is shared by the header and the page content at ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 })
+      expect(await contentEdges(page.getByRole('main'))).toEqual(
+        await contentEdges(column(page)),
+      )
+    })
+  }
 })
 
 test.describe('focus rings', () => {
@@ -77,7 +88,10 @@ test.describe('focus rings', () => {
   test('stay hidden on mouse click', async ({ page }) => {
     await account(page).click()
     await expect(account(page)).toBeFocused()
-    await page.waitForTimeout(300) // past the transition
+    // Let any ring transition finish, so a ring that faded in would show.
+    await account(page).evaluate((el) =>
+      Promise.all(el.getAnimations().map((animation) => animation.finished)),
+    )
     expect(await ring(account(page))).toBe('none')
   })
 })

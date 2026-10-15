@@ -5,6 +5,9 @@ const PORT = 4173
 // `make frontend-e2e-ui` sets this to test the Vite dev server instead, so
 // edits show up on the next run without a rebuild.
 const DEV_SERVER = !!process.env.E2E_DEV_SERVER
+// `make frontend-e2e` sets this after building frontend/dist itself, so the
+// build doesn't run twice.
+const PREBUILT = !!process.env.E2E_PREBUILT
 
 // Browser tests that check the SPA follows the design rules in
 // docs/design/README.md. They run on
@@ -22,7 +25,7 @@ export default defineConfig({
   webServer: {
     command: DEV_SERVER
       ? `npm run dev -- --port ${PORT} --strictPort`
-      : `npm run build && npm run preview -- --port ${PORT} --strictPort`,
+      : `${PREBUILT ? '' : 'npm run build && '}npm run preview -- --port ${PORT} --strictPort`,
     url: `http://localhost:${PORT}`,
     reuseExistingServer: !process.env.CI,
   },

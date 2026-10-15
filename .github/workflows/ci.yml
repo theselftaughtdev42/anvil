@@ -36,7 +36,7 @@ jobs:
         env:
           SKIP: no-commit-to-branch # would fail on pushes to main
 
-  test:
+  backend-test:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -63,7 +63,7 @@ jobs:
       - run: docker compose up -d --wait
       - run: uv run pytest
 
-  frontend-e2e:
+  frontend-test:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -95,7 +95,7 @@ jobs:
   # Builds and smoke-tests the production image on every run, so a PR that
   # breaks the image fails before merge. Only pushes to main publish to GHCR.
   build:
-    needs: [lint, test, frontend-e2e]
+    needs: [lint, backend-test, frontend-test]
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
