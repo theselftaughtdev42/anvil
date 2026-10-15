@@ -72,7 +72,26 @@ test("throws the server's detail on a non-2xx response", async () => {
   expect(error).toMatchObject({ status: 503, message: 'database unreachable' })
 })
 
-test('falls back to the status text when there is no string detail', async () => {
+test("throws a validation error's field messages", async () => {
+  respondWith(
+    Response.json(
+      {
+        detail: [
+          { type: 'missing', loc: ['body', 'idea'], msg: 'Field required', input: null },
+          { type: 'json_invalid', loc: ['body', 0], msg: 'JSON decode error', input: {} },
+        ],
+      },
+      { status: 422 },
+    ),
+  )
+
+  await expect(api('/requirements', { method: 'POST', json: {} })).rejects.toMatchObject({
+    status: 422,
+    message: 'idea: Field required; JSON decode error',
+  })
+})
+
+test('falls back to the status text when there is no usable detail', async () => {
   respondWith(new Response('<html>Bad gateway</html>', { status: 502, statusText: 'Bad Gateway' }))
 
   await expect(api('/health/live')).rejects.toMatchObject({ status: 502, message: 'Bad Gateway' })
