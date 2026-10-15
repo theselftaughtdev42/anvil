@@ -1,4 +1,5 @@
 from fastapi import APIRouter, FastAPI, HTTPException
+from pydantic import BaseModel
 from sqlalchemy.exc import SQLAlchemyError
 from sqlmodel import text
 
@@ -39,6 +40,16 @@ def ready(session: SessionDep) -> dict[str, str]:
 @api.get("/me")
 def me(user: CurrentUserDep) -> PointOfContact:
     return user
+
+
+class Config(BaseModel):
+    idea_placeholder: str
+
+
+# Deployment settings the UI needs, so they change without rebuilding the SPA.
+@api.get("/config")
+def config() -> Config:
+    return Config(idea_placeholder=settings.idea_placeholder)
 
 
 api.include_router(requirements.router)

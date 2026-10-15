@@ -25,6 +25,10 @@ class Settings(BaseSettings):
     stub_agent_delay_ms: int = Field(default=0, ge=0)
     # The Project Context, as a text or Markdown file. Relative to the repo root.
     project_context_file: Path | None = None
+    # The example idea in the home page's empty prompt, served by /api/config.
+    idea_placeholder: str = (
+        "Drivers should see route changes on their phone without calling the depot"
+    )
 
 
 settings = Settings()

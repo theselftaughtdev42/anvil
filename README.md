@@ -92,6 +92,7 @@ Configuration comes only from environment variables; the image contains no `.env
 - `AGENT`: the refinement agent that names requirements (and, later, refines them). Defaults to `stub`, the only one so far: deterministic and offline, it titles a requirement with the first words of its idea. Any other value stops the app starting.
 - `STUB_AGENT_DELAY_MS`: makes every stub agent call this many milliseconds slow, to see the UI's loading states. Defaults to `0`.
 - `PROJECT_CONTEXT_FILE`: a text or Markdown file of Project Context, read once at startup and handed to the agent. Relative paths are from the repo root; `context.md` there is git-ignored. Unset, or set to a path with no file, means no Project Context (the latter logs a warning); set to a file that can't be read, the app doesn't start.
+- `IDEA_PLACEHOLDER`: the example idea shown in the home page's empty prompt, served to the UI by `GET /api/config`. Defaults to `Drivers should see route changes on their phone without calling the depot`.
 
 ### Migrations must work with the running version
 
