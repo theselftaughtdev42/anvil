@@ -2,6 +2,9 @@ from fastapi import APIRouter, FastAPI, HTTPException
 from sqlalchemy.exc import SQLAlchemyError
 from sqlmodel import text
 
+# Builds the agent and loads the Project Context, so a bad AGENT or
+# PROJECT_CONTEXT_FILE stops the app starting.
+import anvil.agent  # noqa: F401
 from anvil import PROJECT_ROOT
 from anvil.auth import CurrentUserDep
 from anvil.db import SessionDep

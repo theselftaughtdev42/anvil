@@ -71,3 +71,31 @@ def test_rejects_invalid_stub_user_email(monkeypatch: pytest.MonkeyPatch) -> Non
 
     with pytest.raises(ValidationError, match="stub_user_email"):
         Settings(_env_file=None)
+
+
+def test_agent_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("DATABASE_URL", URL)
+    for name in ("AGENT", "STUB_AGENT_DELAY_MS", "PROJECT_CONTEXT_FILE"):
+        monkeypatch.delenv(name, raising=False)
+
+    settings = Settings(_env_file=None)
+
+    assert settings.agent == "stub"
+    assert settings.stub_agent_delay_ms == 0
+    assert settings.project_context_file is None
+
+
+def test_rejects_unknown_agent(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("DATABASE_URL", URL)
+    monkeypatch.setenv("AGENT", "unknown")
+
+    with pytest.raises(ValidationError, match="agent(.|\n)*'unknown'"):
+        Settings(_env_file=None)
+
+
+def test_rejects_negative_stub_agent_delay(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("DATABASE_URL", URL)
+    monkeypatch.setenv("STUB_AGENT_DELAY_MS", "-1")
+
+    with pytest.raises(ValidationError, match="stub_agent_delay_ms"):
+        Settings(_env_file=None)

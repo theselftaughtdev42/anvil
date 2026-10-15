@@ -1,4 +1,7 @@
-from pydantic import EmailStr, PostgresDsn
+from pathlib import Path
+from typing import Literal
+
+from pydantic import EmailStr, Field, PostgresDsn
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from anvil import PROJECT_ROOT
@@ -16,6 +19,12 @@ class Settings(BaseSettings):
     # The person every request acts as until there is authentication.
     stub_user_name: str = "Dev User"
     stub_user_email: EmailStr = "dev@example.com"
+    # Which RefinementAgent to use. Anything not listed fails validation.
+    agent: Literal["stub"] = "stub"
+    # Makes every StubAgent call this slow, to exercise the UI's loading states.
+    stub_agent_delay_ms: int = Field(default=0, ge=0)
+    # The Project Context, as a text or Markdown file. Relative to the repo root.
+    project_context_file: Path | None = None
 
 
 settings = Settings()
