@@ -141,8 +141,8 @@ Pre-commit (`.pre-commit-config.yaml`) blocks commits directly to `main`, runs g
 ```bash
 make lint             # every pre-commit hook over all tracked files, as CI does
 make frontend-build   # tsc + vite
-make frontend-unit    # Vitest, the React components on their own
-make frontend-e2e     # Playwright, the design rules in docs/design/
+make frontend-unit    # Vitest, the React components and frontend modules on their own
+make frontend-e2e     # Playwright, the design rules in docs/design/ and routing
 make test             # pytest, against Postgres
 make check            # all five
 ```

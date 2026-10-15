@@ -20,7 +20,7 @@ export default defineConfig({
       '/api': 'http://127.0.0.1:8000',
     },
   },
-  // Component tests (`npm run test:unit`), rendered in headless Chromium.
+  // Component and module tests (`npm run test:unit`), run in headless Chromium.
   // Playwright's tests in e2e/ check the whole built app and run separately.
   test: {
     include: ['src/**/*.test.{ts,tsx}'],
