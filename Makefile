@@ -4,17 +4,17 @@
 
 FRONTEND := npm --prefix frontend
 
-.PHONY: help install db migrate migration dev frontend-dev frontend-build frontend-test frontend-test-ui lint format test check
+.PHONY: help install db migrate migration dev frontend-dev frontend-build frontend-unit frontend-e2e frontend-e2e-ui lint format test check
 
 help: ## List the targets
-	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "} {printf "  %-16s %s\n", $$1, $$2}'
+	@grep -E '^[a-z0-9-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "} {printf "  %-16s %s\n", $$1, $$2}'
 
 # --- Development ------------------------------------------------------------
 
 install: ## Install dependencies, Playwright's Chromium and the pre-commit hook, and create .env if missing
 	uv sync
 	$(FRONTEND) ci
-	$(FRONTEND) exec -- playwright install chromium # full Chromium, for frontend-test-ui
+	$(FRONTEND) exec -- playwright install chromium # full Chromium, for frontend-e2e-ui
 	uv run pre-commit install
 	@test -f .env || { cp .env.example .env && echo "Created .env from .env.example"; }
 
@@ -38,15 +38,18 @@ frontend-dev: ## Vite dev server with hot reload (run alongside `make dev`)
 frontend-build: ## Build the SPA into frontend/dist
 	$(FRONTEND) run build
 
+frontend-unit: ## Test React components on their own, in headless Chromium (Vitest)
+	$(FRONTEND) run test:unit
+
 # Builds the SPA, serves it with `vite preview` and runs Playwright against it.
 # Reuses a preview server that's already on port 4173.
-frontend-test: ## Check the SPA follows the design rules, in a real browser (Playwright)
-	$(FRONTEND) test
+frontend-e2e: ## Check the SPA follows the design rules, in a real browser (Playwright)
+	$(FRONTEND) run test:e2e
 
 # Playwright's UI: pick tests, watch them run, and step through each action's
 # DOM snapshot. Runs on the Vite dev server, so source edits need no rebuild.
-frontend-test-ui: ## Open the Playwright UI to watch and debug the frontend tests
-	E2E_DEV_SERVER=1 $(FRONTEND) test -- --ui
+frontend-e2e-ui: ## Open the Playwright UI to watch and debug the e2e tests
+	E2E_DEV_SERVER=1 $(FRONTEND) run test:e2e -- --ui
 
 # The same hooks CI runs, over every file. Fixes what it can.
 lint: ## Lint, format-check and type-check everything (Python and frontend)
@@ -59,7 +62,7 @@ format: ## Format and auto-fix Python
 test: db ## Run the Python tests (the /api 404 test needs `make frontend-build` first)
 	uv run pytest
 
-check: lint frontend-build frontend-test test ## Everything CI checks, short of the image
+check: lint frontend-build frontend-unit frontend-e2e test ## Everything CI checks, short of the image
 
 # --- Production image -------------------------------------------------------
 # Build and test the production image locally. Needs Docker.
