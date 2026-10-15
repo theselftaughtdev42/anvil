@@ -73,3 +73,15 @@ def test_unknown_api_path_is_404_not_frontend() -> None:
 
     assert response.status_code == 404
     assert response.headers["content-type"] == "application/json"
+
+
+@pytest.mark.skipif(
+    not (FRONTEND_DIST / "index.html").exists(),
+    reason="frontend not built; the index.html fallback only exists once it is",
+)
+def test_frontend_route_serves_the_spa() -> None:
+    # Deep links to client-side routes must load the SPA, which then routes.
+    response = client.get("/requirements/abc-123", headers={"accept": "text/html"})
+
+    assert response.status_code == 200
+    assert response.text == (FRONTEND_DIST / "index.html").read_text()
