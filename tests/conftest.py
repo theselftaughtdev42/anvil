@@ -1,8 +1,11 @@
 from collections.abc import Iterator
 
 import pytest
+from alembic import command
+from alembic.config import Config
 from sqlalchemy import URL, Engine, create_engine, make_url, text
 
+from anvil import PROJECT_ROOT
 from anvil.settings import settings
 
 
@@ -38,3 +41,15 @@ def empty_db(test_db_url: URL) -> Iterator[Engine]:
         conn.execute(text("CREATE SCHEMA public"))
     yield engine
     engine.dispose()
+
+
+@pytest.fixture
+def migrated_db(empty_db: Engine) -> Engine:
+    """The test database, migrated to head."""
+    # No ini file: alembic.ini only configures logging, which would
+    # otherwise reset pytest's log capture.
+    config = Config(toml_file=PROJECT_ROOT / "pyproject.toml")
+    with empty_db.begin() as connection:
+        config.attributes["connection"] = connection
+        command.upgrade(config, "head")
+    return empty_db
