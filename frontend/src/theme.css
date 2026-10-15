@@ -1,0 +1,74 @@
+/*
+ * Forge: Anvil's design values, the master copy. docs/design/README.md
+ * explains them and links here, so change a value here, not there.
+ */
+@import "@fontsource-variable/geist/wght.css";
+@import "@fontsource/archivo/latin-900.css";
+
+@theme {
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+  /* The ANVIL wordmark, and nothing else */
+  --font-wordmark: "Archivo", ui-sans-serif, system-ui, sans-serif;
+
+  /* Type sizes (text-page-heading, ...), each with its weight */
+  --text-page-heading: 1.875rem; /* 30px */
+  --text-page-heading--font-weight: 600;
+  --text-section-heading: 1.125rem; /* 18px */
+  --text-section-heading--font-weight: 600;
+  --text-card-title: 0.9375rem; /* 15px */
+  --text-card-title--font-weight: 600;
+  --text-body: 0.9375rem; /* 15px */
+  --text-body--font-weight: 400;
+  --text-body-sm: 0.875rem; /* 14px */
+  --text-body-sm--font-weight: 400;
+  --text-caption: 0.75rem; /* 12px: captions and badges */
+  --text-caption--font-weight: 500;
+
+  /* Radii (rounded-card, ...). Chips and the avatar are rounded-full. */
+  --radius-card: 0.75rem; /* 12px: cards and the idea prompt */
+  --radius-button: 0.5rem; /* 8px */
+  --radius-badge: 0.375rem; /* 6px */
+
+  /* The centred content column (max-w-content) and its side padding (px-gutter) */
+  --container-content: 70rem; /* 1120px */
+  --spacing-gutter: 1.5rem; /* 24px */
+}
+
+/* Dark mode only for now, so it lives on :root and index.html sets class="dark" */
+:root {
+  color-scheme: dark;
+  --radius: 0.625rem; /* index.css derives the radius scale from this */
+
+  --background: #16130f; /* Iron: the page. Also inline in index.html. */
+  --foreground: #ede6da; /* Ash: text */
+  --card: #1f1a15; /* Cards, the idea prompt */
+  --card-foreground: var(--foreground);
+  --popover: var(--card); /* Menus */
+  --popover-foreground: var(--foreground);
+  --primary: #e8642c; /* Ember: the one primary action per screen, focus and sparks */
+  --primary-foreground: #16130f; /* Text on ember */
+  --muted: #2b261f; /* Soot: tab list, progress track, avatar */
+  --muted-foreground: #a39a8c; /* Supporting text, timestamps */
+  --secondary: var(--muted);
+  --secondary-foreground: var(--foreground);
+  --accent: var(--muted);
+  --accent-foreground: var(--foreground);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: #2e2821; /* Hairlines */
+  --input: var(--border); /* Field borders */
+  --ring: var(--primary); /* Focus rings are ember */
+
+  /* Statuses: the dot and progress bar, then the badge. Never ember. */
+  --status-draft: #6b6259;
+  --status-draft-background: transparent;
+  --status-draft-border: #4a4137;
+  --status-draft-foreground: #c9c0b2;
+  --status-in-progress: #d9a441;
+  --status-in-progress-background: #2e2410;
+  --status-in-progress-border: #5a4518;
+  --status-in-progress-foreground: #e9c27a;
+  --status-complete: #7fa7bf;
+  --status-complete-background: #172229;
+  --status-complete-border: #2a4250;
+  --status-complete-foreground: #a9c7d8;
+}

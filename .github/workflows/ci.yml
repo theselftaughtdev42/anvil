@@ -63,10 +63,37 @@ jobs:
       - run: docker compose up -d --wait
       - run: uv run pytest
 
+  frontend-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+        working-directory: frontend
+      # Headless only, so the shell is enough: skips the full Chromium download.
+      - run: npx playwright install --with-deps --only-shell chromium
+        working-directory: frontend
+      - run: npm test
+        working-directory: frontend
+      # Traces of failed tests: open with `npx playwright show-trace`.
+      - if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: playwright-results
+          path: frontend/test-results/
+          retention-days: 7
+
   # Builds and smoke-tests the production image on every run, so a PR that
   # breaks the image fails before merge. Only pushes to main publish to GHCR.
   build:
-    needs: [lint, test]
+    needs: [lint, test, frontend-test]
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:

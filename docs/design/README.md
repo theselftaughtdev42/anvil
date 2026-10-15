@@ -2,57 +2,47 @@
 
 The source of truth for how Anvil looks. UI work should match this folder; when the design changes, update it here in the same PR.
 
+The values themselves live in the app, so there's one copy: colours, fonts, type sizes, radii and the content container in [`frontend/src/theme.css`](../../frontend/src/theme.css), the logo in [`frontend/src/assets/`](../../frontend/src/assets/) and the favicon in [`frontend/public/`](../../frontend/public/). This page explains what they're for; change a value there, not here.
+
 The UI is built on [shadcn/ui](https://ui.shadcn.com) and Tailwind, dark mode only for now, themed with the **Forge** palette below.
 
 ## Logo
 
 | File | Use |
 |---|---|
-| [`logo.svg`](logo.svg) | The main mark: an anvil with three sparks. Use it in the app header next to the wordmark. |
-| [`favicon.svg`](favicon.svg) | The browser tab icon: the same anvil with a single spark. It switches the anvil to iron on light browser themes. |
+| ![](../../frontend/src/assets/logo.svg) [`logo.svg`](../../frontend/src/assets/logo.svg) | The main mark: an anvil with three sparks. Use it in the app header next to the wordmark. |
+| ![](../../frontend/public/favicon.svg) [`favicon.svg`](../../frontend/public/favicon.svg) | The browser tab icon: the same anvil with a single spark. It switches the anvil to iron on light browser themes. |
 
 The sparks are separate elements (`spark-1` to `spark-3`, hottest first) so they can be animated later. Don't merge them into one path.
 
-**Wordmark:** `ANVIL` in Archivo, weight 900, letter-spacing `0.04em`, in ash. Sit the mark to its left, with a gap of about a quarter of the mark's width. The wordmark is the only place Archivo is used.
+**Wordmark:** `ANVIL` in heavy Archivo, slightly tracked, in ash, with the mark to its left. The wordmark is the only place Archivo is used.
 
 ## Colour
 
-Map these onto the shadcn CSS variables. Hex values are exact.
+The palette is the shadcn CSS variables in `theme.css`. The named ones:
 
-| Token | Hex | Name | Use |
-|---|---|---|---|
-| `--background` | `#16130F` | Iron | Page |
-| `--card`, `--popover` | `#1F1A15` | | Cards, the idea prompt, menus |
-| `--border`, `--input` | `#2E2821` | | Hairlines, field borders |
-| `--muted`, `--secondary` | `#2B261F` | Soot | Tab list, progress track, avatar |
-| `--foreground` | `#EDE6DA` | Ash | Text |
-| `--muted-foreground` | `#A39A8C` | | Supporting text, timestamps |
-| `--primary`, `--ring` | `#E8642C` | Ember | The one primary action per screen, and focus rings |
-| `--primary-foreground` | `#16130F` | | Text on ember |
+- **Iron** (`--background`): the page.
+- **Ash** (`--foreground`): text.
+- **Soot** (`--muted`, `--secondary`): tab list, progress track, avatar.
+- **Ember** (`--primary`, `--ring`): the one primary action per screen, and focus rings.
 
 Keep ember for the primary action, focus and the logo's sparks. Don't use it for status.
 
 ### Status
 
-Each status is a badge with a coloured dot, and the same colour fills the card's progress bar.
-
-| Status | Dot and bar | Badge background | Badge border | Badge text |
-|---|---|---|---|---|
-| Draft | `#6B6259` | transparent | `#4A4137` | `#C9C0B2` |
-| In progress | `#D9A441` | `#2E2410` | `#5A4518` | `#E9C27A` |
-| Complete | `#7FA7BF` | `#172229` | `#2A4250` | `#A9C7D8` |
+Each status is a badge with a coloured dot, and the same colour fills the card's progress bar. The statuses are Draft, In progress and Complete, each with its own dot, badge background, badge border and badge text colour (`--status-*` in `theme.css`).
 
 ## Type
 
-- **UI text:** [Geist](https://fonts.google.com/specimen/Geist), weights 400, 500 and 600.
+- **UI text:** [Geist](https://fonts.google.com/specimen/Geist).
 - **Wordmark only:** [Archivo](https://fonts.google.com/specimen/Archivo), weight 900.
 
-Sizes used on the home page: page heading 30px/600, section heading 18px/600, card title 15px/600, body 14–15px/400, captions and badges 12px/500.
+The home page's type sizes are the `--text-*` tokens in `theme.css`: page heading, section heading and card title (semibold), body (regular), and caption for captions and badges (medium).
 
 ## Shape and spacing
 
-- Radius: 12px for cards and the prompt, 8px for buttons, 6px for badges, fully round for chips and the avatar.
-- Content sits in a centred container, `max-width: 1120px`, with 24px side padding.
+- Radius: largest for cards and the prompt, smaller for buttons and badges, fully round for chips and the avatar (`--radius-card`, `--radius-button` and `--radius-badge` in `theme.css`).
+- Content sits in a centred container with side padding (`max-w-content` and `px-gutter`, from `theme.css`).
 - Cards are flat: a border, no shadow.
 
 ## Wireframes
