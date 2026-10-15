@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 export function AppHeader({ initials }: { initials: string }) {
   return (
     <header className="border-b">
-      <div className="mx-auto box-content flex h-14 max-w-280 items-center justify-between px-6">
+      <div className="mx-auto box-content flex h-14 max-w-content items-center justify-between px-gutter">
         <a
           href="/"
           className="-mx-1 flex items-center gap-2 rounded-md px-1 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
