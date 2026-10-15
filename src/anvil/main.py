@@ -5,7 +5,7 @@ from sqlmodel import text
 # Builds the agent and loads the Project Context, so a bad AGENT or
 # PROJECT_CONTEXT_FILE stops the app starting.
 import anvil.agent  # noqa: F401
-from anvil import PROJECT_ROOT
+from anvil import PROJECT_ROOT, requirements
 from anvil.auth import CurrentUserDep
 from anvil.db import SessionDep
 from anvil.models import PointOfContact
@@ -39,6 +39,9 @@ def ready(session: SessionDep) -> dict[str, str]:
 @api.get("/me")
 def me(user: CurrentUserDep) -> PointOfContact:
     return user
+
+
+api.include_router(requirements.router)
 
 
 # Keep last: unmatched /api paths must 404 rather than fall through to the
