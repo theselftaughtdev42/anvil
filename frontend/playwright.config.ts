@@ -2,7 +2,7 @@ import { defineConfig, devices } from '@playwright/test'
 
 const PORT = 4173
 
-// `make frontend-test-ui` sets this to test the Vite dev server instead, so
+// `make frontend-e2e-ui` sets this to test the Vite dev server instead, so
 // edits show up on the next run without a rebuild.
 const DEV_SERVER = !!process.env.E2E_DEV_SERVER
 

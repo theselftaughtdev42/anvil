@@ -123,11 +123,14 @@ The connection string comes from `DATABASE_URL`, read from the environment or `.
 
 ```bash
 make test               # starts the Compose Postgres the tests need, then runs pytest
-make frontend-test      # Playwright: checks the built SPA follows docs/design/
-make frontend-test-ui   # the same tests in Playwright's UI, to watch and debug them
+make frontend-unit      # Vitest: renders React components on their own
+make frontend-e2e       # Playwright: checks the built SPA follows docs/design/
+make frontend-e2e-ui    # the same tests in Playwright's UI, to watch and debug them
 ```
 
-The frontend tests run in Chromium against the built SPA on `vite preview`, so they need no API or database. They check the rules in `docs/design/README.md` (dark only, focus rings, the wordmark's font, the content column, the logo's sparks) rather than exact values, which have one copy, in `frontend/src/theme.css`. `make frontend-test-ui` runs them against the Vite dev server instead, so you can edit a component and re-run without rebuilding. To watch a plain run in a visible browser, use `npm --prefix frontend test -- --headed`. On failure, open the trace with `npx --prefix frontend playwright show-trace <path>`; CI uploads them as the `playwright-results` artifact.
+The e2e tests run in Chromium against the built SPA on `vite preview`, so they need no API or database. They check the rules in `docs/design/README.md` (dark only, focus rings, the wordmark's font, the content column, the logo's sparks) rather than exact values, which have one copy, in `frontend/src/theme.css`. `make frontend-e2e-ui` runs them against the Vite dev server instead, so you can edit a component and re-run without rebuilding. To watch a plain run in a visible browser, use `npm --prefix frontend run test:e2e -- --headed`. On failure, open the trace with `npx --prefix frontend playwright show-trace <path>`; CI uploads them as the `e2e-results` artifact.
+
+Component tests sit next to their component as `src/**/*.test.tsx` and run with Vitest in browser mode: each renders one component in headless Chromium with `vitest-browser-react`, so they're the place for props, states and behaviour that the home page doesn't show.
 
 Migration tests run against a throwaway `<db>_test` database on the same server as `DATABASE_URL`, created and dropped by the test session; your dev database is never touched.
 
@@ -138,9 +141,10 @@ Pre-commit (`.pre-commit-config.yaml`) blocks commits directly to `main`, runs g
 ```bash
 make lint             # every pre-commit hook over all tracked files, as CI does
 make frontend-build   # tsc + vite
-make frontend-test    # Playwright, the design rules in docs/design/
+make frontend-unit    # Vitest, the React components on their own
+make frontend-e2e     # Playwright, the design rules in docs/design/
 make test             # pytest, against Postgres
-make check            # all four
+make check            # all five
 ```
 
 `make format` formats and auto-fixes the Python. `make lint` only sees files git tracks, so `git add` new files first.
