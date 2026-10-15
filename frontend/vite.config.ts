@@ -23,7 +23,7 @@ export default defineConfig({
   // Component tests (`npm run test:unit`), rendered in headless Chromium.
   // Playwright's tests in e2e/ check the whole built app and run separately.
   test: {
-    include: ['src/**/*.test.tsx'],
+    include: ['src/**/*.test.{ts,tsx}'],
     browser: {
       enabled: true,
       provider: playwright(),
