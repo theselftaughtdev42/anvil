@@ -1,4 +1,4 @@
-from pydantic import PostgresDsn
+from pydantic import EmailStr, PostgresDsn
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from anvil import PROJECT_ROOT
@@ -13,6 +13,9 @@ class Settings(BaseSettings):
     database_url: PostgresDsn
     # Baked into the image at build time; nothing sets it in local dev.
     git_commit: str = "unknown"
+    # The person every request acts as until there is authentication.
+    stub_user_name: str = "Dev User"
+    stub_user_email: EmailStr = "dev@example.com"
 
 
 settings = Settings()

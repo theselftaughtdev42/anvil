@@ -52,3 +52,22 @@ def test_git_commit_from_environment(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("GIT_COMMIT", "abc123")
 
     assert Settings(_env_file=None).git_commit == "abc123"
+
+
+def test_stub_user_has_dev_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("DATABASE_URL", URL)
+    monkeypatch.delenv("STUB_USER_NAME", raising=False)
+    monkeypatch.delenv("STUB_USER_EMAIL", raising=False)
+
+    settings = Settings(_env_file=None)
+
+    assert settings.stub_user_name == "Dev User"
+    assert settings.stub_user_email == "dev@example.com"
+
+
+def test_rejects_invalid_stub_user_email(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("DATABASE_URL", URL)
+    monkeypatch.setenv("STUB_USER_EMAIL", "not-an-email")
+
+    with pytest.raises(ValidationError, match="stub_user_email"):
+        Settings(_env_file=None)
