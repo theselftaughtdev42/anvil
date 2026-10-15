@@ -5,7 +5,7 @@ function App() {
     <>
       {/* Placeholder until the stub current user lands (#19) */}
       <AppHeader initials="TM" />
-      <main className="mx-auto box-content max-w-280 px-6" />
+      <main className="mx-auto box-content max-w-content px-gutter" />
     </>
   )
 }
