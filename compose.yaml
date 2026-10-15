@@ -13,9 +13,13 @@ services:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
-      interval: 2s
+      # Poll every second while starting, so `up --wait` returns as soon as
+      # it's ready, then settle to every 10s.
+      start_period: 30s
+      start_interval: 1s
+      interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 5
 
   # The production image (see Dockerfile), only with `--profile image`:
   # migrations as a one-off run, then the app, as in a production deploy.
@@ -39,9 +43,12 @@ services:
     # image itself has no HEALTHCHECK (platforms run their own probes).
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health/live')"]
-      interval: 1s
+      # As for db: fast while starting, then every 10s.
+      start_period: 30s
+      start_interval: 1s
+      interval: 10s
       timeout: 5s
-      retries: 30
+      retries: 5
     depends_on:
       migrate:
         condition: service_completed_successfully
