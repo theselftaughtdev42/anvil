@@ -58,6 +58,15 @@ def test_ready_is_503_when_database_unreachable() -> None:
     assert response.status_code == 503
 
 
+def test_config_serves_the_idea_placeholder(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "idea_placeholder", "Riders can tip their driver")
+
+    response = client.get("/api/config")
+
+    assert response.status_code == 200
+    assert response.json() == {"idea_placeholder": "Riders can tip their driver"}
+
+
 def test_old_health_endpoint_is_gone() -> None:
     assert client.get("/api/health").status_code == 404
 
