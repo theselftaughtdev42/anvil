@@ -3,13 +3,45 @@
   "plugins": ["react", "typescript", "oxc"],
   "rules": {
     "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
+    "react/only-export-components": ["warn", { "allowConstantExport": true }],
+    "no-restricted-imports": [
+      "error",
+      {
+        "paths": [
+          {
+            // shadcn sometimes generates this import; our cn knows the theme's sizes and radii
+            "name": "cn",
+            "message": "Import cn from @/lib/utils."
+          }
+        ]
+      }
+    ]
   },
   "overrides": [
     {
-      // shadcn components export their variants alongside the component
+      // shadcn primitives: they export their variants alongside the component,
+      // and depend on nothing app-specific
       "files": ["src/components/ui/**"],
-      "rules": { "react/only-export-components": "off" }
+      "rules": {
+        "react/only-export-components": "off",
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "cn",
+                "message": "Import cn from @/lib/utils."
+              }
+            ],
+            "patterns": [
+              {
+                "group": ["@/**", "!@/lib/utils", "!@/components/ui/**", "!@/hooks/**", "../**"],
+                "message": "ui/ holds shadcn primitives only; they can't depend on app code."
+              }
+            ]
+          }
+        ]
+      }
     }
   ]
 }

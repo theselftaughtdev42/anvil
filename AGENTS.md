@@ -1,3 +1,7 @@
+## Frontend components
+
+`frontend/src/components/ui/` holds shadcn primitives only, added with `npx shadcn add <name>`; Anvil's own components live in `frontend/src/components/`. When you hand-edit a primitive, mark the edit with an `// anvil:` comment saying why and cover it with a test, so a re-add or upstream diff keeps it.
+
 ## Agent skills
 
 ### Issue tracker
