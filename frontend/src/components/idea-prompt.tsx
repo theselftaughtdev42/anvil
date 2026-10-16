@@ -1,15 +1,24 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowRight, LoaderCircle } from 'lucide-react'
-import { type FormEvent, type KeyboardEvent, useId, useState } from 'react'
+import { type FormEvent, type KeyboardEvent, useId, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { Button } from '@/components/ui/button'
 import { configQuery } from '@/lib/config'
 import { createRequirement, requirementsKey } from '@/lib/requirements'
 
+// Offered on a first visit; clicking one fills the prompt.
+const EXAMPLE_IDEAS = [
+  'Let customers reschedule deliveries',
+  'A dashboard of late orders',
+  'Single sign-on for staff',
+]
+
 // "What's your idea?": starts a Requirement from the idea typed here, then
-// opens it.
-export function IdeaPrompt() {
+// opens it. `showIntro`, for someone with no Requirements yet, adds a line
+// explaining Refinement and some example ideas to start from.
+export function IdeaPrompt({ showIntro = false }: { showIntro?: boolean }) {
   const [idea, setIdea] = useState('')
+  const ideaRef = useRef<HTMLTextAreaElement>(null)
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const ideaId = useId()
@@ -43,9 +52,11 @@ export function IdeaPrompt() {
   return (
     <section className="mx-auto mt-16 max-w-180 text-center">
       <h1 className="text-page-heading">What's your idea?</h1>
-      <p className="mt-2 text-body text-muted-foreground">
-        Describe it in your own words. Anvil will ask questions until it's clear.
-      </p>
+      {showIntro && (
+        <p className="mt-2 text-body text-muted-foreground">
+          Describe it in your own words. Anvil will ask questions until it's clear.
+        </p>
+      )}
       <form
         onSubmit={submit}
         aria-busy={isPending}
@@ -56,6 +67,7 @@ export function IdeaPrompt() {
         </label>
         <textarea
           id={ideaId}
+          ref={ideaRef}
           value={idea}
           onChange={(event) => setIdea(event.target.value)}
           onKeyDown={onKeyDown}
@@ -88,6 +100,25 @@ export function IdeaPrompt() {
         <p id={errorId} role="alert" className="mt-3 text-left text-body-sm text-destructive">
           {error.message}
         </p>
+      )}
+      {showIntro && (
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+          <span className="text-caption font-normal text-muted-foreground">Try one:</span>
+          {EXAMPLE_IDEAS.map((example) => (
+            <button
+              key={example}
+              type="button"
+              disabled={isPending}
+              onClick={() => {
+                setIdea(example)
+                ideaRef.current?.focus()
+              }}
+              className="h-8 rounded-full border px-3 text-body-sm text-foreground/80 transition-[color,box-shadow] outline-none hover:bg-muted hover:text-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50"
+            >
+              {example}
+            </button>
+          ))}
+        </div>
       )}
     </section>
   )
