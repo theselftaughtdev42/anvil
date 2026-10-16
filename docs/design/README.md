@@ -37,23 +37,6 @@ Each status is a badge with a coloured dot, and the same colour fills the card's
 - **UI text:** [Geist](https://fonts.google.com/specimen/Geist).
 - **Wordmark only:** [Archivo](https://fonts.google.com/specimen/Archivo), weight 900.
 
-The home page's type sizes are the `--text-*` tokens in `theme.css`: page heading, section heading and card title (semibold), body (regular), and caption for captions and badges (medium).
+## Shape
 
-## Shape and spacing
-
-- Radius: largest for cards and the prompt, smaller for buttons and badges, fully round for chips and the avatar (`--radius-card`, `--radius-button` and `--radius-badge` in `theme.css`).
-- Content sits in a centred container with side padding (`max-w-content` and `px-gutter`, from `theme.css`).
-- Cards are flat: a border, no shadow.
-
-## Wireframes
-
-Screens for the v1 home page (spec #15). The data in them is made up.
-
-| Screen | File |
-|---|---|
-| Your requirements | ![Home page with requirement cards](wireframes/home-requirements.png) |
-| Your requirements, phone width | [home-requirements-mobile.png](wireframes/home-requirements-mobile.png) |
-| First visit, no requirements yet | ![Home page on first visit](wireframes/home-first-visit.png) |
-| Just after submitting an idea | ![Home page while an idea is being submitted](wireframes/home-idea-submitted.png) |
-
-The cards show question progress ("4 of 7 questions answered") to show where the design is heading. Until questions exist, every card shows an empty bar and "Not started".
+Cards are flat: a border, no shadow.
