@@ -137,13 +137,13 @@ test('while submitting, the form is locked and ignores another submit', async ()
 test('a new requirement marks the requirements list stale', async () => {
   respondWith(async () => Response.json(requirement, { status: 201 }))
   const { screen, queryClient, idea } = await renderPrompt()
-  queryClient.setQueryData([...requirementsKey, 'all'], { items: [] })
+  queryClient.setQueryData(requirementsKey, { items: [] })
 
   await idea.fill('Route change alerts')
   await userEvent.keyboard('{Enter}')
 
   await expect.element(screen.getByText('Requirement abc-123')).toBeVisible()
-  expect(queryClient.getQueryState([...requirementsKey, 'all'])?.isInvalidated).toBe(true)
+  expect(queryClient.getQueryState(requirementsKey)?.isInvalidated).toBe(true)
 })
 
 test('a failure keeps the idea, shows the error and lets you try again', async () => {

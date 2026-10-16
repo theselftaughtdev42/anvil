@@ -15,23 +15,14 @@ const requirements = statuses.flatMap((status, i) =>
 )
 
 // The e2e tests run without an API, so this stands in for GET
-// /api/requirements, filtering `items` by ?status= as the API does.
+// /api/requirements, which returns every requirement.
 async function serve(page: Page, items: typeof requirements) {
   await page.route('**/api/config', (route) =>
     route.fulfill({ json: { idea_placeholder: 'Riders can tip their driver' } }),
   )
   await page.route(
     (url) => url.pathname === '/api/requirements',
-    (route) => {
-      const status = new URL(route.request().url()).searchParams.get('status')
-      const count = (s: string) => items.filter((r) => r.status === s).length
-      return route.fulfill({
-        json: {
-          items: items.filter((r) => !status || r.status === status),
-          counts: { all: items.length, ...Object.fromEntries(statuses.map((s) => [s, count(s)])) },
-        },
-      })
-    },
+    (route) => route.fulfill({ json: { items } }),
   )
 }
 

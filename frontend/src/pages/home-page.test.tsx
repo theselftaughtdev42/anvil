@@ -38,25 +38,15 @@ const bulkImport = requirement({
   updated_at: hoursAgo(24 * 21),
 })
 const everyRequirement = [routeAlerts, offlineSync, bulkImport]
-const counts = { all: 3, draft: 1, in_progress: 1, complete: 1 }
 
-// Stands in for GET /api/requirements, filtering `requirements` by ?status=
-// as the API does. Returns the mock, to look at what was asked for.
+// Stands in for GET /api/requirements, which returns every requirement.
+// Returns the mock, to look at what was asked for.
 function serve(requirements: Requirement[], response?: (url: URL) => Promise<Response>) {
   const fetch = vi.fn<typeof globalThis.fetch>(async (input) => {
     const url = new URL(String(input), location.origin)
     if (url.pathname === '/api/config') return Response.json({ idea_placeholder: 'An idea' })
     if (response) return response(url)
-    const status = url.searchParams.get('status')
-    const list: RequirementList = {
-      items: requirements.filter((r) => !status || r.status === status),
-      counts: {
-        all: requirements.length,
-        draft: requirements.filter((r) => r.status === 'draft').length,
-        in_progress: requirements.filter((r) => r.status === 'in_progress').length,
-        complete: requirements.filter((r) => r.status === 'complete').length,
-      },
-    }
+    const list: RequirementList = { items: requirements }
     return Response.json(list)
   })
   vi.stubGlobal('fetch', fetch)
@@ -152,7 +142,7 @@ test('each tab shows its count', async () => {
   await expect.element(screen.getByRole('tab', { name: 'Complete 1' })).toBeVisible()
 })
 
-test('a tab filters by status and puts it in the URL', async () => {
+test('a tab filters by status in the browser and puts it in the URL', async () => {
   const fetch = serve(everyRequirement)
   const { screen, router } = await renderHome()
 
@@ -160,14 +150,12 @@ test('a tab filters by status and puts it in the URL', async () => {
 
   await expect.element(screen.getByRole('link', { name: 'Route change alerts' })).not.toBeInTheDocument()
   await expect.element(screen.getByRole('link', { name: 'Offline sync for drivers' })).toBeVisible()
-  expect(listRequests(fetch)).toEqual(['/api/requirements', '/api/requirements?status=complete'])
   expect(router.state.location.search).toBe('?status=complete')
 
   await screen.getByRole('tab', { name: /^All/ }).click()
   await expect.element(screen.getByRole('link', { name: 'Route change alerts' })).toBeVisible()
   expect(router.state.location.search).toBe('')
-  // All's cached list shows straight away, and is refreshed.
-  await expect.poll(() => listRequests(fetch)).toHaveLength(3)
+  expect(listRequests(fetch)).toEqual(['/api/requirements'])
 })
 
 test('the status in the URL picks the tab', async () => {
@@ -176,7 +164,8 @@ test('the status in the URL picks the tab', async () => {
 
   await expect.element(screen.getByRole('tab', { name: /^Draft/ })).toHaveAttribute('aria-selected', 'true')
   await expect.element(screen.getByRole('link', { name: 'Bulk import depots' })).toBeVisible()
-  expect(listRequests(fetch)).toEqual(['/api/requirements?status=draft'])
+  await expect.element(screen.getByRole('link', { name: 'Route change alerts' })).not.toBeInTheDocument()
+  expect(listRequests(fetch)).toEqual(['/api/requirements'])
 })
 
 test('an unknown status in the URL shows them all', async () => {
@@ -208,7 +197,7 @@ test('a failure shows a message, and Retry loads the list', async () => {
   serve([], async () =>
     fail
       ? Response.json({ detail: 'database unreachable' }, { status: 503 })
-      : Response.json({ items: [routeAlerts], counts: { ...counts, all: 1 } }),
+      : Response.json({ items: [routeAlerts] }),
   )
   const { screen } = await renderHome()
 
