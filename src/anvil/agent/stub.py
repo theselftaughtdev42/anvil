@@ -3,7 +3,7 @@ from collections.abc import Sequence
 
 from anvil.agent.base import (
     TITLE_MAX_LENGTH,
-    AnsweredQuestion,
+    AskedQuestion,
     QuestionDraft,
     RequirementBrief,
 )
@@ -98,12 +98,10 @@ class StubAgent:
     def ask_questions(
         self,
         requirement: RequirementBrief,
-        answered: Sequence[AnsweredQuestion],
+        asked: Sequence[AskedQuestion],
         context: str | None,
     ) -> list[QuestionDraft]:
         time.sleep(self.delay_ms / 1000)
-        # TODO: once Questions can be Dismissed, they won't be in `answered`, so
-        # this would ask them again. Pass every asked Question instead.
-        asked = {question.text for question in answered}
-        unasked = [question for question in QUESTIONS if question.text not in asked]
+        asked_texts = {question.text for question in asked}
+        unasked = [q for q in QUESTIONS if q.text not in asked_texts]
         return unasked[:QUESTIONS_PER_BATCH]
