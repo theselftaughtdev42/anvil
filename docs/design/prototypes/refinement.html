@@ -1,0 +1,238 @@
+<!doctype html>
+<!--
+  Reference prototype for the Refinement page (the card stack). Open it in a browser and click through.
+  It is the source for layout, copy and motion, not code to copy: build the real page from shadcn
+  components and theme.css. The anvil animation's keyframes below are the exact values to reproduce.
+  Questions and Answers here are made up.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Anvil: Refinement prototype</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@900&family=Geist:wght@400;500;600&family=Geist+Mono:wght@500&display=swap">
+<style>
+  :root {
+    --iron: #16130f; --card: #1f1a15; --raised: #241f19; --border: #2e2821; --border-strong: #4a4137;
+    --soot: #2b261f; --ash: #ede6da; --ash-dim: #c9c0b2; --muted: #a39a8c; --faint: #6b6259;
+    --ember: #e8642c; --ember-wash: #2a1a10; --amber: #e9c27a;
+    --steel: #7fa7bf; --steel-bg: #172229; --steel-border: #2a4250; --steel-text: #a9c7d8;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--iron); color: var(--ash); font: 400 14px/1.5 'Geist', ui-sans-serif, system-ui, sans-serif; }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  button:focus-visible, textarea:focus-visible { outline: 2px solid var(--ember); outline-offset: 2px; }
+
+  header { border-bottom: 1px solid var(--border); }
+  .bar { max-width: 1280px; margin: 0 auto; padding: 0 24px; height: 56px; display: flex; align-items: center; gap: 16px; }
+  .brand { display: flex; align-items: center; gap: 10px; color: var(--ash); text-decoration: none; }
+  .wordmark { font: 900 18px 'Archivo', sans-serif; letter-spacing: 0.04em; }
+  .title { flex: 1; min-width: 0; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .badge { display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 8px; border-radius: 6px; font-size: 12px; font-weight: 500; background: #2e2410; border: 1px solid #5a4518; color: var(--amber); }
+  .badge::before { content: ""; width: 6px; height: 6px; border-radius: 3px; background: #d9a441; }
+
+  main { max-width: 1180px; margin: 0 auto; padding: 36px 24px 56px; display: flex; flex-direction: column; gap: 28px; }
+  .progress { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .progress-label { font-size: 13px; color: var(--muted); }
+  .pips { display: flex; gap: 4px; }
+  .pip { width: 28px; height: 4px; border-radius: 2px; background: var(--soot); }
+  .pip.done { background: var(--steel); } .pip.now { background: var(--ember); }
+
+  .row { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-start; gap: 40px; }
+  .side { flex: 1 1 220px; max-width: 260px; min-width: 0; display: flex; flex-direction: column; gap: 10px; padding-top: 8px; }
+  .eyebrow { font-size: 12px; color: var(--muted); letter-spacing: 0.06em; }
+  .answered { border: 1px solid var(--steel-border); background: var(--steel-bg); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; }
+  .answered .t { font-size: 11px; color: var(--steel); letter-spacing: 0.04em; }
+  .answered .q { font-size: 13px; color: var(--steel-text); }
+  .answered .a { font-size: 13px; }
+  .next { border: 1px solid var(--border); background: var(--card); border-radius: 10px; padding: 10px 12px; font-size: 12px; color: var(--muted); letter-spacing: 0.04em; }
+  .dealt { border: 1px dashed var(--border-strong); border-radius: 10px; padding: 10px 12px; font-size: 12px; color: var(--faint); }
+
+  .stack { flex: 0 1 540px; min-width: 0; width: 100%; position: relative; padding-bottom: 76px; }
+  .under { position: absolute; left: 0; right: 0; top: 0; bottom: 76px; border-radius: 18px; border: 1px solid var(--border); transform-origin: bottom center; }
+  .under.u1 { z-index: 2; background: var(--card); transform: translateY(14px) scale(0.955); }
+  .under.u2 { z-index: 1; background: #1a1612; transform: translateY(28px) scale(0.91); }
+  .card { position: relative; z-index: 3; background: var(--raised); border: 1px solid var(--border-strong); border-radius: 18px; padding: 28px; min-height: 380px; display: flex; flex-direction: column; gap: 18px; box-shadow: 0 18px 40px rgba(0,0,0,0.45); }
+  .card-top { display: flex; justify-content: space-between; align-items: center; }
+  .topic { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--amber); letter-spacing: 0.06em; }
+  .num { font: 500 12px 'Geist Mono', monospace; color: var(--faint); }
+  .card h1 { margin: 0; font-size: 22px; font-weight: 600; line-height: 1.35; letter-spacing: -0.015em; text-wrap: balance; }
+  .why { margin: 0; color: var(--muted); }
+  .options { display: flex; flex-direction: column; gap: 8px; }
+  .option { text-align: left; display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--border); background: transparent; font-size: 14px; }
+  .option[aria-checked="true"] { border-color: var(--ember); background: var(--ember-wash); font-weight: 500; }
+  .option .key { font: 500 12px 'Geist Mono', monospace; color: var(--faint); width: 14px; }
+  textarea { border: 1px solid var(--border); border-radius: 10px; resize: none; padding: 10px 12px; font: 400 14px/1.5 'Geist', sans-serif; color: var(--ash); background: #1a1612; }
+  textarea::placeholder { color: var(--faint); }
+  .actions { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: auto; }
+  .btn { height: 38px; padding: 0 14px; border-radius: 8px; border: 1px solid var(--border); background: transparent; font-weight: 500; font-size: 13px; color: var(--ash-dim); }
+  .btn.primary { border: 0; padding: 0 18px; background: var(--ember); color: var(--iron); font-size: 14px; }
+  .hint { position: absolute; left: 0; right: 0; bottom: 0; display: flex; justify-content: center; gap: 14px; font-size: 12px; color: var(--muted); }
+  kbd { font: 500 11px 'Geist Mono', monospace; padding: 1px 5px; border: 1px solid var(--border-strong); border-radius: 4px; color: var(--ash-dim); }
+
+  .review { border-color: var(--steel-border); box-shadow: none; }
+  .review .eyebrow { color: var(--steel); }
+  .review dl { margin: 0; border-top: 1px solid var(--border); }
+  .review dl div { padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .review dt { font-size: 13px; color: var(--muted); }
+  .review dd { margin: 0; }
+  .review .actions { justify-content: flex-end; }
+
+  /* ---- The anvil above the progress label ------------------------------------------------
+     Small (64px) and warm, so it reads as part of the scene rather than a second logo.
+     At rest: each spark rises, drifts sideways, shrinks and fades on its own loop (6s, 7.2s,
+     8.4s), started mid-cycle with negative delays so they never fire together. A strip of ember
+     along the top face breathes between 35% and 60%.
+     On Answer: the sparks swell and settle (1.4s) and the face flares then cools (1.6s).
+     The strike alternates between two identical keyframe names so it replays every time. */
+  .anvil { width: 64px; height: 50px; margin-bottom: 4px; }
+  .anvil svg { overflow: visible; }
+  .sp { transform-box: fill-box; transform-origin: center; will-change: transform, opacity; opacity: 0;
+        animation: drift var(--d) cubic-bezier(.37,0,.63,1) var(--delay) infinite; }
+  @keyframes drift {
+    0%   { transform: translate(0, 2px) scale(1); opacity: 0; }
+    18%  { opacity: var(--o); }
+    60%  { opacity: calc(var(--o) * .7); }
+    100% { transform: translate(var(--dx), -14px) scale(.55); opacity: 0; }
+  }
+  .heat { animation: heat 6s ease-in-out infinite; }
+  @keyframes heat { 0%, 100% { opacity: .35; } 50% { opacity: .6; } }
+  .burst { transform-box: fill-box; transform-origin: 50% 100%; }
+  .hit-a .burst { animation: strike-a 1.4s cubic-bezier(.16,1,.3,1); }
+  .hit-b .burst { animation: strike-b 1.4s cubic-bezier(.16,1,.3,1); }
+  @keyframes strike-a { 0% { transform: translateY(6px) scale(.7); filter: brightness(1.6); } 40% { transform: translateY(-3px) scale(1.2); filter: brightness(1.3); } 100% { transform: none; filter: none; } }
+  @keyframes strike-b { 0% { transform: translateY(6px) scale(.7); filter: brightness(1.6); } 40% { transform: translateY(-3px) scale(1.2); filter: brightness(1.3); } 100% { transform: none; filter: none; } }
+  .hit-a .heat { animation: flash-a 1.6s ease-out, heat 6s ease-in-out 1.6s infinite; }
+  .hit-b .heat { animation: flash-b 1.6s ease-out, heat 6s ease-in-out 1.6s infinite; }
+  @keyframes flash-a { 0% { opacity: 1; } 100% { opacity: .35; } }
+  @keyframes flash-b { 0% { opacity: 1; } 100% { opacity: .35; } }
+  @media (prefers-reduced-motion: reduce) {
+    .sp, .heat, .burst { animation: none !important; }
+    .sp { opacity: var(--o); } .heat { opacity: .45; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <a class="brand" href="#">
+      <svg width="38" height="28" viewBox="0 -2 100 74" aria-hidden="true"><path d="M4 34 C16 34 24 32 28 30 H94 V44 H78 Q68 46 66 58 H76 V70 H28 V58 H38 Q36 46 28 44 Q14 42 4 34 Z" fill="#EDE6DA"/><path d="M0 -8 L4 0 L0 8 L-4 0 Z" fill="#E8642C" transform="translate(58 12) scale(1.15)"/><path d="M0 -8 L4 0 L0 8 L-4 0 Z" fill="#E8642C" opacity="0.55" transform="translate(48 6) scale(0.6)"/><path d="M0 -8 L4 0 L0 8 L-4 0 Z" fill="#E8642C" opacity="0.3" transform="translate(69 3) scale(0.45)"/></svg>
+      <span class="wordmark">ANVIL</span>
+    </a>
+    <span style="color: var(--border-strong)">/</span>
+    <span class="title">Rebook a missed delivery</span>
+    <span class="badge">In progress</span>
+  </div>
+</header>
+
+<main>
+  <div class="progress">
+    <div class="anvil" id="anvil" aria-hidden="true">
+      <svg width="64" height="50" viewBox="0 -14 100 86">
+        <defs><linearGradient id="heatgrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#E8642C"/><stop offset="1" stop-color="#E8642C" stop-opacity="0"/></linearGradient></defs>
+        <path d="M4 34 C16 34 24 32 28 30 H94 V44 H78 Q68 46 66 58 H76 V70 H28 V58 H38 Q36 46 28 44 Q14 42 4 34 Z" fill="#EDE6DA"/>
+        <path class="heat" d="M28 30 H94 V37 H28 Z" fill="url(#heatgrad)"/>
+        <g class="burst">
+          <g transform="translate(58 12) scale(1.15)"><path class="sp" style="--o:.9; --d:6s; --delay:0s; --dx:1px" d="M0 -8 L4 0 L0 8 L-4 0 Z" fill="#E8642C"/></g>
+          <g transform="translate(48 6) scale(0.6)"><path class="sp" style="--o:.6; --d:7.2s; --delay:-2.4s; --dx:-3px" d="M0 -8 L4 0 L0 8 L-4 0 Z" fill="#E8642C"/></g>
+          <g transform="translate(69 3) scale(0.45)"><path class="sp" style="--o:.45; --d:8.4s; --delay:-5.1s; --dx:3px" d="M0 -8 L4 0 L0 8 L-4 0 Z" fill="#E8642C"/></g>
+        </g>
+      </svg>
+    </div>
+    <span class="progress-label" id="progress-label"></span>
+    <div class="pips" id="pips"></div>
+  </div>
+
+  <div class="row">
+    <section class="side" aria-label="Answered">
+      <span class="eyebrow" id="answered-label"></span>
+      <div id="answered" style="display: flex; flex-direction: column; gap: 10px"></div>
+    </section>
+    <div class="stack" id="stack"></div>
+    <section class="side" aria-label="In the stack">
+      <span class="eyebrow" id="next-label"></span>
+      <div id="next" style="display: flex; flex-direction: column; gap: 10px"></div>
+      <div class="dealt">Anvil deals new cards as your answers raise new questions.</div>
+    </section>
+  </div>
+</main>
+
+<script>
+const queue = [
+  { n: 3, topic: 'EDGE CASES', q: 'If the parcel has already gone back to the depot, can it be delivered again, or does the customer need to collect it?', why: 'The rebooking page offers different options in each case.', opts: ['Deliver again', 'Collect only', 'Let the customer choose'] },
+  { n: 4, topic: 'SCHEDULING', q: 'What should the customer see if there are no free slots in the next 5 working days?', why: 'Without an answer, some customers will hit a dead end.', opts: ['The next free slot after that', 'The nearest collection point', 'A number to call'] },
+  { n: 5, topic: 'EDGE CASES', q: 'Can a delivery be rebooked more than once?', why: 'Repeated rebooking costs driver time.', opts: ['Once only', 'Up to three times', 'As often as needed'] },
+  { n: 6, topic: 'OPERATIONS', q: "How soon before the new day does the driver's route need to include the parcel?", why: 'This sets the cut-off time shown to the customer.', opts: ['By 6pm the day before', 'By the start of the shift', 'Any time, routes update live'] },
+  { n: 7, topic: 'COST', q: 'Is rebooking free?', why: 'If not, the page needs a payment step.', opts: ['Always free', 'Free the first time', 'Always charged'] },
+];
+const answered = [
+  { topic: 'WHO', q: 'Who can rebook?', a: 'Anyone with the link' },
+  { topic: 'SCHEDULING', q: 'How far ahead can they pick a new slot?', a: 'Up to 5 working days' },
+];
+let picked = null, hits = 0;
+const $ = (id) => document.getElementById(id);
+const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+
+function render() {
+  const card = queue[0], total = answered.length + queue.length;
+  $('progress-label').textContent = card ? `Question ${answered.length + 1} of about ${total}` : `All ${total} answered`;
+  $('pips').innerHTML = Array.from({ length: total }, (_, i) => `<span class="pip ${i < answered.length ? 'done' : i === answered.length ? 'now' : ''}"></span>`).join('');
+  $('answered-label').textContent = `ANSWERED · ${answered.length}`;
+  $('answered').innerHTML = answered.slice(-4).reverse().map((x) => `<div class="answered"><span class="t">${x.topic}</span><span class="q">${esc(x.q)}</span><span class="a">${esc(x.a)}</span></div>`).join('');
+  $('next-label').textContent = `IN THE STACK · ${Math.max(queue.length - 1, 0)}`;
+  $('next').innerHTML = queue.slice(1, 4).map((x) => `<div class="next">${x.topic}</div>`).join('');
+  $('anvil').className = 'anvil ' + (hits === 0 ? '' : hits % 2 ? 'hit-a' : 'hit-b');
+
+  if (!card) {
+    $('stack').innerHTML = `<article class="card review">
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <span class="eyebrow">READY TO REVIEW</span>
+        <h1>Anvil thinks this is clear enough to act on</h1>
+        <p class="why">Check your answers. Marking it complete is your call, and you can reopen it later.</p>
+      </div>
+      <dl>${answered.map((x) => `<div><dt>${esc(x.q)}</dt><dd>${esc(x.a)}</dd></div>`).join('')}</dl>
+      <div class="actions"><button class="btn" type="button">Ask more questions</button><button class="btn primary" type="button">Mark as complete</button></div>
+    </article>`;
+    return;
+  }
+  const unders = queue.slice(1, 3).map((_, i) => `<div class="under u${i + 1}" aria-hidden="true"></div>`).join('');
+  $('stack').innerHTML = `${unders}
+    <article class="card">
+      <div class="card-top">
+        <span class="topic"><svg width="12" height="12" viewBox="-10 -10 20 20" aria-hidden="true"><path d="M0 -8 L4 0 L0 8 L-4 0 Z" fill="#E8642C"/></svg>${card.topic}</span>
+        <span class="num">#${card.n}</span>
+      </div>
+      <h1>${esc(card.q)}</h1>
+      <p class="why">${esc(card.why)}</p>
+      <div class="options" role="radiogroup" aria-label="Suggested answers">
+        ${card.opts.map((o, i) => `<button type="button" class="option" role="radio" aria-checked="${picked === i}" data-i="${i}"><span class="key">${i + 1}</span>${esc(o)}</button>`).join('')}
+      </div>
+      <label for="own" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Your own answer</label>
+      <textarea id="own" rows="2" placeholder="Or answer in your own words"></textarea>
+      <div class="actions"><button type="button" class="btn" id="later">Later</button><button type="button" class="btn primary" id="answer">Answer</button></div>
+    </article>
+    <div class="hint"><span><kbd>1</kbd>–<kbd>3</kbd> pick</span><span><kbd>Enter</kbd> answer</span><span><kbd>L</kbd> later</span></div>`;
+  document.querySelectorAll('.option').forEach((b) => b.onclick = () => { picked = +b.dataset.i; render(); });
+  $('answer').onclick = answer;
+  $('later').onclick = later;
+}
+function answer() {
+  const card = queue[0]; if (!card) return;
+  const own = $('own') && $('own').value.trim();
+  if (picked === null && !own) return;
+  answered.push({ topic: card.topic, q: card.q, a: own || card.opts[picked] });
+  queue.shift(); picked = null; hits++; render();
+}
+// Later moves the card to the bottom of the stack: it comes back once everything else is answered.
+function later() { if (queue.length > 1) { queue.push(queue.shift()); picked = null; render(); } }
+document.addEventListener('keydown', (e) => {
+  if (!queue[0] || e.target.tagName === 'TEXTAREA') return;
+  if (['1', '2', '3'].includes(e.key)) { picked = +e.key - 1; render(); }
+  else if (e.key === 'Enter') answer();
+  else if (e.key.toLowerCase() === 'l') later();
+});
+render();
+</script>
+</body>
+</html>
