@@ -182,15 +182,17 @@ test('a tab with nothing in it says so', async () => {
   await expect.element(screen.getByRole('tab', { name: 'Complete 0' })).toBeVisible()
 })
 
-test('skeleton cards show while the list loads', async () => {
+test('a spinner shows while the list loads, and nothing else yet', async () => {
   serve([], () => new Promise(() => {}))
   const { screen } = await renderHome()
 
-  await expect.element(screen.getByText('Loading your requirements…')).toBeInTheDocument()
-  await expect.element(screen.getByRole('heading', { name: 'Your requirements' })).toBeVisible()
+  await expect.element(screen.getByRole('status')).toHaveTextContent('Loading your requirements…')
+  await expect.element(screen.getByRole('heading', { name: 'Your requirements' })).not.toBeInTheDocument()
+  await expect.element(screen.getByText('Your requirements will appear here.')).not.toBeInTheDocument()
+  await expect.element(screen.getByRole('textbox')).not.toBeInTheDocument()
 })
 
-test('a failure shows a message, and Retry loads the list', async () => {
+test('a failure shows only a message, and Retry loads the page', async () => {
   let fail = true
   serve([], async () =>
     fail
@@ -200,6 +202,7 @@ test('a failure shows a message, and Retry loads the list', async () => {
   const { screen } = await renderHome()
 
   await expect.element(screen.getByRole('alert')).toHaveTextContent("Couldn't load your requirements.")
+  await expect.element(screen.getByRole('textbox')).not.toBeInTheDocument()
   fail = false
   await screen.getByRole('button', { name: 'Retry' }).click()
   await expect.element(screen.getByRole('link', { name: 'Route change alerts' })).toBeVisible()
