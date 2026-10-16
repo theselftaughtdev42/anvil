@@ -23,24 +23,27 @@ export interface Requirement {
   progress: null
 }
 
-// GET /api/requirements: the Point of Contact's Requirements, most recently
-// updated first. `counts` covers all of them, whatever the filter.
+// GET /api/requirements: all of the Point of Contact's Requirements, most
+// recently updated first. The UI filters them.
 export interface RequirementList {
   items: Requirement[]
-  counts: Record<RequirementStatus | 'all', number>
 }
 
-// The query key every requirements query sits under, so invalidating it
-// refreshes them all.
+// The list's query key, so a new Requirement can mark it stale.
 export const requirementsKey = ['requirements'] as const
 
-// The list, filtered to one status, or every Requirement when `status` is
-// undefined.
-export function requirementsQuery(status?: RequirementStatus) {
+export function requirementsQuery() {
   return queryOptions({
-    queryKey: [...requirementsKey, status ?? 'all'],
-    queryFn: () => api<RequirementList>(status ? `/requirements?status=${status}` : '/requirements'),
+    queryKey: requirementsKey,
+    queryFn: () => api<RequirementList>('/requirements'),
   })
+}
+
+// How many of `requirements` have each status, and how many there are in all.
+export function countByStatus(requirements: Requirement[]): Record<RequirementStatus | 'all', number> {
+  const counts = { all: requirements.length, draft: 0, in_progress: 0, complete: 0 }
+  for (const requirement of requirements) counts[requirement.status]++
+  return counts
 }
 
 export function createRequirement(idea: string): Promise<Requirement> {

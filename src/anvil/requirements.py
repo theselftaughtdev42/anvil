@@ -4,7 +4,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, StringConstraints
-from sqlmodel import col, func, select
+from sqlmodel import col, select
 
 from anvil.agent import AgentDep, ProjectContextDep
 from anvil.auth import CurrentUserDep
@@ -37,18 +37,8 @@ class RequirementPublic(BaseModel):
     progress: None = None
 
 
-# How many of the Point of Contact's Requirements have each status, whatever
-# the list is filtered by, so the UI's tabs can show them all.
-class RequirementCounts(BaseModel):
-    all: int
-    draft: int
-    in_progress: int
-    complete: int
-
-
 class RequirementList(BaseModel):
     items: list[RequirementPublic]
-    counts: RequirementCounts
 
 
 @router.post("", status_code=201)
@@ -71,40 +61,19 @@ def create_requirement(
     return RequirementPublic.model_validate(requirement, from_attributes=True)
 
 
-# The Point of Contact's Requirements, most recently updated first.
+# All of the Point of Contact's Requirements, most recently updated first.
 @router.get("")
-def list_requirements(
-    session: SessionDep,
-    user: CurrentUserDep,
-    status: RequirementStatus | None = None,
-) -> RequirementList:
+def list_requirements(session: SessionDep, user: CurrentUserDep) -> RequirementList:
     query = (
         select(Requirement)
         .where(Requirement.point_of_contact_id == user.id)
         .order_by(col(Requirement.updated_at).desc())
     )
-    if status is not None:
-        query = query.where(Requirement.status == status)
     items = [
         RequirementPublic.model_validate(requirement, from_attributes=True)
         for requirement in session.exec(query)
     ]
-
-    by_status = dict.fromkeys(RequirementStatus, 0)
-    counts_query = (
-        select(Requirement.status, func.count())
-        .where(Requirement.point_of_contact_id == user.id)
-        .group_by(Requirement.status)
-    )
-    for requirement_status, count in session.exec(counts_query):
-        by_status[RequirementStatus(requirement_status)] = count
-    counts = RequirementCounts(
-        all=sum(by_status.values()),
-        draft=by_status[RequirementStatus.DRAFT],
-        in_progress=by_status[RequirementStatus.IN_PROGRESS],
-        complete=by_status[RequirementStatus.COMPLETE],
-    )
-    return RequirementList(items=items, counts=counts)
+    return RequirementList(items=items)
 
 
 # Another Point of Contact's Requirement is a 404 too, so ids don't leak.

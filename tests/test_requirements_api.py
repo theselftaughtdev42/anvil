@@ -155,10 +155,7 @@ def test_list_is_empty_to_start_with() -> None:
     response = client.get("/api/requirements")
 
     assert response.status_code == 200
-    assert response.json() == {
-        "items": [],
-        "counts": {"all": 0, "draft": 0, "in_progress": 0, "complete": 0},
-    }
+    assert response.json() == {"items": []}
 
 
 def test_list_is_most_recently_updated_first(app_on_test_db: Engine) -> None:
@@ -179,37 +176,7 @@ def test_list_only_shows_the_current_users_requirements(
     add_requirement(app_on_test_db, someone_else)
     mine = create("Mine")
 
-    body = client.get("/api/requirements").json()
-
-    assert body["items"] == [mine]
-    assert body["counts"] == {"all": 1, "draft": 1, "in_progress": 0, "complete": 0}
-
-
-def test_list_filters_by_status_but_counts_everything(
-    app_on_test_db: Engine, someone_else: PointOfContact
-) -> None:
-    add_requirement(app_on_test_db, someone_else, RequirementStatus.COMPLETE)
-    create("Draft")
-    in_progress = create("In progress")
-    complete = create("Complete")
-    set_status(app_on_test_db, in_progress["id"], RequirementStatus.IN_PROGRESS)
-    set_status(app_on_test_db, complete["id"], RequirementStatus.COMPLETE)
-    counts = {"all": 3, "draft": 1, "in_progress": 1, "complete": 1}
-
-    body = client.get("/api/requirements", params={"status": "complete"}).json()
-
-    assert [item["id"] for item in body["items"]] == [complete["id"]]
-    assert body["counts"] == counts
-    assert client.get("/api/requirements").json()["counts"] == counts
-
-
-def test_list_rejects_an_unknown_status() -> None:
-    response = client.get("/api/requirements", params={"status": "done"})
-
-    assert response.status_code == 422
-    [error] = response.json()["detail"]
-    assert error["loc"] == ["query", "status"]
-    assert error["msg"] == "Input should be 'draft', 'in_progress' or 'complete'"
+    assert client.get("/api/requirements").json()["items"] == [mine]
 
 
 # --- Getting one ------------------------------------------------------------

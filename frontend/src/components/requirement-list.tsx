@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
+  countByStatus,
   type RequirementList as RequirementListData,
   type RequirementStatus,
   requirementStatuses,
@@ -21,8 +22,8 @@ const tabs: { value: StatusFilter; label: string }[] = [
 const grid = 'grid gap-4 sm:grid-cols-2 lg:grid-cols-3'
 
 // "Your requirements": the status tabs over a grid of cards, or the loading,
-// error or empty state in place of the grid. `query` is the list for `status`;
-// its data may still be the previous tab's while this one loads.
+// error or empty state in place of the grid. `query` holds every Requirement;
+// the tabs filter it here.
 export function RequirementList({
   status,
   onStatusChange,
@@ -32,7 +33,9 @@ export function RequirementList({
   onStatusChange: (status: StatusFilter) => void
   query: UseQueryResult<RequirementListData>
 }) {
-  const { data, isPlaceholderData } = query
+  const { data } = query
+  const counts = data && countByStatus(data.items)
+  const items = data && (status === 'all' ? data.items : data.items.filter((r) => r.status === status))
 
   return (
     <section aria-labelledby="your-requirements" className="mt-12 mb-16">
@@ -41,8 +44,7 @@ export function RequirementList({
           <h2 id="your-requirements" className="text-section-heading">
             Your requirements
           </h2>
-          {/* Counts cover every Requirement, so the previous tab's are still right */}
-          {data && (
+          {counts && (
             <TabsList
               aria-label="Filter by status"
               className="h-9 max-w-full justify-start overflow-x-auto"
@@ -55,7 +57,7 @@ export function RequirementList({
                 >
                   {tab.label}{' '}
                   <span className="text-caption font-normal text-muted-foreground">
-                    {data.counts[tab.value]}
+                    {counts[tab.value]}
                   </span>
                 </TabsTrigger>
               ))}
@@ -65,9 +67,9 @@ export function RequirementList({
         <TabsContent value={status} className="mt-2">
           {query.isError ? (
             <ListError onRetry={() => void query.refetch()} />
-          ) : !data || isPlaceholderData ? (
+          ) : !items ? (
             <LoadingCards />
-          ) : data.items.length === 0 ? (
+          ) : items.length === 0 ? (
             <p className="py-8 text-center text-body-sm text-muted-foreground">
               {status === 'all'
                 ? 'No requirements yet.'
@@ -75,7 +77,7 @@ export function RequirementList({
             </p>
           ) : (
             <ul className={grid}>
-              {data.items.map((requirement) => (
+              {items.map((requirement) => (
                 <li key={requirement.id} className="grid">
                   <RequirementCard requirement={requirement} />
                 </li>

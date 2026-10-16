@@ -7,7 +7,7 @@ test.beforeEach(async ({ page }) => {
   )
   await page.route('**/api/requirements', (route) =>
     route.request().method() === 'GET'
-      ? route.fulfill({ json: { items: [], counts: { all: 0, draft: 0, in_progress: 0, complete: 0 } } })
+      ? route.fulfill({ json: { items: [] } })
       : route.fulfill({
       status: 201,
       json: {
