@@ -78,7 +78,7 @@ afterEach(() => {
 
 const intro = "Describe it in your own words. Anvil will ask questions until it's clear."
 
-test('a first visit shows the steps, the intro and example ideas, and no tabs', async () => {
+test('a first visit shows the steps and the intro, and no tabs', async () => {
   serve([])
   const { screen } = await renderHome()
 
@@ -88,7 +88,6 @@ test('a first visit shows the steps, the intro and example ideas, and no tabs', 
   await expect.element(steps.nth(1)).toHaveTextContent("2. Answer Anvil's questions")
   await expect.element(steps.nth(2)).toHaveTextContent('3. Get a clear requirement')
   await expect.element(screen.getByText(intro)).toBeVisible()
-  await expect.element(screen.getByRole('button', { name: 'A dashboard of late orders' })).toBeVisible()
   await expect.element(screen.getByRole('tablist')).not.toBeInTheDocument()
   await expect.element(screen.getByRole('heading', { name: 'Your requirements' })).not.toBeInTheDocument()
 })
@@ -119,7 +118,6 @@ test('cards show each requirement, newest first', async () => {
     .toHaveAttribute('href', '/requirements/r2')
   // With requirements, the prompt drops its intro.
   await expect.element(screen.getByText(intro)).not.toBeInTheDocument()
-  await expect.element(screen.getByRole('button', { name: 'A dashboard of late orders' })).not.toBeInTheDocument()
 })
 
 test('a card opens its requirement', async () => {

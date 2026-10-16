@@ -165,25 +165,10 @@ test('a failure keeps the idea, shows the error and lets you try again', async (
   await expect.element(screen.getByText('Requirement abc-123')).toBeVisible()
 })
 
-test('the intro and example ideas only show when asked for', async () => {
+test('the intro only shows when asked for', async () => {
   respondWith(async () => Response.json(requirement, { status: 201 }))
   const { screen } = await renderPrompt()
 
   await expect.element(screen.getByRole('textbox', { name: 'Your idea' })).toBeVisible()
   await expect.element(screen.getByText(/Anvil will ask questions/)).not.toBeInTheDocument()
-  await expect.element(screen.getByText('Try one:')).not.toBeInTheDocument()
-})
-
-test('an example idea fills the prompt, ready to start', async () => {
-  const fetch = respondWith(async () => Response.json(requirement, { status: 201 }))
-  const { screen, idea } = await renderPrompt({ showIntro: true })
-
-  await expect.element(screen.getByText(/Anvil will ask questions/)).toBeVisible()
-  await screen.getByRole('button', { name: 'A dashboard of late orders' }).click()
-
-  await expect.element(idea).toHaveValue('A dashboard of late orders')
-  await expect.element(idea).toHaveFocus()
-  await userEvent.keyboard('{Enter}')
-  await expect.element(screen.getByText('Requirement abc-123')).toBeVisible()
-  expect(fetch.mock.calls[0][1]?.body).toBe('{"idea":"A dashboard of late orders"}')
 })

@@ -14,7 +14,8 @@ export function HomePage() {
   // Anything else in the URL, e.g. a stale link's typo, shows them all.
   const status = requirementStatuses.find((s) => s === param)
   const query = useQuery(requirementsQuery())
-  // Unknown until the list loads, so neither layout shows a flash of the other.
+  // False until the list loads (or if it fails), so the list's own loading and
+  // error states show first; only a loaded, empty list means a first visit.
   const firstVisit = query.data?.items.length === 0
 
   const changeStatus = (next: StatusFilter) => {
