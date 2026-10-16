@@ -47,6 +47,11 @@ class Requirement(SQLModel, table=True):
         sa_type=status_type,
         sa_column_kwargs={"server_default": RequirementStatus.DRAFT.value},
     )
+    # Set when the agent returns an empty batch of Questions, so it isn't asked
+    # again. None means Anvil may still have Questions.
+    questions_exhausted_at: datetime | None = Field(
+        default=None, sa_type=sa.DateTime(timezone=True)
+    )
     # Set by the database, so None until the row is flushed.
     created_at: datetime | None = Field(
         default=None,

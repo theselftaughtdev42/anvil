@@ -1,4 +1,5 @@
 import uuid
+from datetime import UTC, datetime
 
 import pytest
 from sqlalchemy import Engine
@@ -66,3 +67,22 @@ def test_requirement_needs_an_existing_point_of_contact(session: Session) -> Non
 
     with pytest.raises(IntegrityError, match="foreign key"):
         session.commit()
+
+
+def test_questions_exhausted_at_starts_empty_and_can_be_set(
+    session: Session, point_of_contact: PointOfContact
+) -> None:
+    requirement = Requirement(
+        point_of_contact_id=point_of_contact.id, idea="An idea", title="Idea"
+    )
+    session.add(requirement)
+    session.commit()
+    session.refresh(requirement)
+    assert requirement.questions_exhausted_at is None
+
+    exhausted_at = datetime.now(UTC)
+    requirement.questions_exhausted_at = exhausted_at
+    session.commit()
+    session.expire_all()
+
+    assert requirement.questions_exhausted_at == exhausted_at
