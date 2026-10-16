@@ -43,13 +43,13 @@ export function RequirementList({
           </h2>
           <TabsList
             aria-label="Filter by status"
-            className="h-9 max-w-full justify-start overflow-x-auto"
+            className="flex-wrap justify-start group-data-[orientation=horizontal]/tabs:h-auto"
           >
             {tabs.map((tab) => (
               <TabsTrigger
                 key={tab.value}
                 value={tab.value}
-                className="flex-none px-2.5 text-body-sm sm:px-3 font-medium data-[state=active]:shadow-none dark:data-[state=active]:border-transparent dark:data-[state=active]:bg-background"
+                className="flex-none px-2 text-body-sm sm:px-3 font-medium data-[state=active]:shadow-none dark:data-[state=active]:border-transparent dark:data-[state=active]:bg-background"
               >
                 {tab.label}{' '}
                 <span className="text-caption font-normal text-muted-foreground">
