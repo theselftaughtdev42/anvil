@@ -71,13 +71,7 @@
   .hint { position: absolute; left: 0; right: 0; bottom: 0; display: flex; justify-content: center; gap: 14px; font-size: 12px; color: var(--muted); }
   kbd { font: 500 11px 'Geist Mono', monospace; padding: 1px 5px; border: 1px solid var(--border-strong); border-radius: 4px; color: var(--ash-dim); }
 
-  .review { border-color: var(--steel-border); box-shadow: none; }
-  .review .eyebrow { color: var(--steel); }
-  .review dl { margin: 0; border-top: 1px solid var(--border); }
-  .review dl div { padding: 10px 0; border-bottom: 1px solid var(--border); }
-  .review dt { font-size: 13px; color: var(--muted); }
-  .review dd { margin: 0; }
-  .review .actions { justify-content: flex-end; }
+  .done-card { min-height: 0; border-color: var(--border); box-shadow: none; gap: 6px; }
 
   /* ---- The anvil above the progress label ------------------------------------------------
      Small (64px) and warm, so it reads as part of the scene rather than a second logo.
@@ -185,14 +179,9 @@ function render() {
   $('anvil').className = 'anvil ' + (hits === 0 ? '' : hits % 2 ? 'hit-a' : 'hit-b');
 
   if (!card) {
-    $('stack').innerHTML = `<article class="card review">
-      <div style="display:flex;flex-direction:column;gap:6px">
-        <span class="eyebrow">READY TO REVIEW</span>
-        <h1>Anvil thinks this is clear enough to act on</h1>
-        <p class="why">Check your answers. Marking it complete is your call, and you can reopen it later.</p>
-      </div>
-      <dl>${answered.map((x) => `<div><dt>${esc(x.q)}</dt><dd>${esc(x.a)}</dd></div>`).join('')}</dl>
-      <div class="actions"><button class="btn" type="button">Ask more questions</button><button class="btn primary" type="button">Mark as complete</button></div>
+    $('stack').innerHTML = `<article class="card done-card">
+      <span class="eyebrow">NO MORE QUESTIONS</span>
+      <h1>Anvil has no more questions for now</h1>
     </article>`;
     return;
   }

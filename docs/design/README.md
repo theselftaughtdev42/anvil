@@ -60,4 +60,4 @@ The card stack: one Question per card, answered one at a time. Open [`prototypes
 |---|---|
 | A Question on top of the stack | ![The card stack](wireframes/refinement-card.png) |
 | Mid-way, with an Answer picked | ![After two Answers](wireframes/refinement-after-two-answers.png) |
-| Every Question answered: Anvil suggests the Requirement is Complete | ![Ready to review](wireframes/refinement-ready-to-review.png) |
+| Every Question answered: Anvil has no more to ask | ![No more questions](wireframes/refinement-no-more-questions.png) |
