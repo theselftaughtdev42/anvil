@@ -1,6 +1,39 @@
-from typing import Protocol
+from collections.abc import Sequence
+from typing import Annotated, Protocol
+
+from pydantic import BaseModel, Field
 
 TITLE_MAX_LENGTH = 80
+# Matches the question table's topic column, so a draft always fits its row.
+TOPIC_MAX_LENGTH = 40
+# The agent's own cap; the table deliberately has none.
+SUGGESTIONS_MAX = 3
+
+
+# What the agent is told about the Requirement it's refining.
+class RequirementBrief(BaseModel, frozen=True):
+    title: str
+    idea: str
+
+
+class AnsweredQuestion(BaseModel, frozen=True):
+    topic: str
+    text: str
+    answer: str
+
+
+# A new Question from the agent, before it's saved. Whitespace is stripped, so
+# a blank value can't reach a card.
+class QuestionDraft(BaseModel, frozen=True, str_strip_whitespace=True):
+    # A short label shown on the card, for example "Edge cases".
+    topic: str = Field(min_length=1, max_length=TOPIC_MAX_LENGTH)
+    text: str = Field(min_length=1)
+    # Why Anvil is asking, in one sentence.
+    why: str | None = None
+    # Suggested Answers.
+    suggestions: tuple[Annotated[str, Field(min_length=1)], ...] = Field(
+        default=(), max_length=SUGGESTIONS_MAX
+    )
 
 
 class RefinementAgent(Protocol):
@@ -9,5 +42,15 @@ class RefinementAgent(Protocol):
         """A short title, at most TITLE_MAX_LENGTH characters, for a new idea."""
         ...
 
-    # Refinement's methods go here next: asking the next Question, and judging
-    # when a Requirement is clear enough to suggest it's Complete.
+    # `answered` is in the order the Answers were given.
+    def ask_questions(
+        self,
+        requirement: RequirementBrief,
+        answered: Sequence[AnsweredQuestion],
+        context: str | None,
+    ) -> list[QuestionDraft]:
+        """The next batch of Questions. An empty list means nothing more to ask."""
+        ...
+
+    # Judging when a Requirement is clear enough to suggest it's Complete goes
+    # here next.
