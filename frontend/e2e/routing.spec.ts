@@ -10,7 +10,7 @@ test('the requirement page links back home', async ({ page }) => {
   await page.goto('/requirements/abc-123')
   await page.getByRole('link', { name: 'Back home' }).click()
   await expect(page).toHaveURL('/')
-  await expect(page.getByRole('heading', { name: 'Requirement' })).toBeHidden()
+  await expect(page.getByRole('heading', { name: 'Requirement', exact: true })).toBeHidden()
 })
 
 const notFound = (page: Page) => page.getByRole('heading', { name: "Nothing's on the anvil here" })

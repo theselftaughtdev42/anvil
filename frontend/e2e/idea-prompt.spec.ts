@@ -6,7 +6,9 @@ test.beforeEach(async ({ page }) => {
     route.fulfill({ json: { idea_placeholder: 'Riders can tip their driver' } }),
   )
   await page.route('**/api/requirements', (route) =>
-    route.fulfill({
+    route.request().method() === 'GET'
+      ? route.fulfill({ json: { items: [], counts: { all: 0, draft: 0, in_progress: 0, complete: 0 } } })
+      : route.fulfill({
       status: 201,
       json: {
         id: 'abc-123',
