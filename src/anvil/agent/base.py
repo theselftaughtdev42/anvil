@@ -16,10 +16,12 @@ class RequirementBrief(BaseModel, frozen=True):
     idea: str
 
 
-class AnsweredQuestion(BaseModel, frozen=True):
+# A Question the agent has already asked about this Requirement.
+class AskedQuestion(BaseModel, frozen=True):
     topic: str
     text: str
-    answer: str
+    # None while the Question is still Open.
+    answer: str | None = None
 
 
 # A new Question from the agent, before it's saved. Whitespace is stripped, so
@@ -42,11 +44,12 @@ class RefinementAgent(Protocol):
         """A short title, at most TITLE_MAX_LENGTH characters, for a new idea."""
         ...
 
-    # `answered` is in the order the Answers were given.
+    # `asked` is every Question asked so far, Open or not, in the order they
+    # were asked, so the agent never asks one twice.
     def ask_questions(
         self,
         requirement: RequirementBrief,
-        answered: Sequence[AnsweredQuestion],
+        asked: Sequence[AskedQuestion],
         context: str | None,
     ) -> list[QuestionDraft]:
         """The next batch of Questions. An empty list means nothing more to ask."""

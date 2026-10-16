@@ -15,7 +15,7 @@ from anvil.agent.base import (
     SUGGESTIONS_MAX,
     TITLE_MAX_LENGTH,
     TOPIC_MAX_LENGTH,
-    AnsweredQuestion,
+    AskedQuestion,
     QuestionDraft,
     RequirementBrief,
 )
@@ -98,10 +98,9 @@ REQUIREMENT = RequirementBrief(
 )
 
 
-def answer_all(questions: list[QuestionDraft]) -> list[AnsweredQuestion]:
+def answer_all(questions: list[QuestionDraft]) -> list[AskedQuestion]:
     return [
-        AnsweredQuestion(topic=q.topic, text=q.text, answer="An answer")
-        for q in questions
+        AskedQuestion(topic=q.topic, text=q.text, answer="An answer") for q in questions
     ]
 
 
@@ -126,6 +125,16 @@ def test_stub_skips_questions_already_answered_in_any_order() -> None:
     asked = StubAgent().ask_questions(REQUIREMENT, answered, None)
 
     assert asked == [QUESTIONS[1], QUESTIONS[2], QUESTIONS[3]]
+
+
+def test_stub_does_not_ask_open_questions_again() -> None:
+    agent = StubAgent()
+    first = agent.ask_questions(REQUIREMENT, [], None)
+    still_open = [AskedQuestion(topic=q.topic, text=q.text) for q in first]
+
+    second = agent.ask_questions(REQUIREMENT, still_open, None)
+
+    assert second == list(QUESTIONS[3:])
 
 
 def test_stub_questions_are_deterministic() -> None:
