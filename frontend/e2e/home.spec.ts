@@ -61,6 +61,29 @@ test('the selected tab survives a refresh', async ({ page }) => {
   await expect(page.getByRole('link', { name: /draft requirement/ })).toHaveCount(0)
 })
 
+// The status tabs never scroll either way, however narrow the screen: they
+// wrap instead.
+for (const width of [320, 360, 1280]) {
+  test(`the status tabs fit without scrolling at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 800 })
+    await serve(page, requirements)
+    await page.goto('/')
+    const tabs = page.getByRole('tablist', { name: 'Filter by status' })
+    await expect(tabs).toBeVisible()
+
+    // Not a scroll container, so no scrollbar either way...
+    const { overflowX, overflowY } = await tabs.evaluate((el) => getComputedStyle(el))
+    expect([overflowX, overflowY]).toEqual(['visible', 'visible'])
+    // ...and every tab is still on screen.
+    for (const tab of await page.getByRole('tab').all()) {
+      const box = (await tab.boundingBox())!
+      expect(box.x).toBeGreaterThanOrEqual(0)
+      expect(box.x + box.width).toBeLessThanOrEqual(width)
+    }
+    expect(await fitsWidth(page)).toBe(true)
+  })
+}
+
 test.describe('at phone width', () => {
   test.use({ viewport: { width: 360, height: 800 } })
 
