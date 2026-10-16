@@ -4,7 +4,7 @@
 
 FRONTEND := npm --prefix frontend
 
-.PHONY: help install db migrate migration dev frontend-dev frontend-build frontend-unit frontend-e2e frontend-e2e-ui lint format test check
+.PHONY: help install db db-down db-wipe migrate migration dev frontend-dev frontend-build frontend-unit frontend-e2e frontend-e2e-ui lint format test check
 
 help: ## List the targets
 	@grep -E '^[a-z0-9-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "} {printf "  %-16s %s\n", $$1, $$2}'
@@ -20,6 +20,15 @@ install: ## Install dependencies, Playwright's Chromium and the pre-commit hook,
 
 db: ## Start the dev Postgres and wait until it's healthy
 	docker compose up -d --wait db
+
+db-down: ## Stop the dev Postgres, keeping its data
+	docker compose stop db
+
+# Removes the image's containers too, since they'd be pointing at a database
+# that no longer exists. The next `make migrate` or `make image-up` starts
+# from an empty database, as on a fresh install.
+db-wipe: ## Delete the dev database and all its data
+	docker compose --profile image down --volumes
 
 migrate: db ## Apply migrations to the dev database
 	uv run alembic upgrade head

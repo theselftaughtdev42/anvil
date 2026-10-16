@@ -118,6 +118,12 @@ Models are SQLModel classes in `src/anvil/models/`. Each new model module must b
 make migration m="describe the change"
 make migrate
 
+# stop the dev database, keeping its data
+make db-down
+
+# delete it and all its data, to test a fresh install
+make db-wipe
+
 # fail if models and migrations have drifted apart
 uv run alembic check
 ```
