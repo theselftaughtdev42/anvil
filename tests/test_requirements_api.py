@@ -1,29 +1,59 @@
 import uuid
-from collections.abc import Iterator
+from collections.abc import Iterator, Sequence
 
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import Engine
 from sqlmodel import Session, select
 
+from anvil.agent import AskedQuestion, QuestionDraft, RequirementBrief
 from anvil.agent.deps import get_agent, get_project_context
 from anvil.auth import get_current_user
 from anvil.db import get_session
 from anvil.main import app
-from anvil.models import PointOfContact, Requirement, RequirementStatus
+from anvil.models import PointOfContact, Question, Requirement, RequirementStatus
+from anvil.refinement import deal_questions
 
 client = TestClient(app)
 
 
 class FakeAgent:
-    """Titles every idea "Title for: <idea>" and records what it was asked."""
+    """Titles every idea "Title for: <idea>", asks the Questions queued in
+    `batches` one batch per call (nothing once they run out), and records what
+    it was asked."""
 
     def __init__(self) -> None:
         self.calls: list[tuple[str, str | None]] = []
+        self.batches: list[list[QuestionDraft]] = []
+        self.asks: list[tuple[RequirementBrief, list[AskedQuestion], str | None]] = []
 
     def name_requirement(self, idea: str, context: str | None) -> str:
         self.calls.append((idea, context))
         return f"Title for: {idea}"[:80]
+
+    def ask_questions(
+        self,
+        requirement: RequirementBrief,
+        asked: Sequence[AskedQuestion],
+        context: str | None,
+    ) -> list[QuestionDraft]:
+        self.asks.append((requirement, list(asked), context))
+        return self.batches.pop(0) if self.batches else []
+
+
+class FailingAgent:
+    """Fails any test that asks it anything."""
+
+    def name_requirement(self, idea: str, context: str | None) -> str:
+        raise AssertionError("name_requirement was called")
+
+    def ask_questions(
+        self,
+        requirement: RequirementBrief,
+        asked: Sequence[AskedQuestion],
+        context: str | None,
+    ) -> list[QuestionDraft]:
+        raise AssertionError("ask_questions was called")
 
 
 @pytest.fixture
@@ -224,6 +254,348 @@ def test_requirements_belong_to_whoever_is_current(
     assert client.get("/api/requirements").json()["items"] == []
 
 
+# --- Refinement -------------------------------------------------------------
+
+
+def draft(topic: str) -> QuestionDraft:
+    return QuestionDraft(topic=topic, text=f"About {topic}?")
+
+
+def questions(id: str) -> dict:
+    response = client.get(f"/api/requirements/{id}/questions")
+    assert response.status_code == 200, response.text
+    return response.json()
+
+
+def answer(id: str, question: dict, text: str = "An answer") -> dict:
+    response = client.post(
+        f"/api/requirements/{id}/questions/{question['id']}/answer",
+        json={"answer": text},
+    )
+    assert response.status_code == 200, response.text
+    return response.json()
+
+
+def later(id: str, question: dict) -> dict:
+    response = client.post(f"/api/requirements/{id}/questions/{question['id']}/later")
+    assert response.status_code == 200, response.text
+    return response.json()
+
+
+def topics(questions: list[dict]) -> list[str]:
+    return [question["topic"] for question in questions]
+
+
+def test_creating_deals_the_first_batch(agent: FakeAgent) -> None:
+    agent.batches = [
+        [
+            QuestionDraft(
+                topic="Who",
+                text="Who will use it?",
+                why="It shapes what good looks like.",
+                suggestions=("Customers", "Staff"),
+            ),
+            draft("When"),
+        ]
+    ]
+
+    created = create("Rebook a missed delivery")
+    stack = questions(created["id"])
+
+    assert stack == {
+        "open": [
+            {
+                "id": stack["open"][0]["id"],
+                "topic": "Who",
+                "text": "Who will use it?",
+                "why": "It shapes what good looks like.",
+                "suggestions": ["Customers", "Staff"],
+                "number": 1,
+            },
+            {
+                "id": stack["open"][1]["id"],
+                "topic": "When",
+                "text": "About When?",
+                "why": None,
+                "suggestions": [],
+                "number": 2,
+            },
+        ],
+        "answered": [],
+        "exhausted": False,
+    }
+    assert agent.asks == [
+        (
+            RequirementBrief(
+                title="Title for: Rebook a missed delivery",
+                idea="Rebook a missed delivery",
+            ),
+            [],
+            "We deliver parcels.",
+        )
+    ]
+
+
+def test_creating_with_nothing_to_ask_is_exhausted() -> None:
+    created = create("Rebook a missed delivery")
+
+    assert questions(created["id"]) == {"open": [], "answered": [], "exhausted": True}
+
+
+def test_getting_questions_never_asks_the_agent(app_on_test_db: Engine) -> None:
+    me = client.get("/api/me").json()
+    with Session(app_on_test_db) as session:
+        owner = session.get_one(PointOfContact, uuid.UUID(me["id"]))
+    # Nothing open and not exhausted: the one state where dealing would ask.
+    id = add_requirement(app_on_test_db, owner)
+    app.dependency_overrides[get_agent] = FailingAgent
+
+    assert questions(str(id)) == {"open": [], "answered": [], "exhausted": False}
+
+
+def test_answering_moves_a_question_to_answered(agent: FakeAgent) -> None:
+    agent.batches = [[draft("Who"), draft("When")]]
+    created = create("Rebook a missed delivery")
+    who, when = questions(created["id"])["open"]
+
+    stack = answer(created["id"], who, "  Anyone with the link  ")
+
+    assert stack == {
+        "open": [when],
+        "answered": [
+            {
+                "id": who["id"],
+                "topic": "Who",
+                "text": "About Who?",
+                "answer": "Anyone with the link",
+                "number": 1,
+            }
+        ],
+        "exhausted": False,
+    }
+    assert questions(created["id"]) == stack
+
+
+def test_the_first_answer_moves_draft_to_in_progress(agent: FakeAgent) -> None:
+    agent.batches = [[draft("Who"), draft("When")]]
+    created = create("Rebook a missed delivery")
+    who, when = questions(created["id"])["open"]
+
+    answer(created["id"], who)
+    after_first = client.get(f"/api/requirements/{created['id']}").json()
+    answer(created["id"], when)
+    after_second = client.get(f"/api/requirements/{created['id']}").json()
+
+    assert after_first["status"] == "in_progress"
+    assert after_first["updated_at"] > created["updated_at"]
+    assert after_second["status"] == "in_progress"
+    assert after_second["updated_at"] > after_first["updated_at"]
+
+
+def test_answered_is_in_the_order_answered(agent: FakeAgent) -> None:
+    agent.batches = [[draft("Who"), draft("When"), draft("Why")]]
+    created = create("Rebook a missed delivery")
+    who, when, _ = questions(created["id"])["open"]
+
+    answer(created["id"], when)
+    stack = answer(created["id"], who)
+
+    assert topics(stack["answered"]) == ["When", "Who"]
+    assert topics(stack["open"]) == ["Why"]
+
+
+def test_answering_the_last_open_question_deals_the_next_batch(
+    agent: FakeAgent,
+) -> None:
+    agent.batches = [[draft("Who"), draft("When")], [draft("Why"), draft("How")]]
+    created = create("Rebook a missed delivery")
+    who, when = questions(created["id"])["open"]
+    answer(created["id"], who, "Customers")
+    assert len(agent.asks) == 1
+
+    stack = answer(created["id"], when)
+
+    assert topics(stack["open"]) == ["Why", "How"]
+    assert [question["number"] for question in stack["open"]] == [3, 4]
+    assert stack["exhausted"] is False
+    _, asked, _ = agent.asks[1]
+    assert asked == [
+        AskedQuestion(topic="Who", text="About Who?", answer="Customers"),
+        AskedQuestion(topic="When", text="About When?", answer="An answer"),
+    ]
+
+
+def test_an_empty_batch_exhausts_the_requirement(agent: FakeAgent) -> None:
+    agent.batches = [[draft("Who")]]
+    created = create("Rebook a missed delivery")
+
+    stack = answer(created["id"], questions(created["id"])["open"][0])
+
+    assert stack["open"] == []
+    assert stack["exhausted"] is True
+    assert len(agent.asks) == 2
+
+
+def test_an_answer_that_exhausts_shares_one_timestamp(
+    app_on_test_db: Engine, agent: FakeAgent
+) -> None:
+    agent.batches = [[draft("Who")]]
+    created = create("Rebook a missed delivery")
+
+    answer(created["id"], questions(created["id"])["open"][0])
+
+    with Session(app_on_test_db) as session:
+        requirement = session.get_one(Requirement, uuid.UUID(created["id"]))
+        question = session.exec(select(Question)).one()
+    assert requirement.questions_exhausted_at is not None
+    assert requirement.updated_at == question.answered_at
+    assert requirement.updated_at == requirement.questions_exhausted_at
+
+
+def test_an_exhausted_requirement_isnt_asked_again(
+    app_on_test_db: Engine,
+) -> None:
+    created = create("Rebook a missed delivery")
+
+    with Session(app_on_test_db) as session:
+        requirement = session.get_one(Requirement, uuid.UUID(created["id"]))
+        deal_questions(session, requirement, FailingAgent(), None)
+        session.commit()
+
+    assert questions(created["id"])["exhausted"] is True
+
+
+def test_later_moves_a_question_to_the_bottom(agent: FakeAgent) -> None:
+    agent.batches = [[draft("Who"), draft("When"), draft("Why")]]
+    created = create("Rebook a missed delivery")
+    who, when, why = questions(created["id"])["open"]
+
+    stack = later(created["id"], who)
+
+    assert topics(stack["open"]) == ["When", "Why", "Who"]
+    assert questions(created["id"]) == stack
+    assert topics(answer(created["id"], when)["open"]) == ["Why", "Who"]
+    assert topics(answer(created["id"], why)["open"]) == ["Who"]
+
+
+def test_later_keeps_the_question_its_number(agent: FakeAgent) -> None:
+    agent.batches = [[draft("Who"), draft("When")]]
+    created = create("Rebook a missed delivery")
+    who, _ = questions(created["id"])["open"]
+
+    stack = later(created["id"], who)
+
+    assert stack["open"][-1] == who
+
+
+def test_later_on_the_only_open_question_changes_nothing(agent: FakeAgent) -> None:
+    agent.batches = [[draft("Who")]]
+    created = create("Rebook a missed delivery")
+    before = questions(created["id"])
+
+    assert later(created["id"], before["open"][0]) == before
+    assert len(agent.asks) == 1
+
+
+@pytest.mark.parametrize("action", ["answer", "later"])
+def test_a_question_that_isnt_open_is_409(agent: FakeAgent, action: str) -> None:
+    agent.batches = [[draft("Who"), draft("When")]]
+    created = create("Rebook a missed delivery")
+    who, _ = questions(created["id"])["open"]
+    answer(created["id"], who)
+
+    response = client.post(
+        f"/api/requirements/{created['id']}/questions/{who['id']}/{action}",
+        json={"answer": "Again"},
+    )
+
+    assert response.status_code == 409
+
+
+@pytest.mark.parametrize("action", ["answer", "later"])
+def test_another_requirements_question_is_404(agent: FakeAgent, action: str) -> None:
+    agent.batches = [[draft("Who")], [draft("When")]]
+    first = create("First")
+    second = create("Second")
+    theirs = questions(second["id"])["open"][0]
+
+    response = client.post(
+        f"/api/requirements/{first['id']}/questions/{theirs['id']}/{action}",
+        json={"answer": "An answer"},
+    )
+
+    assert response.status_code == 404
+    assert questions(second["id"])["open"] == [theirs]
+
+
+@pytest.mark.parametrize("action", ["answer", "later"])
+def test_an_unknown_question_is_404(action: str) -> None:
+    created = create("Rebook a missed delivery")
+
+    response = client.post(
+        f"/api/requirements/{created['id']}/questions/{uuid.uuid4()}/{action}",
+        json={"answer": "An answer"},
+    )
+
+    assert response.status_code == 404
+
+
+@pytest.mark.parametrize(
+    ("method", "path"),
+    [
+        ("get", "questions"),
+        ("post", f"questions/{uuid.uuid4()}/answer"),
+        ("post", f"questions/{uuid.uuid4()}/later"),
+    ],
+)
+def test_someone_elses_questions_are_404(
+    app_on_test_db: Engine, someone_else: PointOfContact, method: str, path: str
+) -> None:
+    theirs = add_requirement(app_on_test_db, someone_else)
+
+    response = client.request(
+        method, f"/api/requirements/{theirs}/{path}", json={"answer": "An answer"}
+    )
+
+    assert response.status_code == 404
+
+
+def test_an_answer_of_the_maximum_length_is_accepted(agent: FakeAgent) -> None:
+    agent.batches = [[draft("Who"), draft("When")]]
+    created = create("Rebook a missed delivery")
+    who, _ = questions(created["id"])["open"]
+
+    stack = answer(created["id"], who, "a" * 2000)
+
+    assert stack["answered"][0]["answer"] == "a" * 2000
+
+
+@pytest.mark.parametrize(
+    ("body", "message"),
+    [
+        ({"answer": ""}, "String should have at least 1 character"),
+        ({"answer": "   \n\t "}, "String should have at least 1 character"),
+        ({"answer": "a" * 2001}, "String should have at most 2000 characters"),
+        ({}, "Field required"),
+    ],
+)
+def test_a_bad_answer_is_rejected(agent: FakeAgent, body: dict, message: str) -> None:
+    agent.batches = [[draft("Who")]]
+    created = create("Rebook a missed delivery")
+    before = questions(created["id"])
+
+    response = client.post(
+        f"/api/requirements/{created['id']}/questions/{before['open'][0]['id']}/answer",
+        json=body,
+    )
+
+    assert response.status_code == 422
+    [error] = response.json()["detail"]
+    assert error["loc"] == ["body", "answer"]
+    assert error["msg"] == message
+    assert questions(created["id"]) == before
+
+
 # --- OpenAPI ----------------------------------------------------------------
 
 
@@ -243,3 +615,10 @@ def test_endpoints_are_documented_with_their_response_models() -> None:
     assert response_schema("/api/requirements/{requirement_id}", "get", "200").endswith(
         "/RequirementPublic"
     )
+    questions = "/api/requirements/{requirement_id}/questions"
+    for path, method in [
+        (questions, "get"),
+        (questions + "/{question_id}/answer", "post"),
+        (questions + "/{question_id}/later", "post"),
+    ]:
+        assert response_schema(path, method, "200").endswith("/QuestionStack")

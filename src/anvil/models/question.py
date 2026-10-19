@@ -37,6 +37,10 @@ class Question(SQLModel, table=True):
             "status",
             "position",
         ),
+        # A Question's number is its "#3" on the card, so it's never reused.
+        sa.UniqueConstraint(
+            "requirement_id", "number", name="uq_question_requirement_id_number"
+        ),
         # An Answer always carries the time it was given, and vice versa.
         sa.CheckConstraint(
             "(answer IS NULL) = (answered_at IS NULL)",
@@ -63,8 +67,10 @@ class Question(SQLModel, table=True):
         sa_type=MutableList.as_mutable(JSONB),
         sa_column_kwargs={"server_default": sa.text("'[]'::jsonb")},
     )
-    # Order in the stack; lower is nearer the top.
+    # Order in the stack; lower is nearer the top. Changes if user marks it for later.
     position: int
+    # Order of creation within the Requirement, from 1. Never changes.
+    number: int
     status: QuestionStatus = Field(
         default=QuestionStatus.OPEN,
         sa_type=status_type,
