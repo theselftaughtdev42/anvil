@@ -29,6 +29,7 @@ const offlineSync = requirement({
   idea: 'The app keeps working in dead zones and syncs once signal comes back.',
   status: 'complete',
   updated_at: hoursAgo(30),
+  progress: { answered: 4, total: 7 },
 })
 const bulkImport = requirement({
   id: 'r3',
@@ -109,6 +110,9 @@ test('cards show each requirement, newest first', async () => {
     .element(first.getByRole('progressbar', { name: 'Not started' }))
     .toHaveAttribute('aria-valuenow', '0')
   await expect.element(cards.nth(1)).toMatchTextContent('Complete')
+  await expect
+    .element(cards.nth(1).getByRole('progressbar', { name: '4 of 7 questions answered' }))
+    .toHaveAttribute('aria-valuenow', '57')
   await expect.element(cards.nth(1)).toMatchTextContent('Yesterday')
   await expect.element(cards.nth(2)).toMatchTextContent('Draft')
   await expect.element(cards.nth(2)).toMatchTextContent('3w ago')
@@ -118,6 +122,20 @@ test('cards show each requirement, newest first', async () => {
     .toHaveAttribute('href', '/requirements/r2')
   // With requirements, the prompt drops its intro.
   await expect.element(screen.getByText(intro)).not.toBeInTheDocument()
+})
+
+test.each([
+  { answered: 1, total: 300, percent: '1' },
+  { answered: 199, total: 200, percent: '99' },
+  { answered: 0, total: 3, percent: '0' },
+  { answered: 3, total: 3, percent: '100' },
+])('the bar shows $answered of $total as $percent%', async ({ answered, total, percent }) => {
+  serve([requirement({ progress: { answered, total } })])
+  const { screen } = await renderHome()
+
+  await expect
+    .element(screen.getByRole('progressbar', { name: `${answered} of ${total} questions answered` }))
+    .toHaveAttribute('aria-valuenow', percent)
 })
 
 test('a card opens its requirement', async () => {
