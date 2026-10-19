@@ -277,6 +277,51 @@ test('a failed Answer says so on the card, and keeps what was picked', async () 
   await expect.element(page.screen.getByRole('alert')).not.toBeInTheDocument()
 })
 
+test('a failed Later says so on the card, and keeps the card on top', async () => {
+  let failing = true
+  serveRefinement({
+    fail: (url) =>
+      failing && url.pathname.endsWith('/later')
+        ? Promise.resolve(Response.json({ detail: 'boom' }, { status: 503 }))
+        : undefined,
+  })
+  const page = await renderPage()
+  await expect.element(page.question('Who will use this most?')).toBeVisible()
+
+  await page.laterButton().click()
+
+  await expect.element(page.screen.getByRole('alert')).toMatchTextContent("Couldn't move this card. Try again.")
+  await expect.element(page.question('Who will use this most?')).toBeVisible()
+  failing = false
+  await page.laterButton().click()
+  await expect.element(page.question('What happens today, without it?')).toBeVisible()
+  await expect.element(page.screen.getByRole('alert')).not.toBeInTheDocument()
+})
+
+for (const verb of ['answer', 'later'] as const) {
+  test(`a card already handled elsewhere gives way to the stack as it is now (${verb})`, async () => {
+    const fetch = serveRefinement()
+    const page = await renderPage()
+    await expect.element(page.question('Who will use this most?')).toBeVisible()
+
+    // Another tab answers the top card, so this page's next action on it gets a 409.
+    await fetch(`/api/requirements/${ID}/questions/q1/answer`, {
+      method: 'POST',
+      body: JSON.stringify({ answer: 'Answered elsewhere' }),
+    })
+    if (verb === 'answer') {
+      await pickAndAnswer(page, 'Who will use this most?', 'Both')
+    } else {
+      await page.laterButton().click()
+    }
+
+    await expect.element(page.question('What happens today, without it?')).toBeVisible()
+    await expect.element(page.answeredPile()).toMatchTextContent('Answered elsewhere')
+    // The error belonged to the card that's gone, so the new top card doesn't show it.
+    await expect.element(page.screen.getByRole('alert')).not.toBeInTheDocument()
+  })
+}
+
 test('answering the last Question ends on the "no more questions" card, keeping the pile', async () => {
   serveRefinement()
   const page = await renderPage()
