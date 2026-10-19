@@ -1,9 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -2 100 74">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
   <!-- Browser tabs can be light or dark, so the anvil switches between ash and iron. -->
   <style>
     .anvil { fill: #EDE6DA; }
     @media (prefers-color-scheme: light) { .anvil { fill: #16130F; } }
   </style>
   <path class="anvil" d="M4 34 C16 34 24 32 28 30 H94 V44 H78 Q68 46 66 58 H76 V70 H28 V58 H38 Q36 46 28 44 Q14 42 4 34 Z"/>
-  <path d="M0 -8 L4 0 L0 8 L-4 0 Z" fill="#E8642C" transform="translate(60 13) scale(1.35)"/>
 </svg>

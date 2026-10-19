@@ -13,11 +13,10 @@ test('the favicon is served as an SVG', async ({ page, request }) => {
   expect(response.headers()['content-type']).toContain('image/svg+xml')
 })
 
-test('the header mark keeps its three sparks as separate elements', async ({ page }) => {
+// Sparks belong to the Refinement anvil, where something is being forged.
+test('the header mark is the anvil alone, with no sparks', async ({ page }) => {
   await page.goto('/')
   const mark = page.getByRole('banner').getByRole('link').locator('svg')
-  // Separate so they can be animated, hottest first.
-  for (const spark of ['spark-1', 'spark-2', 'spark-3']) {
-    await expect(mark.locator(`#${spark}`)).toHaveCount(1)
-  }
+  await expect(mark.locator('path')).toHaveCount(1)
+  await expect(mark.locator('#anvil')).toHaveCount(1)
 })
