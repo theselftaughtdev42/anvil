@@ -11,6 +11,13 @@ export const statusLabels: Record<RequirementStatus, string> = {
   complete: 'Complete',
 }
 
+// How many of a Requirement's Questions are answered, out of its open and
+// answered ones.
+export interface Progress {
+  answered: number
+  total: number
+}
+
 // A Requirement as the API returns it (RequirementPublic).
 export interface Requirement {
   id: string
@@ -19,8 +26,8 @@ export interface Requirement {
   status: RequirementStatus
   created_at: string
   updated_at: string
-  // Null until Requirements have Questions.
-  progress: null
+  // Null while it has no Questions.
+  progress: Progress | null
 }
 
 // GET /api/requirements: all of the Point of Contact's Requirements, most

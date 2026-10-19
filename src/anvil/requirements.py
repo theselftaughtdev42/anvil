@@ -4,7 +4,9 @@ from typing import Annotated
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, StringConstraints
+from sqlalchemy import ColumnElement, and_, func
 from sqlmodel import Session, col, select
+from sqlmodel.sql.expression import Select
 
 from anvil.agent import AgentDep, ProjectContextDep
 from anvil.auth import CurrentUserDep
@@ -39,6 +41,12 @@ class RequirementCreate(BaseModel):
     ]
 
 
+class Progress(BaseModel):
+    answered: int
+    # Open and answered Questions; Dismissed ones don't count.
+    total: int
+
+
 class RequirementPublic(BaseModel):
     id: uuid.UUID
     title: str
@@ -46,9 +54,8 @@ class RequirementPublic(BaseModel):
     status: RequirementStatus
     created_at: datetime
     updated_at: datetime
-    # Always null until Requirements have Questions; then it becomes
-    # {"answered": n, "total": n}. The UI shows "Not started" while it's null.
-    progress: None = None
+    # Null while the Requirement has no Questions. The UI shows "Not started".
+    progress: Progress | None
 
 
 class RequirementList(BaseModel):
@@ -91,9 +98,25 @@ class AnswerCreate(BaseModel):
     ]
 
 
-# Another Point of Contact's Requirement is a 404 too, so ids don't leak.
-# for_update locks it until the request commits, so answers to the same
-# Requirement can't interleave.
+# Matches the Point of Contact's own Requirement. Another Point of Contact's
+# Requirement is a 404 too, so ids don't leak.
+def is_own_requirement(
+    requirement_id: uuid.UUID, user: PointOfContact
+) -> ColumnElement[bool]:
+    return and_(
+        col(Requirement.id) == requirement_id,
+        col(Requirement.point_of_contact_id) == user.id,
+    )
+
+
+def requirement_or_404[T](row: T | None) -> T:
+    if row is None:
+        raise HTTPException(status_code=404, detail="Requirement not found")
+    return row
+
+
+# for_update locks the Requirement until the request commits, so answers to the
+# same Requirement can't interleave.
 def get_own_requirement(
     session: Session,
     requirement_id: uuid.UUID,
@@ -101,15 +124,10 @@ def get_own_requirement(
     *,
     for_update: bool = False,
 ) -> Requirement:
-    query = select(Requirement).where(
-        Requirement.id == requirement_id, Requirement.point_of_contact_id == user.id
-    )
+    query = select(Requirement).where(is_own_requirement(requirement_id, user))
     if for_update:
         query = query.with_for_update()
-    requirement = session.exec(query).first()
-    if requirement is None:
-        raise HTTPException(status_code=404, detail="Requirement not found")
-    return requirement
+    return requirement_or_404(session.exec(query).first())
 
 
 # An open Question of the Requirement: 404 if it isn't the Requirement's, 409 if
@@ -123,6 +141,47 @@ def get_open_question(
     if question.status != QuestionStatus.OPEN:
         raise HTTPException(status_code=409, detail="Question isn't open")
     return question
+
+
+# Each Requirement with its Question counts, in one query however many there
+# are. Callers add the where and order_by; read rows with requirement_public.
+def select_with_progress() -> Select:
+    counts = (
+        select(
+            Question.requirement_id,
+            func.count()
+            .filter(col(Question.status) == QuestionStatus.ANSWERED)
+            .label("answered"),
+            func.count().label("total"),
+        )
+        .where(col(Question.status).in_([QuestionStatus.OPEN, QuestionStatus.ANSWERED]))
+        .group_by(col(Question.requirement_id))
+        .subquery()
+    )
+    return select(Requirement, counts.c.answered, counts.c.total).outerjoin(
+        counts, counts.c.requirement_id == Requirement.id
+    )
+
+
+def requirement_public(
+    requirement: Requirement, answered: int | None, total: int | None
+) -> RequirementPublic:
+    return RequirementPublic.model_validate(
+        {
+            **requirement.model_dump(),
+            "progress": Progress(answered=answered, total=total)
+            if answered is not None and total is not None
+            else None,
+        }
+    )
+
+
+# The Point of Contact's own Requirement with its progress.
+def get_own_requirement_public(
+    session: Session, requirement_id: uuid.UUID, user: PointOfContact
+) -> RequirementPublic:
+    query = select_with_progress().where(is_own_requirement(requirement_id, user))
+    return requirement_public(*requirement_or_404(session.exec(query).first()))
 
 
 def question_stack(session: Session, requirement: Requirement) -> QuestionStack:
@@ -157,31 +216,27 @@ def create_requirement(
     # So the Requirement opens with its first batch of Questions.
     deal_questions(session, requirement, agent, context)
     session.commit()
-    session.refresh(requirement)
-    return RequirementPublic.model_validate(requirement, from_attributes=True)
+    return get_own_requirement_public(session, requirement.id, user)
 
 
 # All of the Point of Contact's Requirements, most recently updated first.
 @router.get("")
 def list_requirements(session: SessionDep, user: CurrentUserDep) -> RequirementList:
     query = (
-        select(Requirement)
-        .where(Requirement.point_of_contact_id == user.id)
+        select_with_progress()
+        .where(col(Requirement.point_of_contact_id) == user.id)
         .order_by(col(Requirement.updated_at).desc())
     )
-    items = [
-        RequirementPublic.model_validate(requirement, from_attributes=True)
-        for requirement in session.exec(query)
-    ]
-    return RequirementList(items=items)
+    return RequirementList(
+        items=[requirement_public(*row) for row in session.exec(query)]
+    )
 
 
 @router.get("/{requirement_id}")
 def get_requirement(
     requirement_id: uuid.UUID, session: SessionDep, user: CurrentUserDep
 ) -> RequirementPublic:
-    requirement = get_own_requirement(session, requirement_id, user)
-    return RequirementPublic.model_validate(requirement, from_attributes=True)
+    return get_own_requirement_public(session, requirement_id, user)
 
 
 # Only reads: never asks the agent.

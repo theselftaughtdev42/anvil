@@ -3,7 +3,7 @@ from collections.abc import Iterator, Sequence
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import Engine
+from sqlalchemy import Engine, event
 from sqlmodel import Session, select
 
 from anvil.agent import AskedQuestion, QuestionDraft, RequirementBrief
@@ -11,7 +11,13 @@ from anvil.agent.deps import get_agent, get_project_context
 from anvil.auth import get_current_user
 from anvil.db import get_session
 from anvil.main import app
-from anvil.models import PointOfContact, Question, Requirement, RequirementStatus
+from anvil.models import (
+    PointOfContact,
+    Question,
+    QuestionStatus,
+    Requirement,
+    RequirementStatus,
+)
 from anvil.refinement import deal_questions
 
 client = TestClient(app)
@@ -594,6 +600,76 @@ def test_a_bad_answer_is_rejected(agent: FakeAgent, body: dict, message: str) ->
     assert error["loc"] == ["body", "answer"]
     assert error["msg"] == message
     assert questions(created["id"]) == before
+
+
+# --- Progress ---------------------------------------------------------------
+
+
+def test_progress_counts_open_and_answered_questions(agent: FakeAgent) -> None:
+    agent.batches = [[draft("Who"), draft("When"), draft("Where")]]
+    created = create("Rebook a missed delivery")
+    assert created["progress"] == {"answered": 0, "total": 3}
+
+    answer(created["id"], questions(created["id"])["open"][0])
+
+    expected = {"answered": 1, "total": 3}
+    assert client.get(f"/api/requirements/{created['id']}").json()["progress"] == (
+        expected
+    )
+    [listed] = client.get("/api/requirements").json()["items"]
+    assert listed["progress"] == expected
+
+
+def test_progress_leaves_out_dismissed_questions(
+    agent: FakeAgent, app_on_test_db: Engine
+) -> None:
+    agent.batches = [[draft("Who"), draft("When")]]
+    created = create("Rebook a missed delivery")
+    with Session(app_on_test_db) as session:
+        question = session.exec(select(Question).where(Question.topic == "When")).one()
+        question.status = QuestionStatus.DISMISSED
+        session.commit()
+
+    progress = client.get(f"/api/requirements/{created['id']}").json()["progress"]
+
+    assert progress == {"answered": 0, "total": 1}
+
+
+def test_progress_is_null_without_questions() -> None:
+    created = create("Rebook a missed delivery")
+
+    [listed] = client.get("/api/requirements").json()["items"]
+
+    assert created["progress"] is None
+    assert listed["progress"] is None
+
+
+def test_listing_runs_the_same_queries_however_many_there_are(
+    agent: FakeAgent, app_on_test_db: Engine
+) -> None:
+    statements: list[str] = []
+
+    def record(_conn: object, _cursor: object, statement: str, *_: object) -> None:
+        statements.append(statement)
+
+    def count_list_queries() -> int:
+        statements.clear()
+        event.listen(app_on_test_db, "before_cursor_execute", record)
+        try:
+            assert client.get("/api/requirements").status_code == 200
+        finally:
+            event.remove(app_on_test_db, "before_cursor_execute", record)
+        return len(statements)
+
+    agent.batches = [[draft("Who")]]
+    create("First")
+    one = count_list_queries()
+
+    agent.batches = [[draft("Who")], [draft("What"), draft("When")]]
+    create("Second")
+    create("Third")
+
+    assert count_list_queries() == one
 
 
 # --- OpenAPI ----------------------------------------------------------------
