@@ -23,3 +23,15 @@ test('the home link is named by the wordmark', async () => {
     .element(screen.getByRole('link', { name: 'ANVIL', exact: true }))
     .toHaveAttribute('href', '/')
 })
+
+test('a page can put its own content after the logo, and the wordmark still names the home link', async () => {
+  const screen = await render(
+    <MemoryRouter>
+      <AppHeader initials="AB">
+        <h1>Route change alerts</h1>
+      </AppHeader>
+    </MemoryRouter>,
+  )
+  await expect.element(screen.getByRole('banner').getByRole('heading', { name: 'Route change alerts' })).toBeVisible()
+  await expect.element(screen.getByRole('link', { name: 'ANVIL', exact: true })).toBeInTheDocument()
+})

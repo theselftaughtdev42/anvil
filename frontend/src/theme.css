@@ -29,6 +29,7 @@
   --radius-card: 0.75rem; /* 12px: cards and the idea prompt */
   --radius-button: 0.5rem; /* 8px */
   --radius-badge: 0.375rem; /* 6px */
+  --radius-question: 1.125rem; /* 18px: the Question cards on the Refinement stack */
 
   /* The centred content column (max-w-content) and its side padding (px-gutter) */
   --container-content: 70rem; /* 1120px */
@@ -59,7 +60,19 @@
   --input: var(--border); /* Field borders */
   --ring: var(--primary); /* Focus rings are ember */
 
-  /* Statuses: the dot and progress bar, then the badge. Never ember. */
+  /* The Refinement page */
+  --card-raised: #241f19; /* The Question on top of the stack */
+  --card-sunk: #1a1612; /* The lowest card peeking out, and the own-words box */
+  --border-strong: #4a4137; /* The top card's edge, the dashed note */
+  --faint: #6b6259; /* Placeholders, the card's #number */
+  --primary-wash: #2a1a10; /* Behind the picked suggestion, inside its ember border */
+  --topic: #e9c27a; /* The top card's topic */
+  --answered: #7fa7bf; /* Steel: answered progress marks and topics */
+  --answered-background: #172229;
+  --answered-border: #2a4250;
+  --answered-foreground: #a9c7d8;
+
+  /* Statuses: the dot and progress bar, then the badge.*/
   --status-draft: #6b6259;
   --status-draft-background: transparent;
   --status-draft-border: #4a4137;

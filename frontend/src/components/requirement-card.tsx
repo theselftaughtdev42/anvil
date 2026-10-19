@@ -1,32 +1,11 @@
 import { useId } from 'react'
 import { Link } from 'react-router'
-import { Badge } from '@/components/ui/badge'
+import { StatusBadge } from '@/components/status-badge'
 import { Card } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { relativeTime } from '@/lib/relative-time'
-import { type Requirement, type RequirementStatus, statusLabels } from '@/lib/requirements'
-
-// Each status's badge and dot colours (--status-* in theme.css).
-// The bar takes the dot's colour.
-const statusStyles: Record<RequirementStatus, { badge: string; dot: string; bar: string }> = {
-  draft: {
-    badge: 'border-status-draft-border bg-status-draft-background text-status-draft-foreground',
-    dot: 'bg-status-draft',
-    bar: '*:data-[slot=progress-indicator]:bg-status-draft',
-  },
-  in_progress: {
-    badge:
-      'border-status-in-progress-border bg-status-in-progress-background text-status-in-progress-foreground',
-    dot: 'bg-status-in-progress',
-    bar: '*:data-[slot=progress-indicator]:bg-status-in-progress',
-  },
-  complete: {
-    badge:
-      'border-status-complete-border bg-status-complete-background text-status-complete-foreground',
-    dot: 'bg-status-complete',
-    bar: '*:data-[slot=progress-indicator]:bg-status-complete',
-  },
-}
+import type { Requirement } from '@/lib/requirements'
+import { statusStyles } from '@/lib/status-styles'
 
 // One Requirement on the home page. The title is the link, stretched over the
 // whole card, so the card opens on a click anywhere while a screen reader
@@ -45,10 +24,7 @@ export function RequirementCard({ requirement }: { requirement: Requirement }) {
   return (
     <Card className="relative gap-3.5 rounded-card p-4.5 shadow-none transition-[color,box-shadow,border-color] hover:border-muted-foreground/40 has-[a:focus-visible]:border-ring has-[a:focus-visible]:ring-[3px] has-[a:focus-visible]:ring-ring/50">
       <div className="flex items-center justify-between gap-2">
-        <Badge variant="outline" className={`h-5.5 gap-1.5 px-2 rounded-badge text-caption ${style.badge}`}>
-          <span aria-hidden="true" className={`size-1.5 rounded-full ${style.dot}`} />
-          {statusLabels[requirement.status]}
-        </Badge>
+        <StatusBadge status={requirement.status} />
         <time
           dateTime={requirement.updated_at}
           title={updated.toLocaleString()}
