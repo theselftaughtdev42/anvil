@@ -3,7 +3,7 @@ import { LoaderCircle } from 'lucide-react'
 import { useState } from 'react'
 import { useParams } from 'react-router'
 import { Crumb } from '@/components/app-shell'
-import { NoMoreQuestionsCard, QuestionCard } from '@/components/question-card'
+import { NoMoreQuestionsCard, QuestionCard, ShortcutHint } from '@/components/question-card'
 import { AnsweredPile, NextInStack, RefinementProgress } from '@/components/refinement-panels'
 import { Button } from '@/components/ui/button'
 import { ApiError } from '@/lib/api'
@@ -120,7 +120,7 @@ function Refinement({ requirementId, stack }: { requirementId: string; stack: Qu
       <RefinementProgress answered={stack.answered.length} open={stack.open.length} strike={strikes} />
       <div className="mx-auto grid w-full max-w-135 items-start gap-10 lg:max-w-none lg:grid-cols-[minmax(0,1fr)_minmax(0,33.75rem)_minmax(0,1fr)]">
         <AnsweredPile answered={stack.answered} className="order-2 lg:order-none lg:pt-2" />
-        <div data-testid="stack" className="relative order-1 pb-8 lg:order-none">
+        <div data-testid="stack" className="relative order-1 pb-19 lg:order-none">
           {top ? (
             <>
               {stack.open.slice(1, 1 + CARDS_UNDER).map((question, i) => (
@@ -130,8 +130,8 @@ function Refinement({ requirementId, stack }: { requirementId: string; stack: Qu
                   data-testid="card-under"
                   className={
                     i === 0
-                      ? 'absolute inset-x-0 top-0 bottom-8 z-2 origin-bottom translate-y-3.5 scale-[0.955] rounded-question border bg-card'
-                      : 'absolute inset-x-0 top-0 bottom-8 z-1 origin-bottom translate-y-7 scale-[0.91] rounded-question border bg-card-sunk'
+                      ? 'absolute inset-x-0 top-0 bottom-19 z-2 origin-bottom translate-y-3.5 scale-[0.955] rounded-question border bg-card'
+                      : 'absolute inset-x-0 top-0 bottom-19 z-1 origin-bottom translate-y-7 scale-[0.91] rounded-question border bg-card-sunk'
                   }
                 />
               ))}
@@ -143,6 +143,7 @@ function Refinement({ requirementId, stack }: { requirementId: string; stack: Qu
                 onAnswer={(text) => answer.mutate({ questionId: top.id, text })}
                 onLater={() => later.mutate(top.id)}
               />
+              <ShortcutHint className="absolute inset-x-0 bottom-0 pointer-coarse:hidden" />
             </>
           ) : (
             <NoMoreQuestionsCard />
