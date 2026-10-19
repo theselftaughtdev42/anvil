@@ -1,10 +1,17 @@
 import { LoaderCircle } from 'lucide-react'
 import { RadioGroup } from 'radix-ui'
-import { type MouseEvent, useId, useState } from 'react'
+import { useEffect, useEffectEvent, useId, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import { ANSWER_MAX_LENGTH, type OpenQuestion } from '@/lib/questions'
 
 const MAX_SUGGESTIONS = 3
+
+// Where the shortcuts leave keys alone.
+const EDITABLE = 'input, textarea, select, [contenteditable]:not([contenteditable="false"])'
+const INTERACTIVE = `${EDITABLE}, a[href], button, [role="button"], [role="link"], [role="menuitem"], [role="tab"]`
+// The suggestions are radios: Enter on one still answers.
+const isRadio = (target: EventTarget | null) => target instanceof Element && target.getAttribute('role') === 'radio'
 
 type QuestionCardProps = {
   question: OpenQuestion
@@ -24,11 +31,11 @@ export function QuestionCard({ question, busy, onAnswer, onLater, error }: Quest
   const errorId = useId()
   const [picked, setPicked] = useState('')
   const [own, setOwn] = useState('')
+  const ownWords = useRef<HTMLTextAreaElement>(null)
   const suggestions = question.suggestions.slice(0, MAX_SUGGESTIONS)
 
   // Your own words win over a picked suggestion. With neither, nothing happens.
-  const answer = (event: MouseEvent) => {
-    event.preventDefault()
+  const answer = () => {
     if (busy) return
     const text = own.trim() || (picked && suggestions[Number(picked)])
     if (text) onAnswer(text)
@@ -36,6 +43,43 @@ export function QuestionCard({ question, busy, onAnswer, onLater, error }: Quest
   const later = () => {
     if (!busy) onLater()
   }
+
+  // 1–3 pick a suggestion, W moves to the text box, Enter answers and L puts the
+  // card off, as if their controls were clicked. In the text box only Enter and
+  // Esc act: Shift + Enter adds a new line and Esc leaves the box, keeping what's
+  // typed. Other controls keep their own keys.
+  const onKeyDown = useEffectEvent((event: KeyboardEvent) => {
+    if (event.defaultPrevented && !isRadio(event.target)) return
+    if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey || event.isComposing) return
+    const target = event.target instanceof Element ? event.target : null
+    const inOwnWords = target?.id === ownId
+    if (event.key === 'Enter') {
+      if (!inOwnWords && target?.closest(INTERACTIVE) && !isRadio(target)) return
+      event.preventDefault()
+      answer()
+      return
+    }
+    if (event.key === 'Escape' && inOwnWords) {
+      ownWords.current?.blur()
+      return
+    }
+    if (inOwnWords || target?.closest(EDITABLE)) return
+    const key = event.key.toLowerCase()
+    if (key === 'w') {
+      event.preventDefault()
+      ownWords.current?.focus()
+    } else if (key === 'l') {
+      event.preventDefault()
+      later()
+    } else if (/^[1-3]$/.test(key) && Number(key) <= suggestions.length && !busy) {
+      event.preventDefault()
+      setPicked(String(Number(key) - 1))
+    }
+  })
+  useEffect(() => {
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [])
 
   return (
     <section
@@ -64,6 +108,7 @@ export function QuestionCard({ question, busy, onAnswer, onLater, error }: Quest
             <RadioGroup.Item
               key={suggestion}
               value={String(i)}
+              aria-keyshortcuts={String(i + 1)}
               className="flex min-h-11 items-center gap-3 rounded-lg border px-3.5 text-left text-body-sm outline-none transition-[color,box-shadow,border-color] hover:border-border-strong focus-visible:ring-[3px] focus-visible:ring-ring/50 data-[state=checked]:border-primary data-[state=checked]:bg-primary-wash data-[state=checked]:font-medium"
             >
               <span aria-hidden="true" className="w-3.5 font-mono text-caption text-faint">
@@ -79,7 +124,9 @@ export function QuestionCard({ question, busy, onAnswer, onLater, error }: Quest
         Your own answer
       </label>
       <textarea
+        ref={ownWords}
         id={ownId}
+        aria-keyshortcuts="W"
         value={own}
         onChange={(event) => setOwn(event.target.value)}
         readOnly={!!busy}
@@ -97,16 +144,44 @@ export function QuestionCard({ question, busy, onAnswer, onLater, error }: Quest
       )}
 
       <div className="mt-auto flex items-center justify-between gap-3">
-        <Button variant="outline" size="lg" className="px-3.5" aria-busy={!!busy} onClick={later}>
+        <Button variant="outline" size="lg" className="px-3.5" aria-keyshortcuts="L" aria-busy={!!busy} onClick={later}>
           {busy === 'later' && <LoaderCircle className="animate-spin" aria-hidden="true" />}
           Later
         </Button>
-        <Button size="lg" className="px-4.5" aria-busy={!!busy} onClick={answer}>
+        <Button size="lg" className="px-4.5" aria-keyshortcuts="Enter" aria-busy={!!busy} onClick={answer}>
           {busy === 'answer' && <LoaderCircle className="animate-spin" aria-hidden="true" />}
           Answer
         </Button>
       </div>
     </section>
+  )
+}
+
+// The shortcuts, under the stack.
+export function ShortcutHint({ className }: { className?: string }) {
+  return (
+    <p className={cn('flex justify-center gap-3.5 text-caption text-muted-foreground', className)}>
+      <span>
+        <Kbd>1</Kbd>–<Kbd>3</Kbd> pick
+      </span>
+      <span>
+        <Kbd>W</Kbd> write
+      </span>
+      <span>
+        <Kbd>Enter</Kbd> submit
+      </span>
+      <span>
+        <Kbd>L</Kbd> later
+      </span>
+    </p>
+  )
+}
+
+function Kbd({ children }: { children: string }) {
+  return (
+    <kbd className="rounded-sm border border-border-strong px-1.25 py-px font-mono text-[0.6875rem] font-medium text-foreground/80">
+      {children}
+    </kbd>
   )
 }
 

@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createMemoryRouter, RouterProvider } from 'react-router'
 import { afterEach, expect, test, vi } from 'vitest'
+import { userEvent } from 'vitest/browser'
 import { render } from 'vitest-browser-react'
 import type { AnsweredQuestion, OpenQuestion, QuestionStack } from '@/lib/questions'
 import type { Requirement } from '@/lib/requirements'
@@ -208,6 +209,87 @@ test('Later sends the card to the bottom, and it comes back after the others', a
   await pickAndAnswer(page, 'What happens today, without it?', 'By hand')
   await pickAndAnswer(page, 'How will you know it works?', 'Fewer requests')
   await expect.element(page.question('Who will use this most?')).toBeVisible()
+})
+
+test('1–3 pick a suggestion, Enter answers and strikes the anvil, and L puts the card off', async () => {
+  serveRefinement()
+  const page = await renderPage()
+  await expect.element(page.question('Who will use this most?')).toBeVisible()
+  await expect.element(page.screen.getByText(/pick.*W write.*Enter submit.*later/)).toBeVisible()
+
+  await userEvent.keyboard('2')
+  await expect.element(page.suggestion('Our own staff')).toHaveAttribute('aria-checked', 'true')
+  await userEvent.keyboard('3')
+  await expect.element(page.suggestion('Both')).toHaveAttribute('aria-checked', 'true')
+  await userEvent.keyboard('{Enter}')
+
+  await expect.element(page.question('What happens today, without it?')).toBeVisible()
+  await expect.element(page.answeredPile()).toMatchTextContent('Both')
+  expect(anvilClass()).toMatch(/hit-a/)
+
+  await userEvent.keyboard('l')
+  await expect.element(page.question('How will you know it works?')).toBeVisible()
+  await expect.element(page.inTheStack()).toMatchTextContent(/the problem/i)
+})
+
+test('Enter answers with a suggestion focused', async () => {
+  serveRefinement()
+  const page = await renderPage()
+  await page.suggestion('Customers').click()
+  await userEvent.keyboard('{Enter}')
+
+  await expect.element(page.answeredPile()).toMatchTextContent('Customers')
+})
+
+test('in the text box 1–3 and L type, Shift + Enter adds a line, and Enter answers', async () => {
+  const fetch = serveRefinement()
+  const page = await renderPage()
+  await expect.element(page.question('Who will use this most?')).toBeVisible()
+
+  await page.ownWords().click()
+  await userEvent.keyboard('L1 2 3{Shift>}{Enter}{/Shift}lorries')
+
+  await expect.element(page.ownWords()).toHaveValue('L1 2 3\nlorries')
+  await expect.element(page.suggestion('Customers')).toHaveAttribute('aria-checked', 'false')
+  expect(fetch.mock.calls.some(([input]) => /\/(answer|later)$/.test(String(input)))).toBe(false)
+
+  await userEvent.keyboard('{Enter}')
+  await expect.element(page.question('What happens today, without it?')).toBeVisible()
+  const answer = fetch.mock.calls.find(([input]) => String(input).endsWith('/answer'))
+  expect(JSON.parse(String(answer![1]!.body))).toEqual({ answer: 'L1 2 3\nlorries' })
+})
+
+test('W moves to the text box and Esc leaves it, keeping what was typed', async () => {
+  serveRefinement()
+  const page = await renderPage()
+  await expect.element(page.question('Who will use this most?')).toBeVisible()
+
+  await userEvent.keyboard('w')
+  await expect.element(page.ownWords()).toHaveFocus()
+  await expect.element(page.ownWords()).toHaveValue('')
+  await userEvent.keyboard('Drivers{Escape}2')
+
+  await expect.element(page.ownWords()).not.toHaveFocus()
+  await expect.element(page.ownWords()).toHaveValue('Drivers')
+  await expect.element(page.suggestion('Our own staff')).toHaveAttribute('aria-checked', 'true')
+})
+
+test('the shortcuts leave modifier keys and other controls alone', async () => {
+  const fetch = serveRefinement()
+  const page = await renderPage()
+  await expect.element(page.question('Who will use this most?')).toBeVisible()
+
+  await userEvent.keyboard('{Control>}1{/Control}{Alt>}l{/Alt}{Shift>}L{/Shift}')
+  await expect.element(page.suggestion('Customers')).toHaveAttribute('aria-checked', 'false')
+
+  // Enter on the focused Later button presses Later, and doesn't also answer.
+  await page.suggestion('Customers').click()
+  page.laterButton().element().focus()
+  await userEvent.keyboard('{Enter}')
+
+  await expect.element(page.question('What happens today, without it?')).toBeVisible()
+  const actions = fetch.mock.calls.filter(([input]) => /\/(answer|later)$/.test(String(input)))
+  expect(actions.map(([input]) => String(input).split('/').at(-1))).toEqual(['later'])
 })
 
 test('your own words take priority over a picked suggestion', async () => {
