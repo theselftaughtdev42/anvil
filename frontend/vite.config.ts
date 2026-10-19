@@ -29,6 +29,13 @@ export default defineConfig({
       provider: playwright(),
       headless: true,
       instances: [{ browser: 'chromium' }],
+      commands: {
+        // Lets a test switch `prefers-reduced-motion` on and off: `commands.setReducedMotion(true)`.
+        setReducedMotion: async (ctx, reduce: boolean) => {
+          if (!('page' in ctx)) throw new Error('setReducedMotion needs the Playwright provider')
+          await ctx.page.emulateMedia({ reducedMotion: reduce ? 'reduce' : 'no-preference' })
+        },
+      },
     },
   },
 })

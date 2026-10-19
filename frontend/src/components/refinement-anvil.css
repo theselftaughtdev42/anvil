@@ -1,0 +1,91 @@
+/* The anvil above the Refinement page's progress marks. The keyframes, durations and
+   easing are copied from docs/design/prototypes/refinement.html; change them there first.
+
+   A hot billet sits on the face and the sparks fly off it.
+   At rest: each spark rises, drifts sideways, shrinks and fades on its own loop, started
+   mid-cycle with negative delays so they never fire together. The ember along the top face
+   and the billet breathe. On a strike the sparks swell and settle, the face flares then cools,
+   and the billet squashes under the blow and flares white-hot. The
+   strike alternates between two identical keyframe names so it replays every time. */
+.refinement-anvil {
+  width: 64px;
+  height: 50px;
+}
+.refinement-anvil svg {
+  overflow: visible;
+}
+.refinement-anvil .sp {
+  transform-box: fill-box;
+  transform-origin: center;
+  will-change: transform, opacity;
+  opacity: 0;
+  animation: anvil-drift var(--d) cubic-bezier(0.37, 0, 0.63, 1) var(--delay) infinite;
+}
+@keyframes anvil-drift {
+  0% { transform: translate(0, 2px) scale(1); opacity: 0; }
+  18% { opacity: var(--o); }
+  60% { opacity: calc(var(--o) * 0.7); }
+  100% { transform: translate(var(--dx), -14px) scale(0.55); opacity: 0; }
+}
+.refinement-anvil .heat {
+  animation: anvil-heat 6s ease-in-out infinite;
+}
+@keyframes anvil-heat {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 0.6; }
+}
+.refinement-anvil .burst {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+}
+.refinement-anvil.hit-a .burst { animation: anvil-strike-a 1.4s cubic-bezier(0.16, 1, 0.3, 1); }
+.refinement-anvil.hit-b .burst { animation: anvil-strike-b 1.4s cubic-bezier(0.16, 1, 0.3, 1); }
+@keyframes anvil-strike-a {
+  0% { transform: translateY(6px) scale(0.7); filter: brightness(1.6); }
+  40% { transform: translateY(-3px) scale(1.2); filter: brightness(1.3); }
+  100% { transform: none; filter: none; }
+}
+@keyframes anvil-strike-b {
+  0% { transform: translateY(6px) scale(0.7); filter: brightness(1.6); }
+  40% { transform: translateY(-3px) scale(1.2); filter: brightness(1.3); }
+  100% { transform: none; filter: none; }
+}
+.refinement-anvil.hit-a .heat { animation: anvil-flash-a 1.6s ease-out, anvil-heat 6s ease-in-out 1.6s infinite; }
+.refinement-anvil.hit-b .heat { animation: anvil-flash-b 1.6s ease-out, anvil-heat 6s ease-in-out 1.6s infinite; }
+@keyframes anvil-flash-a {
+  0% { opacity: 1; }
+  100% { opacity: 0.35; }
+}
+@keyframes anvil-flash-b {
+  0% { opacity: 1; }
+  100% { opacity: 0.35; }
+}
+.refinement-anvil .billet {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: anvil-glow 6s ease-in-out infinite;
+}
+@keyframes anvil-glow {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.15); }
+}
+.refinement-anvil.hit-a .billet { animation: anvil-squash-a 1.4s cubic-bezier(0.16, 1, 0.3, 1), anvil-glow 6s ease-in-out 1.4s infinite; }
+.refinement-anvil.hit-b .billet { animation: anvil-squash-b 1.4s cubic-bezier(0.16, 1, 0.3, 1), anvil-glow 6s ease-in-out 1.4s infinite; }
+@keyframes anvil-squash-a {
+  0% { transform: scale(1.1, 0.6); filter: brightness(1.9); }
+  100% { transform: none; filter: brightness(1); }
+}
+@keyframes anvil-squash-b {
+  0% { transform: scale(1.1, 0.6); filter: brightness(1.9); }
+  100% { transform: none; filter: brightness(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .refinement-anvil .sp,
+  .refinement-anvil .heat,
+  .refinement-anvil .burst,
+  .refinement-anvil .billet {
+    animation: none !important;
+  }
+  .refinement-anvil .sp { opacity: var(--o); }
+  .refinement-anvil .heat { opacity: 0.45; }
+}
