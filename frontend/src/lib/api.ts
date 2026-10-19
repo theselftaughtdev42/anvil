@@ -43,6 +43,13 @@ export async function api<T>(
   return (await response.json()) as T
 }
 
+// For a query's `retry`: a 4xx won't fix itself, so only retry the rest, up
+// to three times.
+export function retryUnlessClientError(failureCount: number, error: Error): boolean {
+  if (error instanceof ApiError && error.status >= 400 && error.status < 500) return false
+  return failureCount < 3
+}
+
 async function errorMessage(response: Response): Promise<string> {
   try {
     const body: unknown = await response.json()

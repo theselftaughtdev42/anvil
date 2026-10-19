@@ -16,7 +16,14 @@ function ColdAnvil() {
   )
 }
 
-export function NotFoundPage() {
+// `label` and `message` say what's missing: a page by default.
+export function NotFoundPage({
+  label = 'Page not found',
+  message = "There's no page at this address. The link may be mistyped, or the page may have moved.",
+}: {
+  label?: string
+  message?: string
+}) {
   const navigate = useNavigate()
   // The first page of the visit has the key "default": going back from it
   // would leave Anvil, so go home instead.
@@ -27,12 +34,10 @@ export function NotFoundPage() {
     <div className="flex flex-col items-center py-24 text-center">
       <ColdAnvil />
       <p className="text-caption tracking-widest text-muted-foreground uppercase">
-        404 · Page not found
+        404 · {label}
       </p>
       <h1 className="mt-3 text-page-heading">Nothing's on the anvil here</h1>
-      <p className="mt-3 max-w-md text-body text-muted-foreground">
-        There's no page at this address. The link may be mistyped, or the page may have moved.
-      </p>
+      <p className="mt-3 max-w-md text-body text-muted-foreground">{message}</p>
       <Button size="lg" className="mt-8" onClick={goBack}>
         <ArrowLeft />
         Go back

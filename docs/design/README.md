@@ -26,7 +26,9 @@ The palette is the shadcn CSS variables in `theme.css`. The named ones:
 - **Soot** (`--muted`, `--secondary`): tab list, progress track, avatar.
 - **Ember** (`--primary`, `--ring`): the one primary action per screen, and focus rings.
 
-Keep ember for the primary action, focus and the Refinement anvil's sparks and heat. Don't use it for status.
+- **Steel** (`--answered*`): Answered Questions on the Refinement page, in the pile and the progress marks.
+
+Keep ember for the primary action, focus, the picked suggestion on a Question card and the Refinement anvil's sparks and heat. Don't use it for status.
 
 ### Status
 

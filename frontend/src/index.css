@@ -33,6 +33,17 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
 
+  --color-card-raised: var(--card-raised);
+  --color-card-sunk: var(--card-sunk);
+  --color-border-strong: var(--border-strong);
+  --color-faint: var(--faint);
+  --color-primary-wash: var(--primary-wash);
+  --color-topic: var(--topic);
+  --color-answered: var(--answered);
+  --color-answered-background: var(--answered-background);
+  --color-answered-border: var(--answered-border);
+  --color-answered-foreground: var(--answered-foreground);
+
   --color-status-draft: var(--status-draft);
   --color-status-draft-background: var(--status-draft-background);
   --color-status-draft-border: var(--status-draft-border);

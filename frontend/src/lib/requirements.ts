@@ -1,5 +1,5 @@
 import { queryOptions } from '@tanstack/react-query'
-import { api } from '@/lib/api'
+import { api, retryUnlessClientError } from '@/lib/api'
 
 export type RequirementStatus = 'draft' | 'in_progress' | 'complete'
 
@@ -43,6 +43,18 @@ export function requirementsQuery() {
   return queryOptions({
     queryKey: requirementsKey,
     queryFn: () => api<RequirementList>('/requirements'),
+  })
+}
+
+export const requirementKey = (id: string) => ['requirements', id] as const
+
+// GET /api/requirements/:id. Its key sits under the list's, so marking the
+// list stale marks this stale too.
+export function requirementQuery(id: string) {
+  return queryOptions({
+    queryKey: requirementKey(id),
+    queryFn: () => api<Requirement>(`/requirements/${id}`),
+    retry: retryUnlessClientError,
   })
 }
 
