@@ -2,21 +2,15 @@ import { ArrowLeft } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router'
 import { Button } from '@/components/ui/button'
 
-// The logo's anvil gone cold: soot instead of ash, its sparks down to one
-// faint one. Decorative, so hidden from screen readers.
+// The logo's anvil gone cold: soot instead of ash. Decorative, so hidden from
+// screen readers.
 function ColdAnvil() {
   return (
-    <svg viewBox="0 -2 100 74" aria-hidden="true" className="mb-10 w-42">
+    <svg viewBox="2 28 94 44" aria-hidden="true" className="mb-10 w-42">
       <path
         d="M4 34 C16 34 24 32 28 30 H94 V44 H78 Q68 46 66 58 H76 V70 H28 V58 H38 Q36 46 28 44 Q14 42 4 34 Z"
         className="fill-muted stroke-border"
         strokeWidth={0.75}
-      />
-      <path
-        d="M0 -8 L4 0 L0 8 L-4 0 Z"
-        className="fill-primary"
-        opacity={0.35}
-        transform="translate(58 20) scale(0.5)"
       />
     </svg>
   )

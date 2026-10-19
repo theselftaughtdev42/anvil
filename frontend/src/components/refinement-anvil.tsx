@@ -2,8 +2,8 @@ import { useId, type CSSProperties } from 'react'
 import { cn } from '@/lib/utils'
 import './refinement-anvil.css'
 
-// The paths come from src/assets/logo.svg: the anvil, and one spark drawn three times.
-// The sparks fly off a hot billet on the face, so the anvil is visibly forging something.
+// The anvil's path comes from src/assets/logo.svg, whose anvil is cold. This is the only
+// anvil that throws sparks: they fly off a hot billet on the face, because it's forging.
 const ANVIL = 'M4 34 C16 34 24 32 28 30 H94 V44 H78 Q68 46 66 58 H76 V70 H28 V58 H38 Q36 46 28 44 Q14 42 4 34 Z'
 const SPARK = 'M0 -8 L4 0 L0 8 L-4 0 Z'
 

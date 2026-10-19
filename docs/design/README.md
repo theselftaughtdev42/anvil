@@ -10,10 +10,10 @@ The UI is built on [shadcn/ui](https://ui.shadcn.com) and Tailwind, dark mode on
 
 | File | Use |
 |---|---|
-| ![](../../frontend/src/assets/logo.svg) [`logo.svg`](../../frontend/src/assets/logo.svg) | The main mark: an anvil with three sparks. Use it in the app header next to the wordmark. |
-| ![](../../frontend/public/favicon.svg) [`favicon.svg`](../../frontend/public/favicon.svg) | The browser tab icon: the same anvil with a single spark. It switches the anvil to iron on light browser themes. |
+| ![](../../frontend/src/assets/logo.svg) [`logo.svg`](../../frontend/src/assets/logo.svg) | The main mark: a cold anvil, no sparks. Use it in the app header next to the wordmark. |
+| ![](../../frontend/public/favicon.svg) [`favicon.svg`](../../frontend/public/favicon.svg) | The browser tab icon: the same anvil. It switches the anvil to iron on light browser themes. |
 
-The sparks are separate elements (`spark-1` to `spark-3`, hottest first) so they can be animated later. Don't merge them into one path.
+The mark has no sparks. Sparks only appear on the Refinement page's anvil, where they fly off the billet being forged; an anvil that sparks with nothing on it doesn't make sense.
 
 **Wordmark:** `ANVIL` in heavy Archivo, slightly tracked, in ash, with the mark to its left. The wordmark is the only place Archivo is used.
 
@@ -26,7 +26,7 @@ The palette is the shadcn CSS variables in `theme.css`. The named ones:
 - **Soot** (`--muted`, `--secondary`): tab list, progress track, avatar.
 - **Ember** (`--primary`, `--ring`): the one primary action per screen, and focus rings.
 
-Keep ember for the primary action, focus and the logo's sparks. Don't use it for status.
+Keep ember for the primary action, focus and the Refinement anvil's sparks and heat. Don't use it for status.
 
 ### Status
 
@@ -45,7 +45,7 @@ Cards are flat: a border, no shadow.
 
 Motion is rare in Anvil and always means something. The only animated element so far is the anvil on the Refinement page.
 
-- **The anvil above the card stack** is a small (64px), warm copy of the mark: ash anvil, ember sparks, a faint ember glow along its top face, and a hot billet on the face that the sparks fly off, so it's visibly forging something. It's part of the scene, not a second logo, so it stays small and never moves on its own except for the slow drift below.
+- **The anvil above the card stack** is a small (64px), warm copy of the mark: ash anvil, ember sparks (the only sparks in Anvil), a faint ember glow along its top face, and a hot billet on the face that the sparks fly off, so it's visibly forging something. It's part of the scene, not a second logo, so it stays small and never moves on its own except for the slow drift below.
 - **At rest,** each spark rises, drifts a little sideways, shrinks and fades, on its own slow loop, so they never fire together. The glow on the face and the billet breathe gently.
 - **On Answer,** the sparks swell and settle, the face flares then cools, and the billet squashes under the blow and flares white-hot. This is the strike: the moment a Question is hammered into the Requirement. Nothing else on the page animates when a card is answered.
 - **Reduced motion:** with `prefers-reduced-motion`, the sparks, glow and billet are still.
