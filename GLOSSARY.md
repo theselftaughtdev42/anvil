@@ -13,7 +13,7 @@ The User responsible for a Requirement: the one who submitted its idea and who a
 _Avoid_: Owner, current user
 
 **Requirement**:
-Something a Point of Contact needs, which Anvil helps them make clear and complete. It starts from their idea: the original wording they submitted.
+Something a Point of Contact needs, which Anvil helps them make clear and complete. It starts from their idea: the original wording they submitted. Each Requirement belongs to one Project, chosen before Refinement starts and fixed once its first Question is answered.
 _Avoid_: Ticket, request, story
 
 ### Status
@@ -51,13 +51,17 @@ _Avoid_: Closed, skipped, removed
 ### Project
 
 **Project**:
-The undertaking that Requirements are gathered for. Everything in Anvil belongs to a single Project (for now, future iterations may need to handle multiple projects).
-_Avoid_: Workspace, product, organisation
+The undertaking that Requirements are gathered for, such as a product, a system or an opportunity. Anvil holds many Projects; each has one Project Owner and one Project Context.
+_Avoid_: Workspace, product, organisation, context (on its own)
 
 **Project Owner**:
-The person responsible for a Project, who provides its Project Context.
+The User responsible for a Project, who creates it and adds its Sources.
 _Avoid_: Admin
 
 **Project Context**:
-Background about a Project, provided by its Project Owner, that Anvil takes into account whenever it helps refine a Requirement.
+Background about a Project that Anvil takes into account whenever it refines one of the Project's Requirements. Anvil builds it from the Project's Sources.
 _Avoid_: Context file, background, system prompt
+
+**Source**:
+Something the Project Owner adds to a Project for Anvil to learn from: a web page, which Anvil reads and summarises; a code repository; or text written directly.
+_Avoid_: Attachment, document, input
