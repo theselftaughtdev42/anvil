@@ -55,13 +55,9 @@ The undertaking that Requirements are gathered for, such as a product, a system 
 _Avoid_: Workspace, product, organisation, context (on its own)
 
 **Project Owner**:
-The User responsible for a Project, who creates it and adds its Sources.
+The User responsible for a Project, who creates it and writes its Project Context.
 _Avoid_: Admin
 
 **Project Context**:
-Background about a Project that Anvil takes into account whenever it refines one of the Project's Requirements. Anvil builds it from the Project's Sources.
+Background about a Project, written by its Project Owner, that Anvil takes into account whenever it refines one of the Project's Requirements.
 _Avoid_: Context file, background, system prompt
-
-**Source**:
-Something the Project Owner adds to a Project for Anvil to learn from: a web page, which Anvil reads and summarises, or a note, which Anvil uses as written. A Project can have any number of each.
-_Avoid_: Attachment, document, input
