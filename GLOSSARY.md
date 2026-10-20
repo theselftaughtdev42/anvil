@@ -63,5 +63,5 @@ Background about a Project that Anvil takes into account whenever it refines one
 _Avoid_: Context file, background, system prompt
 
 **Source**:
-Something the Project Owner adds to a Project for Anvil to learn from: a web page, which Anvil reads and summarises; a code repository; or text written directly.
+Something the Project Owner adds to a Project for Anvil to learn from: a web page, which Anvil reads and summarises, or a note, which Anvil uses as written. A Project can have any number of each.
 _Avoid_: Attachment, document, input
