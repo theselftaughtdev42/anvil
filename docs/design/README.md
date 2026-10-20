@@ -63,3 +63,13 @@ The card stack: one Question per card, answered one at a time. Open [`prototypes
 | A Question on top of the stack | ![The card stack](wireframes/refinement-card.png) |
 | Mid-way, with an Answer picked | ![After two Answers](wireframes/refinement-after-two-answers.png) |
 | Every Question answered: Anvil has no more to ask | ![No more questions](wireframes/refinement-no-more-questions.png) |
+
+## Projects
+
+Slice 1: each Project has a name and a Project Context the Project Owner writes; a Requirement picks its Project on the idea prompt. Like the Refinement screenshots, these use made-up Projects and go once the pages have shipped.
+
+| Screen | Screenshot |
+|---|---|
+| The Projects list, with a **Projects** link in the header | ![Projects list](wireframes/projects-list.png) |
+| A Project: its name, its Project Context, and the Requirements in it | ![Project page](wireframes/project-page.png) |
+| Choosing a Project on the idea prompt, with the Project on each card (locked once Refinement starts) | ![Project picker](wireframes/home-project-picker.png) |
