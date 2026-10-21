@@ -49,8 +49,8 @@ class ProjectList(BaseModel):
     items: list[ProjectPublic]
 
 
-# Each Project with its Requirement count, in one query however many there are.
 def select_with_counts() -> Select:
+    """Each Project with its Requirement count, in one query however many there are."""
     counts = (
         select(Requirement.project_id, func.count().label("requirement_count"))
         .group_by(col(Requirement.project_id))
@@ -84,8 +84,8 @@ def get_project_public(
     return project_public(project, requirement_count, user)
 
 
-# Commits, turning a clash on the case-insensitive unique name into a 409.
 def commit_or_409(session: Session, name: str) -> None:
+    """Commits, turning a clash on the case-insensitive unique name into a 409."""
     try:
         session.commit()
     except IntegrityError as e:
@@ -97,9 +97,9 @@ def commit_or_409(session: Session, name: str) -> None:
         raise
 
 
-# Every Project, by name. Anyone can see every Project.
 @router.get("")
 def list_projects(session: SessionDep, user: CurrentUserDep) -> ProjectList:
+    """Every Project, by name. Anyone can see every Project."""
     query = select_with_counts().order_by(func.lower(Project.name))
     return ProjectList(
         items=[
@@ -126,7 +126,6 @@ def get_project(
     return get_project_public(session, project_id, user)
 
 
-# Only the Project Owner can rename a Project or change its Project Context.
 @router.patch("/{project_id}")
 def update_project(
     project_id: uuid.UUID,
@@ -134,6 +133,7 @@ def update_project(
     session: SessionDep,
     user: CurrentUserDep,
 ) -> ProjectPublic:
+    """Only the Project Owner can rename a Project or change its Project Context."""
     project = session.get(Project, project_id)
     if project is None:
         raise HTTPException(status_code=404, detail="Project not found")

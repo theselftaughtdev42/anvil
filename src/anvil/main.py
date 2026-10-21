@@ -18,16 +18,17 @@ app = FastAPI()
 api = APIRouter(prefix="/api")
 
 
-# Liveness: the process is up. Never touches the database, so a database
-# outage doesn't get every instance restarted.
 @api.get("/health/live")
 def live() -> dict[str, str]:
+    """Liveness: the process is up. Never touches the database, so a database outage
+    doesn't get every instance restarted.
+    """
     return {"status": "ok", "commit": settings.git_commit}
 
 
-# Readiness: this instance can serve traffic, i.e. the database is reachable.
 @api.get("/health/ready")
 def ready(session: SessionDep) -> dict[str, str]:
+    """Readiness: this instance can serve traffic, i.e. the database is reachable."""
     try:
         session.connection().execute(text("SELECT 1"))
     except SQLAlchemyError as e:
@@ -35,7 +36,6 @@ def ready(session: SessionDep) -> dict[str, str]:
     return {"status": "ok"}
 
 
-# Who the request is acting as, e.g. for the header avatar's initials.
 @api.get("/me")
 def me(user: CurrentUserDep) -> PointOfContact:
     return user
@@ -45,9 +45,9 @@ class Config(BaseModel):
     idea_placeholder: str
 
 
-# Deployment settings the UI needs, so they change without rebuilding the SPA.
 @api.get("/config")
 def config() -> Config:
+    """Deployment settings the UI needs, so they change without rebuilding the SPA."""
     return Config(idea_placeholder=settings.idea_placeholder)
 
 

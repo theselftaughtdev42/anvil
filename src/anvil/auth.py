@@ -10,10 +10,13 @@ from anvil.models import PointOfContact
 from anvil.settings import settings
 
 
-# A stand-in for real authentication: every request acts as the Point of
-# Contact configured by STUB_USER_EMAIL, created on first use. When auth
-# arrives, this function is the only thing to replace.
 def get_current_user(session: SessionDep) -> PointOfContact:
+    """A stand-in for real authentication.
+
+    Every request acts as the Point of Contact configured by STUB_USER_EMAIL,
+    created on first use. When auth arrives, this function is the only thing to
+    replace.
+    """
     email = settings.stub_user_email
     query = select(PointOfContact).where(PointOfContact.email == email)
     if user := session.exec(query).first():

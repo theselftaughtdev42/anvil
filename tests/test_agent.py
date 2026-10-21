@@ -238,8 +238,8 @@ def test_routes_get_the_agent_from_its_dep() -> None:
     assert calls == [("an idea", None)]
 
 
-# The startup checks run on import, so these start the app in a fresh process.
 def start_app(**env: str) -> subprocess.CompletedProcess[str]:
+    """Starts the app in a fresh process, since the startup checks run on import."""
     return subprocess.run(
         [sys.executable, "-c", "from anvil.main import app"],
         check=False,
