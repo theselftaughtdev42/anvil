@@ -111,11 +111,12 @@ class AnswerCreate(BaseModel):
     ]
 
 
-# Matches the Point of Contact's own Requirement. Another Point of Contact's
-# Requirement is a 404 too, so ids don't leak.
 def is_own_requirement(
     requirement_id: uuid.UUID, user: PointOfContact
 ) -> ColumnElement[bool]:
+    """Matches the Point of Contact's own Requirement. Another Point of Contact's
+    Requirement is a 404 too, so ids don't leak.
+    """
     return and_(
         col(Requirement.id) == requirement_id,
         col(Requirement.point_of_contact_id) == user.id,
@@ -128,8 +129,6 @@ def requirement_or_404[T](row: T | None) -> T:
     return row
 
 
-# for_update locks the Requirement until the request commits, so answers to the
-# same Requirement can't interleave.
 def get_own_requirement(
     session: Session,
     requirement_id: uuid.UUID,
@@ -137,17 +136,23 @@ def get_own_requirement(
     *,
     for_update: bool = False,
 ) -> Requirement:
+    """The Point of Contact's own Requirement, or a 404.
+
+    `for_update` locks it until the request commits, so answers to the same
+    Requirement can't interleave.
+    """
     query = select(Requirement).where(is_own_requirement(requirement_id, user))
     if for_update:
         query = query.with_for_update()
     return requirement_or_404(session.exec(query).first())
 
 
-# An open Question of the Requirement: 404 if it isn't the Requirement's, 409 if
-# it's no longer open.
 def get_open_question(
     session: Session, requirement: Requirement, question_id: uuid.UUID
 ) -> Question:
+    """An open Question of the Requirement: 404 if it isn't the Requirement's, 409 if
+    it's no longer open.
+    """
     question = session.get(Question, question_id)
     if question is None or question.requirement_id != requirement.id:
         raise HTTPException(status_code=404, detail="Question not found")
@@ -156,19 +161,20 @@ def get_open_question(
     return question
 
 
-# 422 rather than 404: the Project is part of the body, not the path. Anyone can
-# pick any Project.
 def get_project_or_422(session: Session, project_id: uuid.UUID) -> Project:
+    """422 rather than 404: the Project is part of the body, not the path. Anyone can
+    pick any Project.
+    """
     project = session.get(Project, project_id)
     if project is None:
         raise HTTPException(status_code=422, detail="Project not found")
     return project
 
 
-# Each Requirement with its Project and Question counts, in one query however
-# many there are. Callers add the where and order_by; read rows with
-# requirement_public.
 def select_with_progress() -> Select:
+    """Each Requirement with its Project and Question counts, in one query however many
+    there are. Callers add the where and order_by; read rows with requirement_public.
+    """
     counts = (
         select(
             Question.requirement_id,
@@ -205,7 +211,6 @@ def requirement_public(
     )
 
 
-# The Point of Contact's own Requirement with its progress.
 def get_own_requirement_public(
     session: Session, requirement_id: uuid.UUID, user: PointOfContact
 ) -> RequirementPublic:
@@ -249,14 +254,15 @@ def create_requirement(
     return get_own_requirement_public(session, requirement.id, user)
 
 
-# The Point of Contact's Requirements, most recently updated first: all of them,
-# or only those in project_id.
 @router.get("")
 def list_requirements(
     session: SessionDep,
     user: CurrentUserDep,
     project_id: Annotated[uuid.UUID | None, Query()] = None,
 ) -> RequirementList:
+    """The Point of Contact's Requirements, most recently updated first: all of them, or
+    only those in project_id.
+    """
     query = select_with_progress().where(
         col(Requirement.point_of_contact_id) == user.id
     )
@@ -275,9 +281,6 @@ def get_requirement(
     return get_own_requirement_public(session, requirement_id, user)
 
 
-# Moves a Draft Requirement to another Project. Its Open Questions were asked
-# with the old Project Context, so they're removed and a new batch is dealt.
-# Locked once a Question is answered.
 @router.patch("/{requirement_id}")
 def update_requirement(
     requirement_id: uuid.UUID,
@@ -286,6 +289,10 @@ def update_requirement(
     user: CurrentUserDep,
     agent: AgentDep,
 ) -> RequirementPublic:
+    """Moves a Draft Requirement to another Project. Its Open Questions were asked with
+    the old Project Context, so they're removed and a new batch is dealt. Locked once a
+    Question is answered.
+    """
     requirement = get_own_requirement(session, requirement_id, user, for_update=True)
     if requirement.status != RequirementStatus.DRAFT:
         raise HTTPException(
@@ -310,16 +317,15 @@ def update_requirement(
     return get_own_requirement_public(session, requirement.id, user)
 
 
-# Only reads: never asks the agent.
 @router.get("/{requirement_id}/questions")
 def get_questions(
     requirement_id: uuid.UUID, session: SessionDep, user: CurrentUserDep
 ) -> QuestionStack:
+    """Only reads: never asks the agent."""
     requirement = get_own_requirement(session, requirement_id, user)
     return question_stack(session, requirement)
 
 
-# Answering the last open Question deals the next batch.
 @router.post("/{requirement_id}/questions/{question_id}/answer")
 def answer_question(
     requirement_id: uuid.UUID,
@@ -329,6 +335,7 @@ def answer_question(
     user: CurrentUserDep,
     agent: AgentDep,
 ) -> QuestionStack:
+    """Answering the last open Question deals the next batch."""
     requirement = get_own_requirement(session, requirement_id, user, for_update=True)
     question = get_open_question(session, requirement, question_id)
     record_answer(session, requirement, question, body.answer)
@@ -339,8 +346,6 @@ def answer_question(
     return question_stack(session, requirement)
 
 
-# Moves the Question to the bottom of the stack. A no-op if it's the only open
-# one.
 @router.post("/{requirement_id}/questions/{question_id}/later")
 def put_off_question(
     requirement_id: uuid.UUID,
@@ -348,6 +353,10 @@ def put_off_question(
     session: SessionDep,
     user: CurrentUserDep,
 ) -> QuestionStack:
+    """Moves the Question to the bottom of the stack.
+
+    A no-op if it's the only open one.
+    """
     requirement = get_own_requirement(session, requirement_id, user, for_update=True)
     question = get_open_question(session, requirement, question_id)
     if open_questions(session, requirement)[-1].id != question.id:

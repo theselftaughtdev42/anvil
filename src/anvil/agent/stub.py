@@ -72,14 +72,16 @@ QUESTIONS = (
 
 
 class StubAgent:
-    """A deterministic, offline RefinementAgent, so Anvil runs with no model."""
+    """A deterministic, offline RefinementAgent, so Anvil runs with no model.
 
-    # delay_ms makes every call slow, to exercise the UI's loading states.
+    `delay_ms` makes every call slow, to exercise the UI's loading states.
+    """
+
     def __init__(self, delay_ms: int = 0) -> None:
         self.delay_ms = delay_ms
 
-    # The idea's first few words. Ignores the Project Context.
     def name_requirement(self, idea: str, context: str | None) -> str:
+        """The idea's first few words. Ignores the Project Context."""
         time.sleep(self.delay_ms / 1000)
         words = idea.split()
         title = " ".join(words[:TITLE_MAX_WORDS])
@@ -93,14 +95,15 @@ class StubAgent:
         title = title[0].upper() + title[1:]
         return title + ELLIPSIS if cut else title
 
-    # The next few of QUESTIONS not yet asked, matched on text. Ignores the
-    # Requirement and the Project Context.
     def ask_questions(
         self,
         requirement: RequirementBrief,
         asked: Sequence[AskedQuestion],
         context: str | None,
     ) -> list[QuestionDraft]:
+        """The next few of QUESTIONS not yet asked, matched on text. Ignores the
+        Requirement and the Project Context.
+        """
         time.sleep(self.delay_ms / 1000)
         asked_texts = {question.text for question in asked}
         unasked = [q for q in QUESTIONS if q.text not in asked_texts]

@@ -24,9 +24,11 @@ status_type = sa.Enum(
 )
 
 
-# One thing Anvil asks about a Requirement during Refinement. Its Answer lives
-# on the row, since a Question has at most one.
 class Question(SQLModel, table=True):
+    """One thing Anvil asks about a Requirement during Refinement. Its Answer lives on
+    the row, since a Question has at most one.
+    """
+
     __tablename__ = "question"
     __table_args__ = (
         # Reads a Requirement's stack in order. Leading with requirement_id also
