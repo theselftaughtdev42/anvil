@@ -11,7 +11,23 @@ const question = (n: number) => ({
 
 // The e2e tests run without an API, so this stands in for it: two answered,
 // four open.
-async function serve(page: Page) {
+async function serve(page: Page, status = 'in_progress') {
+  await page.route('**/api/projects', (route) =>
+    route.fulfill({
+      json: {
+        items: [
+          {
+            id: 'p1',
+            name: 'Parcel delivery platform',
+            context: 'Parcels.',
+            has_context: true,
+            requirement_count: 1,
+            is_owner: true,
+          },
+        ],
+      },
+    }),
+  )
   await page.route('**/api/requirements/r1', (route) =>
     route.fulfill({
       json: {
@@ -19,7 +35,7 @@ async function serve(page: Page) {
         title: 'Rebook a missed delivery, with a title long enough to need cutting short on a phone',
         idea: 'Customers rebook a missed delivery themselves.',
         project: { id: 'p1', name: 'Parcel delivery platform' },
-        status: 'in_progress',
+        status,
         created_at: '2026-10-15T12:00:00Z',
         updated_at: '2026-10-15T12:00:00Z',
         progress: { answered: 2, total: 6 },
@@ -42,6 +58,16 @@ const fitsWidth = (page: Page) =>
 
 const box = async (page: Page, name: RegExp) => (await page.getByRole('region', { name }).boundingBox())!
 
+test('on a wide screen the Project and status sit in the header, by the title', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 })
+  await serve(page, 'draft')
+  await page.goto('/requirements/r1')
+  const banner = page.getByRole('banner')
+  await expect(banner.getByRole('combobox', { name: 'Project' })).toBeVisible()
+  await expect(banner.getByText('Draft')).toBeVisible()
+  await expect(page.getByRole('combobox', { name: 'Project' })).toHaveCount(1)
+})
+
 test('on a wide screen the Answered pile and the stack sit either side of the card', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 })
   await serve(page)
@@ -59,6 +85,17 @@ test('on a wide screen the Answered pile and the stack sit either side of the ca
 test.describe('at phone width', () => {
   test.use({ viewport: { width: 360, height: 800 } })
 
+  // The header only has room for the title, so they go under it.
+  test('the Project and status sit under the header, with no sideways scroll', async ({ page }) => {
+    await serve(page, 'draft')
+    await page.goto('/requirements/r1')
+    const main = page.getByRole('main')
+    await expect(main.getByRole('combobox', { name: 'Project' })).toBeVisible()
+    await expect(main.getByText('Draft')).toBeVisible()
+    await expect(page.getByRole('combobox', { name: 'Project' })).toHaveCount(1)
+    expect(await fitsWidth(page)).toBe(true)
+  })
+
   test('the side columns stack under the card, with no sideways scroll', async ({ page }) => {
     await serve(page)
     await page.goto('/requirements/r1')
@@ -75,7 +112,7 @@ test.describe('at phone width', () => {
   // The wordmark gives way and the section links shrink to icons on a phone,
   // so the title isn't cut to a letter or two.
   test('the header leaves the title room', async ({ page }) => {
-    await serve(page)
+    await serve(page, 'draft')
     await page.goto('/requirements/r1')
     const title = page.getByRole('banner').getByRole('heading', { level: 1 })
     await expect(title).toBeVisible()

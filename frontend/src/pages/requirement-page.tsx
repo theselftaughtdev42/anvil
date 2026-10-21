@@ -1,9 +1,11 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useIsMutating, useMutation, useMutationState, useQuery, useQueryClient } from '@tanstack/react-query'
 import { LoaderCircle } from 'lucide-react'
 import { useState } from 'react'
 import { useParams } from 'react-router'
 import { Crumb } from '@/components/app-shell'
 import { NoMoreQuestionsCard, QuestionCard, ShortcutHint } from '@/components/question-card'
+import { RequirementProject } from '@/components/requirement-project'
+import { StatusBadge } from '@/components/status-badge'
 import { AnsweredPile, NextInStack, RefinementProgress } from '@/components/refinement-panels'
 import { Button } from '@/components/ui/button'
 import { ApiError } from '@/lib/api'
@@ -14,7 +16,13 @@ import {
   questionsKey,
   questionsQuery,
 } from '@/lib/questions'
-import { requirementKey, requirementQuery, requirementsKey } from '@/lib/requirements'
+import {
+  changeProjectKey,
+  type Requirement,
+  requirementKey,
+  requirementQuery,
+  requirementsKey,
+} from '@/lib/requirements'
 import { NotFoundPage } from '@/pages/not-found-page'
 
 // How many cards peek out under the top one.
@@ -29,6 +37,12 @@ export function RequirementPage() {
   const { id = '' } = useParams()
   const requirement = useQuery(requirementQuery(id))
   const stack = useQuery(questionsQuery(id))
+  // Its Questions are swapped for new ones, asked with the new Project Context.
+  const changingProject = useIsMutating({ mutationKey: changeProjectKey(id) }) > 0
+  const lastChange = useMutationState({
+    filters: { mutationKey: changeProjectKey(id) },
+    select: (mutation) => mutation.state.status,
+  }).at(-1)
 
   if (isNotFound(requirement.error) || isNotFound(stack.error)) {
     return (
@@ -46,6 +60,16 @@ export function RequirementPage() {
 
   return (
     <>
+      {requirement.data && (
+        <div className="flex items-center justify-between gap-3 pt-4 sm:hidden">
+          <RequirementMeta requirement={requirement.data} />
+        </div>
+      )}
+      {lastChange === 'error' && (
+        <p role="alert" className="pt-6 text-center text-body-sm text-destructive">
+          Couldn't change the Project. Try again.
+        </p>
+      )}
       {requirement.isError || stack.isError ? (
         <div className="flex flex-col items-center gap-3 py-16 text-center">
           <p role="alert" className="text-body-sm text-muted-foreground">
@@ -54,6 +78,11 @@ export function RequirementPage() {
           <Button variant="outline" onClick={retry}>
             Retry
           </Button>
+        </div>
+      ) : changingProject ? (
+        <div role="status" className="flex flex-col items-center gap-3 py-24 text-muted-foreground">
+          <LoaderCircle className="size-6 animate-spin" aria-hidden="true" />
+          <span className="text-body-sm">Asking new Questions for this Project…</span>
         </div>
       ) : requirement.isPending || stack.isPending ? (
         <div role="status" className="flex justify-center py-24 text-muted-foreground">
@@ -67,10 +96,28 @@ export function RequirementPage() {
   )
 }
 
-// The Requirement's title, once it loads.
+// The Requirement's title, Project and status, once it loads. A phone only
+// has room for the title, so the page shows the rest there.
 export function RequirementCrumb({ id }: { id: string }) {
-  const requirement = useQuery(requirementQuery(id))
-  return requirement.data ? <Crumb>{requirement.data.title}</Crumb> : null
+  const { data } = useQuery(requirementQuery(id))
+  if (!data) return null
+  return (
+    <>
+      <Crumb>{data.title}</Crumb>
+      <div className="flex shrink-0 items-center gap-3 max-sm:hidden">
+        <RequirementMeta requirement={data} />
+      </div>
+    </>
+  )
+}
+
+function RequirementMeta({ requirement }: { requirement: Requirement }) {
+  return (
+    <>
+      <RequirementProject requirement={requirement} />
+      <StatusBadge status={requirement.status} className="shrink-0" />
+    </>
+  )
 }
 
 function Refinement({ requirementId, stack }: { requirementId: string; stack: QuestionStack }) {
