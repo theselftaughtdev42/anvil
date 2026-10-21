@@ -18,6 +18,7 @@ import {
 } from '@/lib/questions'
 import {
   changeProjectKey,
+  isProjectLocked,
   type Requirement,
   requirementKey,
   requirementQuery,
@@ -65,7 +66,8 @@ export function RequirementPage() {
           <RequirementMeta requirement={requirement.data} />
         </div>
       )}
-      {lastChange === 'error' && (
+      {/* Once it's locked, there's nothing to try again */}
+      {lastChange === 'error' && requirement.data && !isProjectLocked(requirement.data) && (
         <p role="alert" className="pt-6 text-center text-body-sm text-destructive">
           Couldn't change the Project. Try again.
         </p>
@@ -133,12 +135,19 @@ function Refinement({ requirementId, stack }: { requirementId: string; stack: Qu
     }
   }
 
+  // Answer and Later share the stack's key, so the Project menu can wait for them.
   const answer = useMutation({
+    mutationKey: questionsKey(requirementId),
     mutationFn: ({ questionId, text }: { questionId: string; text: string }) =>
       answerQuestion(requirementId, questionId, text),
     onSuccess: (next) => {
       onStack(next)
       setStrikes((n) => n + 1)
+      // Locks the Project now, not once the Requirement reloads, so the menu
+      // can't be picked from in between.
+      queryClient.setQueryData(requirementQuery(requirementId).queryKey, (r) =>
+        r?.status === 'draft' ? { ...r, status: 'in_progress' as const } : r,
+      )
       // The first Answer moves it to In progress, and every Answer changes its
       // progress and when it was last updated.
       void queryClient.invalidateQueries({ queryKey: requirementKey(requirementId), exact: true })
@@ -147,6 +156,7 @@ function Refinement({ requirementId, stack }: { requirementId: string; stack: Qu
     onError,
   })
   const later = useMutation({
+    mutationKey: questionsKey(requirementId),
     mutationFn: (questionId: string) => putOffQuestion(requirementId, questionId),
     onSuccess: onStack,
     onError,

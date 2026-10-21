@@ -1,9 +1,10 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useIsMutating, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Lock } from 'lucide-react'
 import { ProjectPicker } from '@/components/project-picker'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { ApiError } from '@/lib/api'
 import { projectsKey, projectsQuery } from '@/lib/projects'
+import { questionsKey } from '@/lib/questions'
 import {
   changeProject,
   changeProjectKey,
@@ -19,11 +20,16 @@ const LOCKED = 'The Project is locked once a Question is answered.'
 export function RequirementProject({ requirement }: { requirement: Requirement }) {
   const queryClient = useQueryClient()
   const projects = useQuery({ ...projectsQuery(), enabled: !isProjectLocked(requirement) })
+  // A change while an Answer saves would delete the Question it answers, or
+  // be refused once the Answer locks the Project.
+  const answering = useIsMutating({ mutationKey: questionsKey(requirement.id) }) > 0
 
   const change = useMutation({
     mutationKey: changeProjectKey(requirement.id),
     // One at a time, so the last pick wins.
     scope: { id: changeProjectKey(requirement.id).join('/') },
+    // Dropped once the page closes, so a failure isn't still shown on return.
+    gcTime: 0,
     mutationFn: (projectId: string) => changeProject(requirement.id, projectId),
     // Awaited, so the change stays pending until the new stack has loaded. The
     // Requirement and its Questions are under the list's key.
@@ -35,6 +41,9 @@ export function RequirementProject({ requirement }: { requirement: Requirement }
     onError: (error) => {
       if (error instanceof ApiError && (error.status === 409 || error.status === 422)) {
         void queryClient.invalidateQueries({ queryKey: requirementsKey })
+      }
+      if (error instanceof ApiError && error.status === 422) {
+        void queryClient.invalidateQueries({ queryKey: projectsKey })
       }
     },
   })
@@ -80,8 +89,9 @@ export function RequirementProject({ requirement }: { requirement: Requirement }
       projects={projects.data!.items}
       value={picked}
       onValueChange={(id) => {
-        if (id !== projectId) change.mutate(id)
+        if (id !== projectId && !answering) change.mutate(id)
       }}
+      disabled={answering}
       className="sm:max-w-72"
     />
   )
