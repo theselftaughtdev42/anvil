@@ -3,5 +3,3 @@ __pycache__
 node_modules/
 frontend/dist/
 .env
-# The Project Context (PROJECT_CONTEXT_FILE)
-context.md

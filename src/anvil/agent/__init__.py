@@ -6,12 +6,11 @@ from anvil.agent.base import (
     RefinementAgent,
     RequirementBrief,
 )
-from anvil.agent.deps import AgentDep, ProjectContextDep
+from anvil.agent.deps import AgentDep
 
 __all__ = [
     "AgentDep",
     "AskedQuestion",
-    "ProjectContextDep",
     "QuestionDraft",
     "RefinementAgent",
     "RequirementBrief",

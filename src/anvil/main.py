@@ -3,8 +3,7 @@ from pydantic import BaseModel
 from sqlalchemy.exc import SQLAlchemyError
 from sqlmodel import text
 
-# Builds the agent and loads the Project Context, so a bad AGENT or
-# PROJECT_CONTEXT_FILE stops the app starting.
+# Builds the agent, so a bad AGENT stops the app starting.
 import anvil.agent  # noqa: F401
 from anvil import PROJECT_ROOT, projects, requirements
 from anvil.auth import CurrentUserDep

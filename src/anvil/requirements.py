@@ -8,7 +8,7 @@ from sqlalchemy import ColumnElement, and_, delete, func
 from sqlmodel import Session, col, select
 from sqlmodel.sql.expression import Select
 
-from anvil.agent import AgentDep, ProjectContextDep
+from anvil.agent import AgentDep
 from anvil.auth import CurrentUserDep
 from anvil.db import SessionDep
 from anvil.models import (
@@ -24,6 +24,7 @@ from anvil.refinement import (
     bottom_position,
     deal_questions,
     open_questions,
+    project_context,
     record_answer,
 )
 
@@ -232,19 +233,18 @@ def create_requirement(
     session: SessionDep,
     user: CurrentUserDep,
     agent: AgentDep,
-    context: ProjectContextDep,
 ) -> RequirementPublic:
     project = get_project_or_422(session, body.project_id)
     requirement = Requirement(
         point_of_contact_id=user.id,
         project_id=project.id,
         idea=body.idea,
-        title=agent.name_requirement(body.idea, context),
+        title=agent.name_requirement(body.idea, project_context(project)),
         status=RequirementStatus.DRAFT,
     )
     session.add(requirement)
     # So the Requirement opens with its first batch of Questions.
-    deal_questions(session, requirement, agent, context)
+    deal_questions(session, requirement, agent)
     session.commit()
     return get_own_requirement_public(session, requirement.id, user)
 
@@ -285,7 +285,6 @@ def update_requirement(
     session: SessionDep,
     user: CurrentUserDep,
     agent: AgentDep,
-    context: ProjectContextDep,
 ) -> RequirementPublic:
     requirement = get_own_requirement(session, requirement_id, user, for_update=True)
     if requirement.status != RequirementStatus.DRAFT:
@@ -306,7 +305,7 @@ def update_requirement(
         )
         requirement.questions_exhausted_at = None
         session.flush()
-        deal_questions(session, requirement, agent, context)
+        deal_questions(session, requirement, agent)
     session.commit()
     return get_own_requirement_public(session, requirement.id, user)
 
@@ -329,14 +328,13 @@ def answer_question(
     session: SessionDep,
     user: CurrentUserDep,
     agent: AgentDep,
-    context: ProjectContextDep,
 ) -> QuestionStack:
     requirement = get_own_requirement(session, requirement_id, user, for_update=True)
     question = get_open_question(session, requirement, question_id)
     record_answer(session, requirement, question, body.answer)
     session.flush()
     if not open_questions(session, requirement):
-        deal_questions(session, requirement, agent, context)
+        deal_questions(session, requirement, agent)
     session.commit()
     return question_stack(session, requirement)
 

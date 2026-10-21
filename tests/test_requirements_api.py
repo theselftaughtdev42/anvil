@@ -8,7 +8,7 @@ from sqlalchemy import Engine, event
 from sqlmodel import Session, select
 
 from anvil.agent import AskedQuestion, QuestionDraft, RequirementBrief
-from anvil.agent.deps import get_agent, get_project_context
+from anvil.agent.deps import get_agent
 from anvil.auth import get_current_user
 from anvil.db import get_session
 from anvil.main import app
@@ -79,7 +79,6 @@ def app_on_test_db(migrated_db: Engine, agent: FakeAgent) -> Iterator[Engine]:
 
     app.dependency_overrides[get_session] = session
     app.dependency_overrides[get_agent] = lambda: agent
-    app.dependency_overrides[get_project_context] = lambda: "We deliver parcels."
     yield migrated_db
     app.dependency_overrides.clear()
 
@@ -121,12 +120,20 @@ def add_project(name: str) -> dict:
     return response.json()
 
 
+def set_context(project: dict, context: str) -> None:
+    response = client.patch(f"/api/projects/{project['id']}", json={"context": context})
+    assert response.status_code == 200, response.text
+
+
 def parcels() -> dict:
-    """The "Parcels" Project, created the first time it's needed."""
+    """The "Parcels" Project, with the Project Context "We deliver parcels.",
+    created the first time it's needed."""
     for project in client.get("/api/projects").json()["items"]:
         if project["name"] == "Parcels":
             return project
-    return add_project("Parcels")
+    project = add_project("Parcels")
+    set_context(project, "We deliver parcels.")
+    return project
 
 
 def create(idea: str, project: dict | None = None) -> dict:
@@ -393,6 +400,18 @@ def test_changing_the_project_of_an_exhausted_draft_asks_again(
     assert stack["exhausted"] is False
 
 
+def test_changing_the_project_asks_with_its_project_context(
+    agent: FakeAgent,
+) -> None:
+    created = create("Rebook a missed delivery")
+    lockers = add_project("Lockers")
+    set_context(lockers, "We run parcel lockers.")
+
+    change_project(created["id"], lockers["id"])
+
+    assert agent.asks[-1][2] == "We run parcel lockers."
+
+
 def test_changing_to_the_same_project_changes_nothing(agent: FakeAgent) -> None:
     agent.batches = [[draft("Who")]]
     created = create("Rebook a missed delivery")
@@ -553,6 +572,52 @@ def test_creating_deals_the_first_batch(agent: FakeAgent) -> None:
     ]
 
 
+def test_a_project_without_context_gives_the_agent_none(agent: FakeAgent) -> None:
+    create("Rebook a missed delivery", add_project("Lockers"))
+
+    assert agent.calls == [("Rebook a missed delivery", None)]
+    assert agent.asks[0][2] is None
+
+
+def test_a_blank_project_context_gives_the_agent_none(agent: FakeAgent) -> None:
+    lockers = add_project("Lockers")
+    set_context(lockers, "  \n ")
+
+    create("Rebook a missed delivery", lockers)
+
+    assert agent.calls == [("Rebook a missed delivery", None)]
+    assert agent.asks[0][2] is None
+
+
+def test_each_requirement_gets_its_own_project_context(agent: FakeAgent) -> None:
+    lockers = add_project("Lockers")
+    set_context(lockers, "We run parcel lockers.")
+
+    create("Rebook a missed delivery")
+    create("Open a locker remotely", lockers)
+
+    assert [context for _, context in agent.calls] == [
+        "We deliver parcels.",
+        "We run parcel lockers.",
+    ]
+    assert [context for _, _, context in agent.asks] == [
+        "We deliver parcels.",
+        "We run parcel lockers.",
+    ]
+
+
+def test_editing_the_project_context_changes_the_next_questions(
+    agent: FakeAgent,
+) -> None:
+    agent.batches = [[draft("Who")], [draft("When")]]
+    created = create("Rebook a missed delivery")
+    set_context(parcels(), "We deliver parcels and pallets.")
+
+    answer(created["id"], questions(created["id"])["open"][0])
+
+    assert agent.asks[-1][2] == "We deliver parcels and pallets."
+
+
 def test_creating_with_nothing_to_ask_is_exhausted() -> None:
     created = create("Rebook a missed delivery")
 
@@ -676,7 +741,7 @@ def test_an_exhausted_requirement_isnt_asked_again(
 
     with Session(app_on_test_db) as session:
         requirement = session.get_one(Requirement, uuid.UUID(created["id"]))
-        deal_questions(session, requirement, FailingAgent(), None)
+        deal_questions(session, requirement, FailingAgent())
         session.commit()
 
     assert questions(created["id"])["exhausted"] is True
