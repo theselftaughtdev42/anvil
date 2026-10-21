@@ -26,8 +26,8 @@ test.beforeEach(async ({ page }) => {
 
 test('an idea can be started with the keyboard alone', async ({ page }) => {
   const idea = page.getByRole('textbox', { name: 'Your idea' })
-  // Past the header's logo and account button.
-  for (let i = 0; i < 3; i++) await page.keyboard.press('Tab')
+  // Past the header's logo, section links and account button.
+  for (let i = 0; i < 5; i++) await page.keyboard.press('Tab')
   await expect(idea).toBeFocused()
 
   await page.keyboard.type('Drivers should see route changes')
