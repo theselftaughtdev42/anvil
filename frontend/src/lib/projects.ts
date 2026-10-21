@@ -1,5 +1,5 @@
 import { queryOptions } from '@tanstack/react-query'
-import { api } from '@/lib/api'
+import { api, retryUnlessClientError } from '@/lib/api'
 
 // A Project as the API returns it (ProjectPublic).
 export interface Project {
@@ -30,4 +30,22 @@ export function projectsQuery() {
 // Throws an ApiError with the API's message when the name is taken (409).
 export function createProject(name: string): Promise<Project> {
   return api<Project>('/projects', { method: 'POST', json: { name } })
+}
+
+export const projectKey = (id: string) => ['projects', id] as const
+
+// GET /api/projects/:id. Its key sits under the list's, so marking the list
+// stale marks this stale too.
+export function projectQuery(id: string) {
+  return queryOptions({
+    queryKey: projectKey(id),
+    queryFn: () => api<Project>(`/projects/${id}`),
+    retry: retryUnlessClientError,
+  })
+}
+
+// Only the Project Owner may. Throws an ApiError with the API's message, e.g.
+// when the new name is taken (409).
+export function updateProject(id: string, changes: { name: string; context: string }): Promise<Project> {
+  return api<Project>(`/projects/${id}`, { method: 'PATCH', json: changes })
 }

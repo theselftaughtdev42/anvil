@@ -28,6 +28,39 @@ async function serve(page: Page) {
   )
 }
 
+// Stands in for GET /api/projects/p1 and its Requirements.
+async function serveProject(page: Page) {
+  await page.route(
+    (url) => url.pathname === '/api/projects/p1',
+    (route) => route.fulfill({ json: projects[0] }),
+  )
+  await page.route(
+    (url) => url.pathname === '/api/requirements',
+    (route) =>
+      route.fulfill({
+        json: {
+          items: ['Rebook a missed delivery', 'Offline sync for drivers', 'Bulk import depots'].map((title, i) => ({
+            id: `r${i}`,
+            title,
+            idea: title,
+            status: 'draft',
+            created_at: '2026-10-01T00:00:00Z',
+            updated_at: '2026-10-01T00:00:00Z',
+            progress: null,
+          })),
+        },
+      }),
+  )
+}
+
+test("a Project's Requirements sit beside its Project Context", async ({ page }) => {
+  await serveProject(page)
+  await page.goto('/projects/p1')
+  const context = await page.getByLabel('Project Context').boundingBox()
+  const side = await page.getByRole('region', { name: 'Requirements in this Project' }).boundingBox()
+  expect(side!.x).toBeGreaterThan(context!.x + context!.width)
+})
+
 // The page doesn't scroll sideways.
 const fitsWidth = (page: Page) =>
   page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)
@@ -67,5 +100,13 @@ test.describe('at phone width', () => {
     const box = (await dialog.boundingBox())!
     expect(box.x).toBeGreaterThanOrEqual(0)
     expect(box.x + box.width).toBeLessThanOrEqual(360)
+  })
+  test("a Project's Requirements go under its Project Context, with no sideways scroll", async ({ page }) => {
+    await serveProject(page)
+    await page.goto('/projects/p1')
+    const save = await page.getByRole('button', { name: 'Save' }).boundingBox()
+    const side = await page.getByRole('region', { name: 'Requirements in this Project' }).boundingBox()
+    expect(side!.y).toBeGreaterThan(save!.y + save!.height)
+    expect(await fitsWidth(page)).toBe(true)
   })
 })

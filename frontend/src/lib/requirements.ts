@@ -46,6 +46,16 @@ export function requirementsQuery() {
   })
 }
 
+// GET /api/requirements?project_id=: the Point of Contact's Requirements in one
+// Project. Under the list's key, so it goes stale with the list.
+export function projectRequirementsQuery(projectId: string) {
+  return queryOptions({
+    queryKey: [...requirementsKey, { projectId }] as const,
+    queryFn: () =>
+      api<RequirementList>(`/requirements?${new URLSearchParams({ project_id: projectId })}`),
+  })
+}
+
 export const requirementKey = (id: string) => ['requirements', id] as const
 
 // GET /api/requirements/:id. Its key sits under the list's, so marking the
