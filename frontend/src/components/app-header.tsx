@@ -15,7 +15,7 @@ export function AppHeader({ initials, children }: { initials: string; children?:
           to="/"
           className="-mx-1 flex items-center gap-2 rounded-md px-1 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
         >
-          <AnvilMark className="w-9" />
+          <AnvilMark className="w-9 max-sm:w-8" />
           {/* With a page's own content in the header, a phone only has room for the mark. */}
           <span
             className={cn(
@@ -75,7 +75,7 @@ function HeaderNav() {
             to={to}
             aria-current={isCurrent ? 'page' : undefined}
             className={cn(
-              'flex h-8 items-center rounded-md px-2.5 text-body-sm whitespace-nowrap outline-none transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50 max-sm:w-8 max-sm:justify-center max-sm:px-0',
+              'flex h-8 items-center rounded-md px-2.5 text-body-sm whitespace-nowrap outline-none transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50 max-sm:w-7 max-sm:justify-center max-sm:px-0',
               isCurrent ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground',
             )}
           >
