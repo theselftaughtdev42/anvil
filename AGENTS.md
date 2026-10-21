@@ -2,6 +2,12 @@
 
 `frontend/src/components/ui/` holds shadcn primitives only, added with `npx shadcn add <name>`; Anvil's own components live in `frontend/src/components/`. When you hand-edit a primitive, mark the edit with an `// anvil:` comment saying why and cover it with a test, so a re-add or upstream diff keeps it.
 
+## Comments and docstrings
+
+- Explain a function, class, component, type or module with a docstring (TSDoc `/** */` on the frontend), not a comment above it. Give one only when its name and types don't already make it obvious.
+- Keep docstrings to a short summary. Skip Args/Returns (or `@param`/`@returns`) when the signature is well typed; add them only for what the types don't say, such as units, side effects or what an exception means.
+- Inline comments say *why* (a constraint, workaround, linked bug or surprising choice), never *what* the next line does.
+
 ## Agent skills
 
 ### Issue tracker
