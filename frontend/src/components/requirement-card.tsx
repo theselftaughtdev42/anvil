@@ -1,10 +1,11 @@
+import { Lock } from 'lucide-react'
 import { useId } from 'react'
 import { Link } from 'react-router'
 import { StatusBadge } from '@/components/status-badge'
 import { Card } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { relativeTime } from '@/lib/relative-time'
-import type { Requirement } from '@/lib/requirements'
+import { isProjectLocked, type Requirement } from '@/lib/requirements'
 import { statusStyles } from '@/lib/status-styles'
 
 // One Requirement on the home page. The title is the link, stretched over the
@@ -43,6 +44,18 @@ export function RequirementCard({ requirement }: { requirement: Requirement }) {
           </Link>
         </h3>
         <p className="line-clamp-2 text-body-sm text-muted-foreground">{requirement.idea}</p>
+        {/* Sized by the card, so a long name is cut short instead of widening it */}
+        <p className="flex items-center gap-1.5 text-caption font-normal text-muted-foreground contain-inline-size">
+          {isProjectLocked(requirement) && (
+            <Lock className="size-3 shrink-0" aria-hidden="true" />
+          )}
+          {/* relative: keeps the sr-only text inside the clip, not past the card */}
+          <span className="relative truncate">
+            <span className="sr-only">Project: </span>
+            {requirement.project.name}
+            {isProjectLocked(requirement) && <span className="sr-only"> (locked)</span>}
+          </span>
+        </p>
       </div>
       <div className="mt-auto flex flex-col gap-1.5">
         {/* Fills in the status's colour. The indicator is hidden at 0%, where

@@ -20,6 +20,7 @@ function requirement(overrides: Partial<Requirement>): Requirement {
     id: 'r1',
     title: 'Rebook a missed delivery',
     idea: 'Let customers rebook',
+    project: { id: 'p1', name: 'Parcel delivery platform' },
     status: 'in_progress',
     created_at: '2026-10-01T00:00:00Z',
     updated_at: '2026-10-01T00:00:00Z',

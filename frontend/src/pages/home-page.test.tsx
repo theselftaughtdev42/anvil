@@ -14,6 +14,7 @@ function requirement(overrides: Partial<Requirement>): Requirement {
     id: 'abc-123',
     title: 'Route change alerts',
     idea: 'Drivers should see route changes on their phone without calling the depot.',
+    project: { id: 'p1', name: 'Driver app' },
     status: 'draft',
     created_at: hoursAgo(2),
     updated_at: hoursAgo(2),
@@ -46,6 +47,7 @@ function serve(requirements: Requirement[], response?: (url: URL) => Promise<Res
   const fetch = vi.fn<typeof globalThis.fetch>(async (input) => {
     const url = new URL(String(input), location.origin)
     if (url.pathname === '/api/config') return Response.json({ idea_placeholder: 'An idea' })
+    if (url.pathname === '/api/projects') return Response.json({ items: [] })
     if (response) return response(url)
     const list: RequirementList = { items: requirements }
     return Response.json(list)
@@ -55,7 +57,9 @@ function serve(requirements: Requirement[], response?: (url: URL) => Promise<Res
 }
 
 const listRequests = (fetch: ReturnType<typeof serve>) =>
-  fetch.mock.calls.map(([input]) => String(input)).filter((url) => url !== '/api/config')
+  fetch.mock.calls
+    .map(([input]) => String(input))
+    .filter((url) => url !== '/api/config' && url !== '/api/projects')
 
 async function renderHome(path = '/') {
   const router = createMemoryRouter(
@@ -122,6 +126,21 @@ test('cards show each requirement, newest first', async () => {
     .toHaveAttribute('href', '/requirements/r2')
   // With requirements, the prompt drops its intro.
   await expect.element(screen.getByText(intro)).not.toBeInTheDocument()
+})
+
+test('a card shows its Project, locked once Refinement has started', async () => {
+  serve([
+    requirement({ id: 'r1', title: 'Underway', status: 'in_progress', project: { id: 'p1', name: 'Driver app' } }),
+    requirement({ id: 'r2', title: 'Finished', status: 'complete', project: { id: 'p1', name: 'Driver app' } }),
+    requirement({ id: 'r3', title: 'Fresh', status: 'draft', project: { id: 'p2', name: 'Parcel delivery platform' } }),
+  ])
+  const { screen } = await renderHome()
+
+  const card = (title: string) => screen.getByRole('listitem').filter({ hasText: title })
+  await expect.element(card('Underway').getByText('Project: Driver app (locked)')).toBeVisible()
+  await expect.element(card('Finished').getByText('Project: Driver app (locked)')).toBeVisible()
+  await expect.element(card('Fresh').getByText('Project: Parcel delivery platform')).toBeVisible()
+  await expect.element(card('Fresh').getByText(/locked/)).not.toBeInTheDocument()
 })
 
 test.each([

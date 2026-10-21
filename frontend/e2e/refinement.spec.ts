@@ -18,6 +18,7 @@ async function serve(page: Page) {
         id: 'r1',
         title: 'Rebook a missed delivery, with a title long enough to need cutting short on a phone',
         idea: 'Customers rebook a missed delivery themselves.',
+        project: { id: 'p1', name: 'Parcel delivery platform' },
         status: 'in_progress',
         created_at: '2026-10-15T12:00:00Z',
         updated_at: '2026-10-15T12:00:00Z',

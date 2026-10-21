@@ -43,6 +43,7 @@ async function serveProject(page: Page) {
             id: `r${i}`,
             title,
             idea: title,
+            project: { id: 'p1', name: 'Parcel delivery platform' },
             status: 'draft',
             created_at: '2026-10-01T00:00:00Z',
             updated_at: '2026-10-01T00:00:00Z',

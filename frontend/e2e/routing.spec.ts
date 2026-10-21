@@ -4,6 +4,7 @@ const requirement = {
   id: 'abc-123',
   title: 'Route change alerts',
   idea: 'Drivers see route changes on their phone.',
+  project: { id: 'p1', name: 'Driver app' },
   status: 'draft',
   created_at: '2026-10-15T12:00:00Z',
   updated_at: '2026-10-15T12:00:00Z',
