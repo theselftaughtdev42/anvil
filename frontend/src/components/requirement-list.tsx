@@ -19,9 +19,11 @@ const tabs: { value: StatusFilter; label: string }[] = [
 
 const grid = 'grid gap-4 sm:grid-cols-2 lg:grid-cols-3'
 
-// "Your requirements": the status tabs over a grid of cards, or the empty
-// state in place of the grid. `requirements` holds every Requirement; the tabs
-// filter it here.
+/**
+ * "Your requirements": the status tabs over a grid of cards, or the empty
+ * state in place of the grid. `requirements` holds every Requirement; the tabs
+ * filter it here.
+ */
 export function RequirementList({
   status,
   onStatusChange,
@@ -81,8 +83,10 @@ export function RequirementList({
   )
 }
 
-// What the home page shows in place of everything below the header when the
-// list won't load: if the API is down, an idea couldn't be submitted either.
+/**
+ * What the home page shows in place of everything below the header when the
+ * list won't load: if the API is down, an idea couldn't be submitted either.
+ */
 export function ListError({ onRetry }: { onRetry: () => void }) {
   return (
     <div className="flex flex-col items-center gap-3 py-8 text-center">

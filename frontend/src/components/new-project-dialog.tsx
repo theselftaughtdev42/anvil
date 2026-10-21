@@ -16,8 +16,10 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { createProject, projectsKey } from '@/lib/projects'
 
-// "New project": asks for a name, creates the Project, then opens it. A
-// rejected name, e.g. one already taken, shows the API's message in the dialog.
+/**
+ * "New project": asks for a name, creates the Project, then opens it. A
+ * rejected name, e.g. one already taken, shows the API's message in the dialog.
+ */
 export function NewProjectDialog({ label = 'New project' }: { label?: string }) {
   const [open, setOpen] = useState(false)
   const [name, setName] = useState('')

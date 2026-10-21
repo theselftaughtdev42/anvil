@@ -15,8 +15,10 @@ import {
 
 const LOCKED = 'The Project is locked once a Question is answered.'
 
-// The Requirement's Project in the Refinement header. A menu while it's Draft;
-// once a Question is answered, its name with a lock that says why.
+/**
+ * The Requirement's Project in the Refinement header. A menu while it's Draft;
+ * once a Question is answered, its name with a lock that says why.
+ */
 export function RequirementProject({ requirement }: { requirement: Requirement }) {
   const queryClient = useQueryClient()
   const projects = useQuery({ ...projectsQuery(), enabled: !isProjectLocked(requirement) })

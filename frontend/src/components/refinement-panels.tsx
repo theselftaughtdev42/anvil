@@ -8,8 +8,10 @@ const NEXT_SHOWN = 3
 
 const eyebrow = 'text-caption font-normal tracking-[0.06em] text-muted-foreground uppercase'
 
-// The anvil, "Question 3 of about 7" and one mark per Question: answered,
-// current, still to come. `strike` replays the anvil's strike when it changes.
+/**
+ * The anvil, "Question 3 of about 7" and one mark per Question: answered,
+ * current, still to come. `strike` replays the anvil's strike when it changes.
+ */
 export function RefinementProgress({
   answered,
   open,
@@ -43,7 +45,9 @@ export function RefinementProgress({
   )
 }
 
-// The latest Answers, newest first. `answered` is in the order they were given.
+/**
+ * The latest Answers, newest first. `answered` is in the order they were given.
+ */
 export function AnsweredPile({ answered, className }: { answered: AnsweredQuestion[]; className?: string }) {
   const labelId = useId()
   const latest = answered.slice(-ANSWERED_SHOWN).reverse()
@@ -70,7 +74,7 @@ export function AnsweredPile({ answered, className }: { answered: AnsweredQuesti
   )
 }
 
-// The next few topics under the top card, and how many cards are under it.
+/** The next few topics under the top card, and how many cards are under it. */
 export function NextInStack({ open, className }: { open: OpenQuestion[]; className?: string }) {
   const labelId = useId()
   const under = open.slice(1)

@@ -26,7 +26,7 @@ const support = project({
   requirement_count: 1,
 })
 
-// Stands in for the Projects API. `post` answers POST /api/projects.
+/** Stands in for the Projects API. `post` answers POST /api/projects. */
 function serve(
   projects: Project[] | (() => Promise<Response>),
   post?: (body: { name: string }) => Response,

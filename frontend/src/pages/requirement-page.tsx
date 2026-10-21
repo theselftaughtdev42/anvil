@@ -26,14 +26,16 @@ import {
 } from '@/lib/requirements'
 import { NotFoundPage } from '@/pages/not-found-page'
 
-// How many cards peek out under the top one.
+/** How many cards peek out under the top one. */
 const CARDS_UNDER = 2
 
-// A malformed id is a 422, which means the same as a 404 here.
+/** A malformed id is a 422, which means the same as a 404 here. */
 const isNotFound = (error: Error | null) =>
   error instanceof ApiError && (error.status === 404 || error.status === 422)
 
-// Refinement: the Requirement's Questions as a stack of cards, answered one at a time.
+/**
+ * Refinement: the Requirement's Questions as a stack of cards, answered one at a time.
+ */
 export function RequirementPage() {
   const { id = '' } = useParams()
   const requirement = useQuery(requirementQuery(id))
@@ -98,8 +100,10 @@ export function RequirementPage() {
   )
 }
 
-// The Requirement's title, Project and status, once it loads. A phone only
-// has room for the title, so the page shows the rest there.
+/**
+ * The Requirement's title, Project and status, once it loads. A phone only
+ * has room for the title, so the page shows the rest there.
+ */
 export function RequirementCrumb({ id }: { id: string }) {
   const { data } = useQuery(requirementQuery(id))
   if (!data) return null

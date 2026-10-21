@@ -2,8 +2,10 @@ import { ArrowLeft } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router'
 import { Button } from '@/components/ui/button'
 
-// The logo's anvil gone cold: soot instead of ash. Decorative, so hidden from
-// screen readers.
+/**
+ * The logo's anvil gone cold: soot instead of ash. Decorative, so hidden from
+ * screen readers.
+ */
 function ColdAnvil() {
   return (
     <svg viewBox="2 28 94 44" aria-hidden="true" className="mb-10 w-42">
@@ -16,7 +18,7 @@ function ColdAnvil() {
   )
 }
 
-// `label` and `message` say what's missing: a page by default.
+/** `label` and `message` say what's missing: a page by default. */
 export function NotFoundPage({
   label = 'Page not found',
   message = "There's no page at this address. The link may be mistyped, or the page may have moved.",

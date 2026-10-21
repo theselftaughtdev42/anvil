@@ -6,7 +6,9 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
-// `children` sit after the logo, e.g. the open Requirement's title and status.
+/**
+ * `children` sit after the logo, e.g. the open Requirement's title and status.
+ */
 export function AppHeader({ initials, children }: { initials: string; children?: ReactNode }) {
   return (
     <header className="border-b">
@@ -61,8 +63,10 @@ const sections: { label: string; to: string; icon: LucideIcon; current: (path: s
   },
 ]
 
-// The app's sections. A phone only has room for their icons; the labels stay
-// for screen readers.
+/**
+ * The app's sections. A phone only has room for their icons; the labels stay
+ * for screen readers.
+ */
 function HeaderNav() {
   const { pathname } = useLocation()
   return (

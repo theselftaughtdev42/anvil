@@ -11,14 +11,16 @@ export const statusLabels: Record<RequirementStatus, string> = {
   complete: 'Complete',
 }
 
-// How many of a Requirement's Questions are answered, out of its open and
-// answered ones.
+/**
+ * How many of a Requirement's Questions are answered, out of its open and
+ * answered ones.
+ */
 export interface Progress {
   answered: number
   total: number
 }
 
-// A Requirement as the API returns it (RequirementPublic).
+/** A Requirement as the API returns it (RequirementPublic). */
 export interface Requirement {
   id: string
   title: string
@@ -27,17 +29,18 @@ export interface Requirement {
   status: RequirementStatus
   created_at: string
   updated_at: string
-  // Null while it has no Questions.
+  /** Null while it has no Questions. */
   progress: Progress | null
 }
 
-// GET /api/requirements: all of the Point of Contact's Requirements, most
-// recently updated first. The UI filters them.
+/**
+ * GET /api/requirements: all of the Point of Contact's Requirements, most
+ * recently updated first. The UI filters them.
+ */
 export interface RequirementList {
   items: Requirement[]
 }
 
-// The list's query key, so a new Requirement can mark it stale.
 export const requirementsKey = ['requirements'] as const
 
 export function requirementsQuery() {
@@ -47,8 +50,10 @@ export function requirementsQuery() {
   })
 }
 
-// GET /api/requirements?project_id=: the Point of Contact's Requirements in one
-// Project. Under the list's key, so it goes stale with the list.
+/**
+ * GET /api/requirements?project_id=: the Point of Contact's Requirements in one
+ * Project. Under the list's key, so it goes stale with the list.
+ */
 export function projectRequirementsQuery(projectId: string) {
   return queryOptions({
     queryKey: [...requirementsKey, { projectId }] as const,
@@ -59,8 +64,10 @@ export function projectRequirementsQuery(projectId: string) {
 
 export const requirementKey = (id: string) => ['requirements', id] as const
 
-// GET /api/requirements/:id. Its key sits under the list's, so marking the
-// list stale marks this stale too.
+/**
+ * GET /api/requirements/:id. Its key sits under the list's, so marking the
+ * list stale marks this stale too.
+ */
 export function requirementQuery(id: string) {
   return queryOptions({
     queryKey: requirementKey(id),
@@ -69,7 +76,6 @@ export function requirementQuery(id: string) {
   })
 }
 
-// How many of `requirements` have each status, and how many there are in all.
 export function countByStatus(requirements: Requirement[]): Record<RequirementStatus | 'all', number> {
   const counts = { all: requirements.length, draft: 0, in_progress: 0, complete: 0 }
   for (const requirement of requirements) counts[requirement.status]++
@@ -83,16 +89,20 @@ export function createRequirement(body: { projectId: string; idea: string }): Pr
   })
 }
 
-// The Project is locked from the first Answer, which moves it out of Draft.
+/** The Project is locked from the first Answer, which moves it out of Draft. */
 export const isProjectLocked = (requirement: Requirement) => requirement.status !== 'draft'
 
-// PATCH /api/requirements/:id: moves a Draft Requirement to another Project.
-// The server swaps its Open Questions for new ones asked with that Project's
-// Project Context. A 409 once it's locked.
+/**
+ * PATCH /api/requirements/:id: moves a Draft Requirement to another Project.
+ * The server swaps its Open Questions for new ones asked with that Project's
+ * Project Context. A 409 once it's locked.
+ */
 export function changeProject(id: string, projectId: string): Promise<Requirement> {
   return api<Requirement>(`/requirements/${id}`, { method: 'PATCH', json: { project_id: projectId } })
 }
 
-// Shared by the header's Project menu and the page, which shows the stack
-// reloading while a change is saving.
+/**
+ * Shared by the header's Project menu and the page, which shows the stack
+ * reloading while a change is saving.
+ */
 export const changeProjectKey = (id: string) => ['requirements', id, 'project'] as const

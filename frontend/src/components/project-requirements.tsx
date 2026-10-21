@@ -3,11 +3,13 @@ import { Link } from 'react-router'
 import { StatusBadge } from '@/components/status-badge'
 import { projectRequirementsQuery } from '@/lib/requirements'
 
-// How many Requirements to list before "and N more".
+/** How many Requirements to list before "and N more". */
 const REQUIREMENTS_SHOWN = 5
 
-// The Project page's side column: the Project's Requirements, each linking to
-// its Refinement.
+/**
+ * The Project page's side column: the Project's Requirements, each linking to
+ * its Refinement.
+ */
 export function ProjectRequirements({ projectId }: { projectId: string }) {
   const query = useQuery(projectRequirementsQuery(projectId))
   const items = query.data?.items ?? []

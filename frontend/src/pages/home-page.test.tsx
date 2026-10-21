@@ -5,8 +5,10 @@ import { render } from 'vitest-browser-react'
 import type { Requirement, RequirementList } from '@/lib/requirements'
 import { HomePage } from '@/pages/home-page'
 
-// Real time, as the cards compare against it. Far enough from each boundary
-// that a slow test can't tip "2h ago" over.
+/**
+ * Real time, as the cards compare against it. Far enough from each boundary
+ * that a slow test can't tip "2h ago" over.
+ */
 const hoursAgo = (hours: number) => new Date(Date.now() - hours * 3_600_000).toISOString()
 
 function requirement(overrides: Partial<Requirement>): Requirement {
@@ -41,8 +43,10 @@ const bulkImport = requirement({
 })
 const everyRequirement = [routeAlerts, offlineSync, bulkImport]
 
-// Stands in for GET /api/requirements, which returns every requirement.
-// Returns the mock, to look at what was asked for.
+/**
+ * Stands in for GET /api/requirements, which returns every requirement.
+ * Returns the mock, to look at what was asked for.
+ */
 function serve(requirements: Requirement[], response?: (url: URL) => Promise<Response>) {
   const fetch = vi.fn<typeof globalThis.fetch>(async (input) => {
     const url = new URL(String(input), location.origin)

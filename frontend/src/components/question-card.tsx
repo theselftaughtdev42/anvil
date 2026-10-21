@@ -7,24 +7,27 @@ import { ANSWER_MAX_LENGTH, type OpenQuestion } from '@/lib/questions'
 
 const MAX_SUGGESTIONS = 3
 
-// Where the shortcuts leave keys alone.
+/** Where the shortcuts leave keys alone. */
 const EDITABLE = 'input, textarea, select, [contenteditable]:not([contenteditable="false"])'
 const INTERACTIVE = `${EDITABLE}, a[href], button, [role="button"], [role="link"], [role="menuitem"], [role="tab"]`
-// The suggestions are radios: Enter on one still answers.
+/** The suggestions are radios: Enter on one still answers. */
 const isRadio = (target: EventTarget | null) => target instanceof Element && target.getAttribute('role') === 'radio'
 
 type QuestionCardProps = {
   question: OpenQuestion
-  // Set while an Answer or Later is sending. The buttons stay focusable but ignore clicks.
+  /**
+   * Set while an Answer or Later is sending. The buttons stay focusable but ignore clicks.
+   */
   busy: 'answer' | 'later' | false
   onAnswer: (answer: string) => void
   onLater: () => void
-  // Why the last Answer or Later failed.
   error?: string
 }
 
-// The Question on top of the stack. Key it by the Question's id, so a new card
-// starts with nothing picked or typed.
+/**
+ * The Question on top of the stack. Key it by the Question's id, so a new card
+ * starts with nothing picked or typed.
+ */
 export function QuestionCard({ question, busy, onAnswer, onLater, error }: QuestionCardProps) {
   const headingId = useId()
   const ownId = useId()
@@ -157,7 +160,6 @@ export function QuestionCard({ question, busy, onAnswer, onLater, error }: Quest
   )
 }
 
-// The shortcuts, under the stack.
 export function ShortcutHint({ className }: { className?: string }) {
   return (
     <p className={cn('flex justify-center gap-3.5 text-caption text-muted-foreground', className)}>
@@ -185,7 +187,7 @@ function Kbd({ children }: { children: string }) {
   )
 }
 
-// In place of the stack once Anvil has nothing more to ask. No buttons.
+/** In place of the stack once Anvil has nothing more to ask. No buttons. */
 export function NoMoreQuestionsCard() {
   const headingId = useId()
   return (

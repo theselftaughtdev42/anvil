@@ -3,7 +3,7 @@ import { expect, test } from 'vitest'
 import { render } from 'vitest-browser-react'
 import { NotFoundPage } from '@/pages/not-found-page'
 
-// The not-found page at `/missing`, with `history` before it.
+/** The not-found page at `/missing`, with `history` before it. */
 function renderAfter(history: string[]) {
   const router = createMemoryRouter(
     [
