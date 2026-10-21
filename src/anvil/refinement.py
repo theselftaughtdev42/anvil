@@ -3,17 +3,26 @@ from datetime import datetime
 from sqlmodel import Session, col, func, select
 
 from anvil.agent import AskedQuestion, RefinementAgent, RequirementBrief
-from anvil.models import Question, QuestionStatus, Requirement, RequirementStatus
+from anvil.models import (
+    Project,
+    Question,
+    QuestionStatus,
+    Requirement,
+    RequirementStatus,
+)
+
+
+# What the agent gets as Project Context: the Project's, or None when it's blank.
+def project_context(project: Project) -> str | None:
+    return project.context if project.context.strip() else None
 
 
 # Asks the agent for the next batch of Questions and puts them at the bottom of
-# the stack. An empty batch marks the Requirement exhausted, and an exhausted
-# one isn't asked again. The caller commits.
+# the stack, with its Project's Project Context as it is now. An empty batch
+# marks the Requirement exhausted, and an exhausted one isn't asked again. The
+# caller commits.
 def deal_questions(
-    session: Session,
-    requirement: Requirement,
-    agent: RefinementAgent,
-    context: str | None,
+    session: Session, requirement: Requirement, agent: RefinementAgent
 ) -> None:
     # Locks the Requirement until the caller commits, so two requests can't deal
     # twice. populate_existing reloads it, in case another request has just
@@ -27,6 +36,7 @@ def deal_questions(
     if requirement.questions_exhausted_at is not None:
         return
 
+    project = session.get_one(Project, requirement.project_id, populate_existing=True)
     asked = session.exec(
         select(Question)
         .where(Question.requirement_id == requirement.id)
@@ -35,7 +45,7 @@ def deal_questions(
     drafts = agent.ask_questions(
         RequirementBrief(title=requirement.title, idea=requirement.idea),
         [AskedQuestion(topic=q.topic, text=q.text, answer=q.answer) for q in asked],
-        context,
+        project_context(project),
     )
     if not drafts:
         requirement.questions_exhausted_at = database_now(session)

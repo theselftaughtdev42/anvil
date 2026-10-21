@@ -10,7 +10,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
-from anvil.agent import AgentDep, ProjectContextDep
+from anvil.agent import AgentDep
 from anvil.agent.base import (
     SUGGESTIONS_MAX,
     TITLE_MAX_LENGTH,
@@ -19,12 +19,7 @@ from anvil.agent.base import (
     QuestionDraft,
     RequirementBrief,
 )
-from anvil.agent.deps import (
-    ProjectContextError,
-    get_agent,
-    get_project_context,
-    load_project_context,
-)
+from anvil.agent.deps import get_agent
 from anvil.agent.stub import QUESTIONS, StubAgent
 from anvil.models import Question
 
@@ -223,38 +218,7 @@ def test_only_the_agent_package_imports_the_stub() -> None:
     assert importers == []
 
 
-def test_no_path_means_no_project_context() -> None:
-    assert load_project_context(None) is None
-
-
-def test_reads_project_context(tmp_path: Path) -> None:
-    path = tmp_path / "context.md"
-    path.write_text("# Deliveries\n\nWe ship parcels.\n")
-
-    assert load_project_context(path) == "# Deliveries\n\nWe ship parcels.\n"
-
-
-def test_no_file_means_no_project_context(
-    tmp_path: Path, caplog: pytest.LogCaptureFixture
-) -> None:
-    assert load_project_context(tmp_path / "missing.md") is None
-    assert "missing.md" in caplog.text
-
-
-def test_unreadable_project_context_raises(tmp_path: Path) -> None:
-    with pytest.raises(ProjectContextError, match="PROJECT_CONTEXT_FILE"):
-        load_project_context(tmp_path)  # a directory
-
-
-def test_project_context_must_be_text(tmp_path: Path) -> None:
-    path = tmp_path / "context.md"
-    path.write_bytes(b"\xff\xfe\x00")
-
-    with pytest.raises(ProjectContextError, match="context.md"):
-        load_project_context(path)
-
-
-def test_routes_get_the_agent_and_context_from_their_deps() -> None:
+def test_routes_get_the_agent_from_its_dep() -> None:
     calls: list[tuple[str, str | None]] = []
 
     class FakeAgent:
@@ -265,25 +229,19 @@ def test_routes_get_the_agent_and_context_from_their_deps() -> None:
     app = FastAPI()
 
     @app.post("/name")
-    def name(agent: AgentDep, context: ProjectContextDep) -> str:
-        return agent.name_requirement("an idea", context)
+    def name(agent: AgentDep) -> str:
+        return agent.name_requirement("an idea", None)
 
     app.dependency_overrides[get_agent] = FakeAgent
-    app.dependency_overrides[get_project_context] = lambda: "Project Context"
 
     assert TestClient(app).post("/name").json() == "Fake title"
-    assert calls == [("an idea", "Project Context")]
+    assert calls == [("an idea", None)]
 
 
 # The startup checks run on import, so these start the app in a fresh process.
 def start_app(**env: str) -> subprocess.CompletedProcess[str]:
-    script = (
-        "from anvil.main import app\n"
-        "from anvil.agent.deps import get_project_context\n"
-        "print(repr(get_project_context()))\n"
-    )
     return subprocess.run(
-        [sys.executable, "-c", script],
+        [sys.executable, "-c", "from anvil.main import app"],
         check=False,
         env=os.environ | env,
         capture_output=True,
@@ -297,27 +255,3 @@ def test_unknown_agent_stops_the_app() -> None:
     assert result.returncode != 0
     assert "agent" in result.stderr
     assert "'unknown'" in result.stderr
-
-
-def test_app_loads_project_context(tmp_path: Path) -> None:
-    path = tmp_path / "context.md"
-    path.write_text("We ship parcels.")
-
-    result = start_app(PROJECT_CONTEXT_FILE=str(path))
-
-    assert result.returncode == 0, result.stderr
-    assert result.stdout == "'We ship parcels.'\n"
-
-
-def test_app_starts_without_a_project_context_file(tmp_path: Path) -> None:
-    result = start_app(PROJECT_CONTEXT_FILE=str(tmp_path / "missing.md"))
-
-    assert result.returncode == 0, result.stderr
-    assert result.stdout == "None\n"
-
-
-def test_unreadable_project_context_stops_the_app(tmp_path: Path) -> None:
-    result = start_app(PROJECT_CONTEXT_FILE=str(tmp_path))  # a directory
-
-    assert result.returncode != 0
-    assert "PROJECT_CONTEXT_FILE" in result.stderr
