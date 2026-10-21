@@ -15,7 +15,7 @@ export function ProjectPicker({
 }: {
   projects: Project[]
   // Undefined while nothing is picked.
-  value: string | undefined
+  value: Project | undefined
   onValueChange: (id: string) => void
   // Called once the menu has closed after a pick, in place of focusing the
   // picker again, e.g. to move focus on. Escape still returns to the picker.
@@ -24,13 +24,12 @@ export function ProjectPicker({
   invalid?: boolean
   describedBy?: string
 }) {
-  const picked = projects.find((project) => project.id === value)
   const justPicked = useRef(false)
 
   return (
     // '' shows the placeholder; Radix won't take undefined back once set.
     <Select
-      value={value ?? ''}
+      value={value?.id ?? ''}
       onValueChange={(id) => {
         justPicked.current = true
         onValueChange(id)
@@ -46,7 +45,7 @@ export function ProjectPicker({
       >
         <span aria-hidden="true" className="text-muted-foreground">Project</span>
         {/* Just the name: the options' captions stay in the menu */}
-        <SelectValue placeholder="Pick one">{picked?.name}</SelectValue>
+        <SelectValue placeholder="Pick one">{value?.name}</SelectValue>
       </SelectTrigger>
       <SelectContent
         position="popper"

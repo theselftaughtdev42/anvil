@@ -3,7 +3,7 @@ import { render } from 'vitest-browser-react'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 // Covers our edit to the generated components: shadcn imports the plain `cn`,
 // which doesn't know the theme's tokens, so it would keep both radii or sizes.
@@ -46,5 +46,21 @@ test('select trigger takes a theme type size and radius in place of its own', as
   const classes = screen.getByRole('combobox').element().classList
   expect(classes).toContain('text-body-sm')
   expect(classes).not.toContain('text-sm')
+  expect(classes).not.toContain('rounded-md')
+})
+
+test('select content takes a theme radius in place of its own', async () => {
+  const screen = await render(
+    <Select open>
+      <SelectTrigger>
+        <SelectValue placeholder="Pick" />
+      </SelectTrigger>
+      <SelectContent position="popper" className="rounded-card">
+        <SelectItem value="a">A</SelectItem>
+      </SelectContent>
+    </Select>,
+  )
+  const classes = screen.getByRole('listbox').element().classList
+  expect(classes).toContain('rounded-card')
   expect(classes).not.toContain('rounded-md')
 })

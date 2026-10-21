@@ -8,6 +8,10 @@ import { configQuery } from '@/lib/config'
 import { projectsKey, projectsQuery } from '@/lib/projects'
 import { createRequirement, requirementsKey } from '@/lib/requirements'
 
+// The Retry and "Create a Project" actions read as links within the caption.
+const inlineLinkClass =
+  'rounded-sm text-foreground underline underline-offset-2 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50'
+
 // "What's your idea?": starts a Requirement in the picked Project from the
 // idea typed here, then opens it. No Project is picked to begin with, so the
 // choice is always deliberate. `showIntro`, for someone with no
@@ -28,7 +32,8 @@ export function IdeaPrompt({ showIntro = false }: { showIntro?: boolean }) {
 
   const items = projects.data?.items ?? []
   // Undefined until one is picked, or if the picked one has gone.
-  const projectId = items.find((p) => p.id === pickedId)?.id
+  const picked = items.find((p) => p.id === pickedId)
+  const projectId = picked?.id
 
   const { mutate, isPending, error } = useMutation({
     mutationFn: createRequirement,
@@ -100,7 +105,7 @@ export function IdeaPrompt({ showIntro = false }: { showIntro?: boolean }) {
                 <button
                   type="button"
                   onClick={() => void projects.refetch()}
-                  className="rounded-sm text-foreground underline underline-offset-2 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                  className={inlineLinkClass}
                 >
                   Retry
                 </button>
@@ -110,7 +115,7 @@ export function IdeaPrompt({ showIntro = false }: { showIntro?: boolean }) {
                 Each Requirement belongs to a Project.{' '}
                 <Link
                   to="/projects"
-                  className="rounded-sm text-foreground underline underline-offset-2 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                  className={inlineLinkClass}
                 >
                   Create a Project
                 </Link>{' '}
@@ -120,7 +125,7 @@ export function IdeaPrompt({ showIntro = false }: { showIntro?: boolean }) {
               projects.isSuccess && (
                 <ProjectPicker
                   projects={items}
-                  value={projectId}
+                  value={picked}
                   onValueChange={pickProject}
                   // Straight back to typing the idea.
                   onPicked={() => ideaRef.current?.focus()}
