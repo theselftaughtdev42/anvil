@@ -38,6 +38,7 @@ class Requirement(SQLModel, table=True):
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     point_of_contact_id: uuid.UUID = Field(foreign_key="point_of_contact.id")
+    project_id: uuid.UUID = Field(foreign_key="project.id", index=True)
     # What the person typed, in their own words.
     idea: str = Field(sa_type=sa.Text)
     # A short name, set by the refinement agent when the requirement is created.

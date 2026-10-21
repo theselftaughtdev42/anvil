@@ -6,7 +6,13 @@ from sqlalchemy import Engine, text
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session
 
-from anvil.models import PointOfContact, Question, QuestionStatus, Requirement
+from anvil.models import (
+    PointOfContact,
+    Project,
+    Question,
+    QuestionStatus,
+    Requirement,
+)
 
 
 @pytest.fixture
@@ -20,8 +26,14 @@ def requirement(session: Session) -> Requirement:
     person = PointOfContact(name="Ada", email="ada@example.com")
     session.add(person)
     session.flush()
+    project = Project(owner_id=person.id, name="Parcels")
+    session.add(project)
+    session.flush()
     requirement = Requirement(
-        point_of_contact_id=person.id, idea="An idea", title="Idea"
+        point_of_contact_id=person.id,
+        project_id=project.id,
+        idea="An idea",
+        title="Idea",
     )
     session.add(requirement)
     session.commit()

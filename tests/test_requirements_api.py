@@ -13,6 +13,7 @@ from anvil.db import get_session
 from anvil.main import app
 from anvil.models import (
     PointOfContact,
+    Project,
     Question,
     QuestionStatus,
     Requirement,
@@ -98,8 +99,15 @@ def add_requirement(
     status: RequirementStatus = RequirementStatus.DRAFT,
 ) -> uuid.UUID:
     with Session(engine) as session:
+        project = Project(owner_id=owner.id, name=f"{owner.name}'s project")
+        session.add(project)
+        session.flush()
         requirement = Requirement(
-            point_of_contact_id=owner.id, idea="Theirs", title="Theirs", status=status
+            point_of_contact_id=owner.id,
+            project_id=project.id,
+            idea="Theirs",
+            title="Theirs",
+            status=status,
         )
         session.add(requirement)
         session.commit()

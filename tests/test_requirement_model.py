@@ -6,7 +6,7 @@ from sqlalchemy import Engine
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session
 
-from anvil.models import PointOfContact, Requirement, RequirementStatus
+from anvil.models import PointOfContact, Project, Requirement, RequirementStatus
 
 
 @pytest.fixture
@@ -23,11 +23,20 @@ def point_of_contact(session: Session) -> PointOfContact:
     return person
 
 
+@pytest.fixture
+def project(session: Session, point_of_contact: PointOfContact) -> Project:
+    project = Project(owner_id=point_of_contact.id, name="Parcels")
+    session.add(project)
+    session.commit()
+    return project
+
+
 def test_new_requirement_defaults_to_draft_with_timestamps(
-    session: Session, point_of_contact: PointOfContact
+    session: Session, point_of_contact: PointOfContact, project: Project
 ) -> None:
     requirement = Requirement(
         point_of_contact_id=point_of_contact.id,
+        project_id=project.id,
         idea="Let people export their requirements as PDF",
         title="PDF export",
     )
@@ -41,10 +50,13 @@ def test_new_requirement_defaults_to_draft_with_timestamps(
 
 
 def test_updating_a_requirement_bumps_updated_at(
-    session: Session, point_of_contact: PointOfContact
+    session: Session, point_of_contact: PointOfContact, project: Project
 ) -> None:
     requirement = Requirement(
-        point_of_contact_id=point_of_contact.id, idea="An idea", title="Idea"
+        point_of_contact_id=point_of_contact.id,
+        project_id=project.id,
+        idea="An idea",
+        title="Idea",
     )
     session.add(requirement)
     session.commit()
@@ -60,9 +72,32 @@ def test_updating_a_requirement_bumps_updated_at(
     assert requirement.updated_at > created_at
 
 
-def test_requirement_needs_an_existing_point_of_contact(session: Session) -> None:
+def test_requirement_needs_an_existing_point_of_contact(
+    session: Session, project: Project
+) -> None:
     session.add(
-        Requirement(point_of_contact_id=uuid.uuid4(), idea="An idea", title="Idea")
+        Requirement(
+            point_of_contact_id=uuid.uuid4(),
+            project_id=project.id,
+            idea="An idea",
+            title="Idea",
+        )
+    )
+
+    with pytest.raises(IntegrityError, match="foreign key"):
+        session.commit()
+
+
+def test_requirement_needs_an_existing_project(
+    session: Session, point_of_contact: PointOfContact
+) -> None:
+    session.add(
+        Requirement(
+            point_of_contact_id=point_of_contact.id,
+            project_id=uuid.uuid4(),
+            idea="An idea",
+            title="Idea",
+        )
     )
 
     with pytest.raises(IntegrityError, match="foreign key"):
@@ -70,10 +105,13 @@ def test_requirement_needs_an_existing_point_of_contact(session: Session) -> Non
 
 
 def test_questions_exhausted_at_starts_empty_and_can_be_set(
-    session: Session, point_of_contact: PointOfContact
+    session: Session, point_of_contact: PointOfContact, project: Project
 ) -> None:
     requirement = Requirement(
-        point_of_contact_id=point_of_contact.id, idea="An idea", title="Idea"
+        point_of_contact_id=point_of_contact.id,
+        project_id=project.id,
+        idea="An idea",
+        title="Idea",
     )
     session.add(requirement)
     session.commit()
