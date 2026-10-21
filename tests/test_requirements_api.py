@@ -3,6 +3,7 @@ from collections.abc import Iterator, Sequence
 
 import pytest
 from fastapi.testclient import TestClient
+from httpx import Response
 from sqlalchemy import Engine, event
 from sqlmodel import Session, select
 
@@ -114,8 +115,25 @@ def add_requirement(
         return requirement.id
 
 
-def create(idea: str) -> dict:
-    response = client.post("/api/requirements", json={"idea": idea})
+def add_project(name: str) -> dict:
+    response = client.post("/api/projects", json={"name": name})
+    assert response.status_code == 201, response.text
+    return response.json()
+
+
+def parcels() -> dict:
+    """The "Parcels" Project, created the first time it's needed."""
+    for project in client.get("/api/projects").json()["items"]:
+        if project["name"] == "Parcels":
+            return project
+    return add_project("Parcels")
+
+
+def create(idea: str, project: dict | None = None) -> dict:
+    project_id = (project or parcels())["id"]
+    response = client.post(
+        "/api/requirements", json={"project_id": project_id, "idea": idea}
+    )
     assert response.status_code == 201, response.text
     return response.json()
 
@@ -131,8 +149,11 @@ def set_status(engine: Engine, id: str, status: RequirementStatus) -> None:
 
 
 def test_create_returns_the_draft_requirement(agent: FakeAgent) -> None:
+    project = parcels()
+
     response = client.post(
-        "/api/requirements", json={"idea": "  Rebook a missed delivery  "}
+        "/api/requirements",
+        json={"project_id": project["id"], "idea": "  Rebook a missed delivery  "},
     )
 
     assert response.status_code == 201
@@ -141,6 +162,7 @@ def test_create_returns_the_draft_requirement(agent: FakeAgent) -> None:
         "id": body["id"],
         "title": "Title for: Rebook a missed delivery",
         "idea": "Rebook a missed delivery",
+        "project": {"id": project["id"], "name": "Parcels"},
         "status": "draft",
         "created_at": body["created_at"],
         "updated_at": body["created_at"],
@@ -161,6 +183,7 @@ def test_create_stores_it_for_the_current_user(app_on_test_db: Engine) -> None:
     assert stored.idea == "Rebook a missed delivery"
     assert stored.title == "Title for: Rebook a missed delivery"
     assert stored.status == RequirementStatus.DRAFT
+    assert str(stored.project_id) == body["project"]["id"]
 
 
 def test_create_accepts_an_idea_of_the_maximum_length() -> None:
@@ -181,7 +204,9 @@ def test_create_accepts_an_idea_of_the_maximum_length() -> None:
 def test_create_rejects_a_bad_idea(
     body: dict, message: str, app_on_test_db: Engine, agent: FakeAgent
 ) -> None:
-    response = client.post("/api/requirements", json=body)
+    response = client.post(
+        "/api/requirements", json={"project_id": parcels()["id"], **body}
+    )
 
     assert response.status_code == 422
     [error] = response.json()["detail"]
@@ -190,6 +215,44 @@ def test_create_rejects_a_bad_idea(
     assert agent.calls == []
     with Session(app_on_test_db) as session:
         assert session.exec(select(Requirement)).all() == []
+
+
+def test_create_needs_a_project(app_on_test_db: Engine, agent: FakeAgent) -> None:
+    response = client.post("/api/requirements", json={"idea": "Rebook"})
+
+    assert response.status_code == 422
+    [error] = response.json()["detail"]
+    assert error["loc"] == ["body", "project_id"]
+    assert agent.calls == []
+    with Session(app_on_test_db) as session:
+        assert session.exec(select(Requirement)).all() == []
+        assert session.exec(select(Project)).all() == []
+
+
+def test_create_rejects_an_unknown_project(
+    app_on_test_db: Engine, agent: FakeAgent
+) -> None:
+    response = client.post(
+        "/api/requirements", json={"project_id": str(uuid.uuid4()), "idea": "Rebook"}
+    )
+
+    assert response.status_code == 422
+    assert response.json() == {"detail": "Project not found"}
+    assert agent.calls == []
+    with Session(app_on_test_db) as session:
+        assert session.exec(select(Requirement)).all() == []
+
+
+def test_create_accepts_someone_elses_project(
+    app_on_test_db: Engine, someone_else: PointOfContact
+) -> None:
+    with Session(app_on_test_db) as session:
+        theirs = Project(owner_id=someone_else.id, name="Theirs")
+        session.add(theirs)
+        session.commit()
+        project = {"id": str(theirs.id), "name": "Theirs"}
+
+    assert create("Rebook", project)["project"] == project
 
 
 # --- Listing ----------------------------------------------------------------
@@ -223,6 +286,28 @@ def test_list_only_shows_the_current_users_requirements(
     assert client.get("/api/requirements").json()["items"] == [mine]
 
 
+def test_list_filters_by_project() -> None:
+    parcels_requirement = create("Rebook")
+    lockers = add_project("Lockers")
+    lockers_requirement = create("Find a locker", lockers)
+
+    response = client.get("/api/requirements", params={"project_id": lockers["id"]})
+
+    assert response.status_code == 200
+    assert response.json()["items"] == [lockers_requirement]
+    assert client.get(
+        "/api/requirements", params={"project_id": parcels()["id"]}
+    ).json()["items"] == [parcels_requirement]
+
+
+def test_list_filter_on_an_unknown_project_is_empty() -> None:
+    create("Rebook")
+
+    response = client.get("/api/requirements", params={"project_id": str(uuid.uuid4())})
+
+    assert response.json() == {"items": []}
+
+
 # --- Getting one ------------------------------------------------------------
 
 
@@ -254,6 +339,124 @@ def test_get_is_404_for_someone_elses_requirement(
 
 def test_get_rejects_an_id_that_isnt_a_uuid() -> None:
     assert client.get("/api/requirements/not-a-uuid").status_code == 422
+
+
+# --- Changing the Project -----------------------------------------------------
+
+
+def change_project(id: str, project_id: str) -> Response:
+    return client.patch(f"/api/requirements/{id}", json={"project_id": project_id})
+
+
+def test_changing_the_project_of_a_draft_moves_it(agent: FakeAgent) -> None:
+    created = create("Rebook a missed delivery")
+    lockers = add_project("Lockers")
+
+    response = change_project(created["id"], lockers["id"])
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["project"] == {"id": lockers["id"], "name": "Lockers"}
+    assert client.get(f"/api/requirements/{created['id']}").json() == body
+
+
+def test_changing_the_project_replaces_the_open_questions(
+    agent: FakeAgent, app_on_test_db: Engine
+) -> None:
+    agent.batches = [[draft("Who"), draft("When")], [draft("Where")]]
+    created = create("Rebook a missed delivery")
+    old = questions(created["id"])["open"]
+
+    change_project(created["id"], add_project("Lockers")["id"])
+
+    stack = questions(created["id"])
+    assert topics(stack["open"]) == ["Where"]
+    assert stack["open"][0]["number"] == 1
+    # Asked afresh, with nothing carried over from the old Project.
+    assert agent.asks[-1][1] == []
+    with Session(app_on_test_db) as session:
+        stored = {str(q.id) for q in session.exec(select(Question))}
+    assert stored.isdisjoint(q["id"] for q in old)
+
+
+def test_changing_the_project_of_an_exhausted_draft_asks_again(
+    agent: FakeAgent,
+) -> None:
+    created = create("Rebook a missed delivery")
+    assert questions(created["id"])["exhausted"] is True
+    agent.batches = [[draft("Where")]]
+
+    change_project(created["id"], add_project("Lockers")["id"])
+
+    stack = questions(created["id"])
+    assert topics(stack["open"]) == ["Where"]
+    assert stack["exhausted"] is False
+
+
+def test_changing_to_the_same_project_changes_nothing(agent: FakeAgent) -> None:
+    agent.batches = [[draft("Who")]]
+    created = create("Rebook a missed delivery")
+    before = questions(created["id"])
+    app.dependency_overrides[get_agent] = FailingAgent
+
+    response = change_project(created["id"], created["project"]["id"])
+
+    assert response.status_code == 200
+    assert questions(created["id"]) == before
+
+
+@pytest.mark.parametrize(
+    "status", [RequirementStatus.IN_PROGRESS, RequirementStatus.COMPLETE]
+)
+def test_the_project_is_locked_once_a_question_is_answered(
+    status: RequirementStatus, agent: FakeAgent, app_on_test_db: Engine
+) -> None:
+    agent.batches = [[draft("Who"), draft("When")]]
+    created = create("Rebook a missed delivery")
+    answer(created["id"], questions(created["id"])["open"][0])
+    set_status(app_on_test_db, created["id"], status)
+    before = questions(created["id"])
+    app.dependency_overrides[get_agent] = FailingAgent
+
+    response = change_project(created["id"], add_project("Lockers")["id"])
+
+    assert response.status_code == 409
+    assert response.json() == {
+        "detail": "The Project is locked once a Question is answered"
+    }
+    after = client.get(f"/api/requirements/{created['id']}").json()
+    assert after["project"] == created["project"]
+    assert questions(created["id"]) == before
+
+
+def test_changing_to_an_unknown_project_is_422(agent: FakeAgent) -> None:
+    agent.batches = [[draft("Who")]]
+    created = create("Rebook a missed delivery")
+    before = questions(created["id"])
+
+    response = change_project(created["id"], str(uuid.uuid4()))
+
+    assert response.status_code == 422
+    assert client.get(f"/api/requirements/{created['id']}").json() == created
+    assert questions(created["id"]) == before
+
+
+def test_changing_the_project_needs_a_project_id() -> None:
+    created = create("Rebook a missed delivery")
+
+    response = client.patch(f"/api/requirements/{created['id']}", json={})
+
+    assert response.status_code == 422
+
+
+def test_changing_someone_elses_requirement_is_404(
+    app_on_test_db: Engine, someone_else: PointOfContact
+) -> None:
+    theirs = add_requirement(app_on_test_db, someone_else)
+
+    response = change_project(str(theirs), parcels()["id"])
+
+    assert response.status_code == 404
 
 
 # --- Overriding the user ----------------------------------------------------
@@ -696,9 +899,10 @@ def test_endpoints_are_documented_with_their_response_models() -> None:
     assert response_schema("/api/requirements", "get", "200").endswith(
         "/RequirementList"
     )
-    assert response_schema("/api/requirements/{requirement_id}", "get", "200").endswith(
-        "/RequirementPublic"
-    )
+    for method in ["get", "patch"]:
+        assert response_schema(
+            "/api/requirements/{requirement_id}", method, "200"
+        ).endswith("/RequirementPublic")
     questions = "/api/requirements/{requirement_id}/questions"
     for path, method in [
         (questions, "get"),
