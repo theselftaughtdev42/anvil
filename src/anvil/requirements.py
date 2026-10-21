@@ -13,6 +13,7 @@ from anvil.auth import CurrentUserDep
 from anvil.db import SessionDep
 from anvil.models import (
     PointOfContact,
+    Project,
     Question,
     QuestionStatus,
     Requirement,
@@ -208,6 +209,7 @@ def create_requirement(
 ) -> RequirementPublic:
     requirement = Requirement(
         point_of_contact_id=user.id,
+        project_id=first_project(session, user).id,
         idea=body.idea,
         title=agent.name_requirement(body.idea, context),
         status=RequirementStatus.DRAFT,
@@ -217,6 +219,24 @@ def create_requirement(
     deal_questions(session, requirement, agent, context)
     session.commit()
     return get_own_requirement_public(session, requirement.id, user)
+
+
+def first_project(session: Session, user: PointOfContact) -> Project:
+    """The user's oldest Project, created as "My first project" if they have none.
+
+    A stopgap until creating a Requirement takes a Project (#70).
+    """
+    query = (
+        select(Project)
+        .where(Project.owner_id == user.id)
+        .order_by(col(Project.created_at), col(Project.id))
+    )
+    if project := session.exec(query).first():
+        return project
+    project = Project(owner_id=user.id, name="My first project")
+    session.add(project)
+    session.flush()
+    return project
 
 
 # All of the Point of Contact's Requirements, most recently updated first.
