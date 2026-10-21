@@ -17,7 +17,9 @@ export function ProjectPage() {
   const { id = '' } = useParams()
   const project = useQuery(projectQuery(id))
 
-  if (isNotFound(project.error)) {
+  // Once the Project has loaded, a failed reload keeps it on screen, so it
+  // never throws away unsaved changes.
+  if (!project.data && isNotFound(project.error)) {
     return (
       <NotFoundPage
         label="Project not found"
@@ -35,12 +37,25 @@ export function ProjectPage() {
         <ArrowLeft className="size-3.5" aria-hidden="true" />
         Projects
       </Link>
-      {project.isPending ? (
+      {project.data ? (
+        <>
+          {project.isError && (
+            <p role="alert" className="mt-4 text-body-sm text-muted-foreground">
+              Couldn't refresh this project. Your changes are still here, but saving may fail until the issue is resolved.
+            </p>
+          )}
+          <div className="mt-8 grid items-start gap-12 lg:grid-cols-[minmax(0,1fr)_17.5rem] lg:gap-8">
+            {/* Remounts with a different Project, so the draft starts from it */}
+            <ProjectForm key={project.data.id} project={project.data} />
+            <ProjectRequirements projectId={project.data.id} />
+          </div>
+        </>
+      ) : project.isPending ? (
         <div role="status" className="flex justify-center py-24 text-muted-foreground">
           <LoaderCircle className="size-6 animate-spin" aria-hidden="true" />
           <span className="sr-only">Loading the project…</span>
         </div>
-      ) : project.isError ? (
+      ) : (
         <div className="flex flex-col items-center gap-3 py-16 text-center">
           <p role="alert" className="text-body-sm text-muted-foreground">
             Couldn't load this project.
@@ -48,12 +63,6 @@ export function ProjectPage() {
           <Button variant="outline" onClick={() => void project.refetch()}>
             Retry
           </Button>
-        </div>
-      ) : (
-        <div className="mt-8 grid items-start gap-12 lg:grid-cols-[minmax(0,1fr)_17.5rem] lg:gap-8">
-          {/* Remounts with a different Project, so the draft starts from it */}
-          <ProjectForm key={project.data.id} project={project.data} />
-          <ProjectRequirements projectId={project.data.id} />
         </div>
       )}
     </div>
