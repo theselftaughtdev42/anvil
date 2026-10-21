@@ -59,12 +59,13 @@ async function renderProject(id = 'p1') {
     ],
     { initialEntries: [`/projects/${id}`] },
   )
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   const screen = await render(
-    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+    <QueryClientProvider client={client}>
       <RouterProvider router={router} />
     </QueryClientProvider>,
   )
-  return { screen, router }
+  return { screen, router, client }
 }
 
 afterEach(() => {
@@ -232,4 +233,19 @@ test("shows an error with a retry when the Project won't load", async () => {
   serve()
   await screen.getByRole('button', { name: 'Retry' }).click()
   await expect.element(screen.getByLabelText('Name')).toHaveValue('Parcel delivery platform')
+})
+
+test('keeps unsaved changes when the Project fails to reload', async () => {
+  serve()
+  const { screen, client } = await renderProject()
+  await screen.getByLabelText('Project Context').fill('A long, unsaved Project Context')
+
+  serve({ project: Response.json({ detail: 'Not authenticated' }, { status: 401 }) })
+  await client.refetchQueries({ queryKey: ['projects', 'p1'] })
+
+  await expect.element(screen.getByRole('alert')).toHaveTextContent(
+    "Couldn't refresh this project. Your changes are still here, but saving may fail until the issue is resolved.",
+  )
+  await expect.element(screen.getByLabelText('Project Context')).toHaveValue('A long, unsaved Project Context')
+  await expect.element(screen.getByText("Couldn't load this project.")).not.toBeInTheDocument()
 })
