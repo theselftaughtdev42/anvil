@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 // Covers our edit to the generated components: shadcn imports the plain `cn`,
 // which doesn't know the theme's tokens, so it would keep both radii or sizes.
@@ -63,4 +64,18 @@ test('select content takes a theme radius in place of its own', async () => {
   const classes = screen.getByRole('listbox').element().classList
   expect(classes).toContain('rounded-card')
   expect(classes).not.toContain('rounded-md')
+})
+
+test('tooltip content takes a theme type size in place of its own', async () => {
+  const screen = await render(
+    <TooltipProvider>
+      <Tooltip open>
+        <TooltipTrigger>Trigger</TooltipTrigger>
+        <TooltipContent className="text-caption">Why</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>,
+  )
+  const classes = screen.getByText('Why', { exact: true }).first().element().classList
+  expect(classes).toContain('text-caption')
+  expect(classes).not.toContain('text-xs')
 })

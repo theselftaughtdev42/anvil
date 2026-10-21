@@ -85,3 +85,14 @@ export function createRequirement(body: { projectId: string; idea: string }): Pr
 
 // The Project is locked from the first Answer, which moves it out of Draft.
 export const isProjectLocked = (requirement: Requirement) => requirement.status !== 'draft'
+
+// PATCH /api/requirements/:id: moves a Draft Requirement to another Project.
+// The server swaps its Open Questions for new ones asked with that Project's
+// Project Context. A 409 once it's locked.
+export function changeProject(id: string, projectId: string): Promise<Requirement> {
+  return api<Requirement>(`/requirements/${id}`, { method: 'PATCH', json: { project_id: projectId } })
+}
+
+// Shared by the header's Project menu and the page, which shows the stack
+// reloading while a change is saving.
+export const changeProjectKey = (id: string) => ['requirements', id, 'project'] as const

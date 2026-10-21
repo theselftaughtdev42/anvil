@@ -1,9 +1,11 @@
 import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useRef } from 'react'
 import type { Project } from '@/lib/projects'
+import { cn } from '@/lib/utils'
 
-// The idea prompt's Project picker. It starts on "Pick one", with
-// nothing picked; a Project without a Project Context says what that costs.
+// Picks a Requirement's Project, on the idea prompt and in the Refinement
+// header. On the idea prompt it starts on "Pick one", with nothing picked. A
+// Project without a Project Context says what that costs.
 export function ProjectPicker({
   projects,
   value,
@@ -12,6 +14,7 @@ export function ProjectPicker({
   disabled,
   invalid,
   describedBy,
+  className,
 }: {
   projects: Project[]
   // Undefined while nothing is picked.
@@ -23,6 +26,7 @@ export function ProjectPicker({
   disabled?: boolean
   invalid?: boolean
   describedBy?: string
+  className?: string
 }) {
   const justPicked = useRef(false)
 
@@ -41,7 +45,7 @@ export function ProjectPicker({
         aria-label="Project"
         aria-invalid={invalid || undefined}
         aria-describedby={describedBy}
-        className="min-w-0 max-w-full gap-1.5 rounded-button px-2.5 text-body-sm shadow-none"
+        className={cn('min-w-0 max-w-full gap-1.5 rounded-button px-2.5 text-body-sm shadow-none', className)}
       >
         <span aria-hidden="true" className="text-muted-foreground">Project</span>
         {/* Just the name: the options' captions stay in the menu */}

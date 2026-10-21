@@ -17,17 +17,26 @@ const BANK = [
   { topic: 'Edge cases', text: 'What should happen when it goes wrong?', why: null, suggestions: ['Retry', 'Fall back', 'Tell someone'] },
 ]
 const BATCH = 3
+// What the stub asks once the Requirement moves to the Website Project.
+const WEBSITE_QUESTION = { topic: 'Pages', text: 'Which pages should show it?', why: null, suggestions: ['Home', 'Checkout', 'Every page'] }
+
+const PROJECTS = [
+  { id: 'p1', name: 'Driver app', context: 'The app drivers use.', has_context: true, requirement_count: 1, is_owner: true },
+  { id: 'p2', name: 'Website', context: '', has_context: false, requirement_count: 0, is_owner: true },
+]
 
 // Stands in for the Refinement API, with the server's rules: the first Answer
 // moves a Draft to In progress, Later sends a card to the bottom, and
 // answering the last open card deals the next batch, or exhausts the stack.
-// `fail` can answer a request instead, and `hold` can delay one until it settles.
+// Moving a Draft to another Project swaps its open cards for ones asked with
+// that Project. `fail` can answer a request instead, and `hold` can delay one
+// until it settles.
 function serveRefinement({
   fail,
   hold,
 }: {
-  fail?: (url: URL) => Promise<Response> | undefined
-  hold?: (url: URL) => Promise<void> | undefined
+  fail?: (url: URL, init?: RequestInit) => Promise<Response> | undefined
+  hold?: (url: URL, init?: RequestInit) => Promise<void> | undefined
 } = {}) {
   let next = 0
   let open: OpenQuestion[] = []
@@ -54,8 +63,8 @@ function serveRefinement({
 
   const fetch = vi.fn<typeof globalThis.fetch>(async (input, init) => {
     const url = new URL(String(input), location.origin)
-    await hold?.(url)
-    const failure = fail?.(url)
+    await hold?.(url, init)
+    const failure = fail?.(url, init)
     if (failure) return failure
     const path = url.pathname
     if (path === '/api/config') return Response.json({ idea_placeholder: 'An idea' })
@@ -63,7 +72,19 @@ function serveRefinement({
       ...requirement,
       progress: { answered: answered.length, total: answered.length + open.length },
     })
+    if (path === '/api/projects') return Response.json({ items: PROJECTS })
     if (path === '/api/requirements') return Response.json({ items: [withProgress()] })
+    if (path === `/api/requirements/${ID}` && init?.method === 'PATCH') {
+      if (requirement.status !== 'draft') {
+        return Response.json({ detail: 'The Project is locked once a Question is answered' }, { status: 409 })
+      }
+      const { project_id } = JSON.parse(String(init.body)) as { project_id: string }
+      const project = PROJECTS.find((p) => p.id === project_id)!
+      requirement.project = { id: project.id, name: project.name }
+      open = [{ ...WEBSITE_QUESTION, id: `q${next + 1}`, number: next + 1 }]
+      next += 1
+      return Response.json(withProgress())
+    }
     if (path === `/api/requirements/${ID}`) return Response.json(withProgress())
     if (path === `/api/requirements/${ID}/questions`) return Response.json(stack())
     const action = path.match(/^\/api\/requirements\/req-1\/questions\/(\w+)\/(answer|later)$/)
@@ -141,6 +162,76 @@ test('the header shows the title, and the top card its Question', async () => {
   await expect.element(page.inTheStack()).toMatchTextContent(/In the stack · 2/i)
   await expect.element(page.inTheStack()).toMatchTextContent('Anvil deals new cards as your answers raise new questions.')
   expect(document.querySelectorAll('[data-testid=card-under]')).toHaveLength(2)
+})
+
+const isChange = (url: URL, init?: RequestInit) => url.pathname === `/api/requirements/${ID}` && init?.method === 'PATCH'
+
+// The page repeats these for a phone, where the header has no room for them;
+// the e2e tests cover which one shows. Without the styles here, both render.
+test('the header shows the Project and status next to the title', async () => {
+  serveRefinement()
+  const { screen } = await renderPage()
+
+  const banner = screen.getByRole('banner')
+  await expect.element(banner.getByRole('combobox', { name: 'Project' })).toHaveTextContent('ProjectDriver app')
+  await expect.element(banner.getByText('Draft')).toBeVisible()
+})
+
+test("changing a Draft's Project reloads the stack with new Questions", async () => {
+  let release!: () => void
+  const held = new Promise<void>((resolve) => (release = resolve))
+  const fetch = serveRefinement({ hold: (url, init) => (isChange(url, init) ? held : undefined) })
+  const page = await renderPage()
+  await expect.element(page.question('Who will use this most?')).toBeVisible()
+
+  const picker = page.screen.getByRole('banner').getByRole('combobox', { name: 'Project' })
+  await picker.click()
+  await page.screen.getByRole('option', { name: /^Website/ }).click()
+
+  // The pick shows straight away, and the old Questions go while new ones are asked.
+  await expect.element(picker).toHaveTextContent('ProjectWebsite')
+  await expect.element(page.screen.getByRole('status')).toHaveTextContent('Asking new Questions for this Project…')
+  await expect.element(page.question('Who will use this most?')).not.toBeInTheDocument()
+  const change = fetch.mock.calls.find(([input, init]) => isChange(new URL(String(input), location.origin), init))!
+  expect(JSON.parse(String(change[1]!.body))).toEqual({ project_id: 'p2' })
+
+  release()
+  await expect.element(page.question('Which pages should show it?')).toBeVisible()
+  await expect.element(page.screen.getByText('Question 1 of about 1')).toBeVisible()
+  await expect.element(picker).toHaveTextContent('ProjectWebsite')
+})
+
+test('a failed change says so and keeps the Project', async () => {
+  serveRefinement({
+    fail: (url, init) => (isChange(url, init) ? Promise.resolve(Response.json({ detail: 'down' }, { status: 503 })) : undefined),
+  })
+  const page = await renderPage()
+
+  const picker = page.screen.getByRole('banner').getByRole('combobox', { name: 'Project' })
+  await picker.click()
+  await page.screen.getByRole('option', { name: /^Website/ }).click()
+
+  await expect.element(page.screen.getByRole('alert')).toHaveTextContent("Couldn't change the Project. Try again.")
+  await expect.element(picker).toHaveTextContent('ProjectDriver app')
+  await expect.element(page.question('Who will use this most?')).toBeVisible()
+})
+
+test('after the first Answer the Project is locked, and says why', async () => {
+  serveRefinement()
+  const page = await renderPage()
+  await pickAndAnswer(page, 'Who will use this most?', 'Customers')
+
+  const banner = page.screen.getByRole('banner')
+  const project = banner.getByText('Project: Driver app (locked)')
+  await expect.element(project).toBeVisible()
+  await expect.element(page.screen.getByRole('combobox', { name: 'Project' })).not.toBeInTheDocument()
+  await expect.element(banner.getByText('In progress')).toBeVisible()
+
+  // Focusable, so the keyboard gets the reason too.
+  project.element().closest<HTMLElement>('[tabindex]')!.focus()
+  await expect
+    .element(page.screen.getByRole('tooltip'))
+    .toHaveTextContent('The Project is locked once a Question is answered.')
 })
 
 test('screen readers get the Question as the card heading and the suggestions as a radio group', async () => {
