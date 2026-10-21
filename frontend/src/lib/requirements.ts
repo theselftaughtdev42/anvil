@@ -23,6 +23,7 @@ export interface Requirement {
   id: string
   title: string
   idea: string
+  project: { id: string; name: string }
   status: RequirementStatus
   created_at: string
   updated_at: string
@@ -75,6 +76,12 @@ export function countByStatus(requirements: Requirement[]): Record<RequirementSt
   return counts
 }
 
-export function createRequirement(idea: string): Promise<Requirement> {
-  return api<Requirement>('/requirements', { method: 'POST', json: { idea } })
+export function createRequirement(body: { projectId: string; idea: string }): Promise<Requirement> {
+  return api<Requirement>('/requirements', {
+    method: 'POST',
+    json: { project_id: body.projectId, idea: body.idea },
+  })
 }
+
+// The Project is locked from the first Answer, which moves it out of Draft.
+export const isProjectLocked = (requirement: Requirement) => requirement.status !== 'draft'

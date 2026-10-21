@@ -1,28 +1,42 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowRight, LoaderCircle } from 'lucide-react'
-import { type FormEvent, type KeyboardEvent, useId, useState } from 'react'
-import { useNavigate } from 'react-router'
+import { type FormEvent, type KeyboardEvent, useId, useRef, useState } from 'react'
+import { Link, useNavigate } from 'react-router'
+import { ProjectPicker } from '@/components/project-picker'
 import { Button } from '@/components/ui/button'
 import { configQuery } from '@/lib/config'
+import { projectsKey, projectsQuery } from '@/lib/projects'
 import { createRequirement, requirementsKey } from '@/lib/requirements'
 
-// "What's your idea?": starts a Requirement from the idea typed here, then
-// opens it. `showIntro`, for someone with no Requirements yet, adds a line
-// explaining Refinement.
+// "What's your idea?": starts a Requirement in the picked Project from the
+// idea typed here, then opens it. No Project is picked to begin with, so the
+// choice is always deliberate. `showIntro`, for someone with no
+// Requirements yet, adds a line explaining Refinement.
 export function IdeaPrompt({ showIntro = false }: { showIntro?: boolean }) {
   const [idea, setIdea] = useState('')
+  const [pickedId, setPickedId] = useState<string | null>(null)
   const queryClient = useQueryClient()
   const navigate = useNavigate()
+  const [needsProject, setNeedsProject] = useState(false)
+  const ideaRef = useRef<HTMLTextAreaElement>(null)
   const ideaId = useId()
   const errorId = useId()
+  const projectErrorId = useId()
   // No placeholder until it loads, or if it can't.
   const { data: config } = useQuery(configQuery)
+  const projects = useQuery(projectsQuery())
+
+  const items = projects.data?.items ?? []
+  // Undefined until one is picked, or if the picked one has gone.
+  const projectId = items.find((p) => p.id === pickedId)?.id
 
   const { mutate, isPending, error } = useMutation({
     mutationFn: createRequirement,
     onSuccess: (requirement) => {
-      // Not awaited: the home page's list refetches when it's next shown.
+      // Not awaited: the lists refetch when they're next shown. The Project's
+      // Requirement count has changed too.
       void queryClient.invalidateQueries({ queryKey: requirementsKey })
+      void queryClient.invalidateQueries({ queryKey: projectsKey })
       void navigate(`/requirements/${requirement.id}`)
     },
   })
@@ -30,7 +44,16 @@ export function IdeaPrompt({ showIntro = false }: { showIntro?: boolean }) {
   const submit = (event?: FormEvent) => {
     event?.preventDefault()
     if (isPending || !idea.trim()) return
-    mutate(idea)
+    if (!projectId) {
+      setNeedsProject(true)
+      return
+    }
+    mutate({ projectId, idea })
+  }
+
+  const pickProject = (id: string) => {
+    setPickedId(id)
+    setNeedsProject(false)
   }
 
   // Enter submits and Shift + Enter adds a new line. Enter while an IME is
@@ -58,6 +81,7 @@ export function IdeaPrompt({ showIntro = false }: { showIntro?: boolean }) {
           Your idea
         </label>
         <textarea
+          ref={ideaRef}
           id={ideaId}
           value={idea}
           onChange={(event) => setIdea(event.target.value)}
@@ -68,11 +92,46 @@ export function IdeaPrompt({ showIntro = false }: { showIntro?: boolean }) {
           aria-describedby={error ? errorId : undefined}
           className="block w-full resize-none bg-transparent px-4 pt-4 pb-2 text-body outline-none placeholder:text-muted-foreground/70 read-only:text-muted-foreground"
         />
-        <div className="flex items-center justify-between gap-4 pr-2 pb-2 pl-4">
-          <p className="text-caption font-normal text-muted-foreground">
-            {isPending ? 'Opening your requirement…' : 'Enter to start · Shift + Enter for a new line'}
-          </p>
-          <Button type="submit" disabled={isPending}>
+        <div className="flex items-center justify-between gap-4 px-2 pb-2">
+          <div className="min-w-0">
+            {projects.isError ? (
+              <p className="pl-2 text-caption font-normal text-muted-foreground">
+                Couldn't load the Projects.{' '}
+                <button
+                  type="button"
+                  onClick={() => void projects.refetch()}
+                  className="rounded-sm text-foreground underline underline-offset-2 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                >
+                  Retry
+                </button>
+              </p>
+            ) : projects.isSuccess && items.length === 0 ? (
+              <p className="pl-2 text-caption font-normal text-muted-foreground">
+                Each Requirement belongs to a Project.{' '}
+                <Link
+                  to="/projects"
+                  className="rounded-sm text-foreground underline underline-offset-2 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                >
+                  Create a Project
+                </Link>{' '}
+                to start.
+              </p>
+            ) : (
+              projects.isSuccess && (
+                <ProjectPicker
+                  projects={items}
+                  value={projectId}
+                  onValueChange={pickProject}
+                  // Straight back to typing the idea.
+                  onPicked={() => ideaRef.current?.focus()}
+                  disabled={isPending}
+                  invalid={needsProject}
+                  describedBy={needsProject ? projectErrorId : undefined}
+                />
+              )
+            )}
+          </div>
+          <Button type="submit" disabled={isPending || items.length === 0}>
             {isPending ? (
               <>
                 <LoaderCircle className="animate-spin" aria-hidden="true" />
@@ -87,6 +146,11 @@ export function IdeaPrompt({ showIntro = false }: { showIntro?: boolean }) {
           </Button>
         </div>
       </form>
+      {needsProject && (
+        <p id={projectErrorId} role="alert" className="mt-3 text-left text-body-sm text-destructive">
+          Pick a Project to start refining.
+        </p>
+      )}
       {error && (
         <p id={errorId} role="alert" className="mt-3 text-left text-body-sm text-destructive">
           {error.message}

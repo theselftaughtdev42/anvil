@@ -7,6 +7,7 @@ const requirements = statuses.flatMap((status, i) =>
     id: `${status}-${n}`,
     title: `${n ? 'Another' : 'A'} ${status.replace('_', ' ')} requirement, with a title long enough to wrap`,
     idea: 'Drivers should see route changes on their phone without calling the depot, wherever they are.',
+    project: { id: 'p1', name: 'A Project with a name long enough that it has to be cut short on a phone' },
     status,
     created_at: '2026-10-01T12:00:00Z',
     updated_at: new Date(Date.now() - (i * 2 + n + 1) * 3_600_000).toISOString(),
@@ -23,6 +24,15 @@ async function serve(page: Page, items: typeof requirements) {
   await page.route(
     (url) => url.pathname === '/api/requirements',
     (route) => route.fulfill({ json: { items } }),
+  )
+  await page.route('**/api/projects', (route) =>
+    route.fulfill({
+      json: {
+        items: [
+          { id: 'p1', name: 'Parcel delivery platform', context: 'x', has_context: true, requirement_count: 6, is_owner: true },
+        ],
+      },
+    }),
   )
 }
 
