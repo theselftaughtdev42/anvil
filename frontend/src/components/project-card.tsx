@@ -3,9 +3,11 @@ import { Card } from '@/components/ui/card'
 import type { Project } from '@/lib/projects'
 import { cn } from '@/lib/utils'
 
-// One Project on the Projects page. Like a Requirement's card, the name is the
-// link, stretched over the whole card. Without a Project Context the card is
-// dashed and says what that costs.
+/**
+ * One Project on the Projects page. Like a Requirement's card, the name is the
+ * link, stretched over the whole card. Without a Project Context the card is
+ * dashed and says what that costs.
+ */
 export function ProjectCard({ project }: { project: Project }) {
   const count = project.requirement_count
   return (

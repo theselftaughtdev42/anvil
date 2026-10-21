@@ -2,11 +2,13 @@ import { Fragment, type ReactNode } from 'react'
 import { type Params, useMatches } from 'react-router'
 import { AppHeader } from '@/components/app-header'
 
-// A route's `handle.crumb` names its page in the header, after the logo.
+/** A route's `handle.crumb` names its page in the header, after the logo. */
 export type RouteHandle = { crumb?: (params: Params) => ReactNode }
 
-// Every page: the header with the matched routes' crumbs, then the page in the
-// content column.
+/**
+ * Every page: the header with the matched routes' crumbs, then the page in the
+ * content column.
+ */
 export function AppShell({ children }: { children: ReactNode }) {
   const crumbs = useMatches().flatMap((match) => {
     const crumb = (match.handle as RouteHandle | undefined)?.crumb
@@ -21,7 +23,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   )
 }
 
-// One crumb. The page's name is its heading.
+/** One crumb. The page's name is its heading. */
 export function Crumb({ children }: { children: ReactNode }) {
   return (
     <>

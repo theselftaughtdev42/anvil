@@ -31,7 +31,9 @@ function requirement(overrides: Partial<Requirement>): Requirement {
 
 type Patch = (body: { name: string; context: string }) => Response
 
-// Stands in for the API: GET and PATCH /api/projects/p1, and its Requirements.
+/**
+ * Stands in for the API: GET and PATCH /api/projects/p1, and its Requirements.
+ */
 function serve({
   project = parcels,
   requirements = [requirement({}), requirement({ id: 'r2', title: 'Bulk import depots', status: 'draft' })],

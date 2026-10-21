@@ -3,9 +3,11 @@ import { useRef } from 'react'
 import type { Project } from '@/lib/projects'
 import { cn } from '@/lib/utils'
 
-// Picks a Requirement's Project, on the idea prompt and in the Refinement
-// header. On the idea prompt it starts on "Pick one", with nothing picked. A
-// Project without a Project Context says what that costs.
+/**
+ * Picks a Requirement's Project, on the idea prompt and in the Refinement
+ * header. On the idea prompt it starts on "Pick one", with nothing picked. A
+ * Project without a Project Context says what that costs.
+ */
 export function ProjectPicker({
   projects,
   value,
@@ -17,11 +19,12 @@ export function ProjectPicker({
   className,
 }: {
   projects: Project[]
-  // Undefined while nothing is picked.
   value: Project | undefined
   onValueChange: (id: string) => void
-  // Called once the menu has closed after a pick, in place of focusing the
-  // picker again, e.g. to move focus on. Escape still returns to the picker.
+  /**
+   * Called once the menu has closed after a pick, in place of focusing the
+   * picker again, e.g. to move focus on. Escape still returns to the picker.
+   */
   onPicked?: () => void
   disabled?: boolean
   invalid?: boolean

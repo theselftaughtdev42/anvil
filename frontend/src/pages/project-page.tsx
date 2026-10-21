@@ -8,11 +8,13 @@ import { ApiError } from '@/lib/api'
 import { projectQuery } from '@/lib/projects'
 import { NotFoundPage } from '@/pages/not-found-page'
 
-// A malformed id is a 422, which means the same as a 404 here.
+/** A malformed id is a 422, which means the same as a 404 here. */
 const isNotFound = (error: Error | null) =>
   error instanceof ApiError && (error.status === 404 || error.status === 422)
 
-// /projects/:id: the Project's name and Project Context, and its Requirements.
+/**
+ * /projects/:id: the Project's name and Project Context, and its Requirements.
+ */
 export function ProjectPage() {
   const { id = '' } = useParams()
   const project = useQuery(projectQuery(id))

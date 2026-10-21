@@ -5,7 +5,7 @@ import { ProjectCard } from '@/components/project-card'
 import { Button } from '@/components/ui/button'
 import { projectsQuery } from '@/lib/projects'
 
-// /projects: a card per Project, and New project to add one.
+/** /projects: a card per Project, and New project to add one. */
 export function ProjectsPage() {
   const query = useQuery(projectsQuery())
 

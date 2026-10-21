@@ -8,15 +8,17 @@ import { ApiError } from '@/lib/api'
 import { type Project, projectKey, projectsKey, updateProject } from '@/lib/projects'
 import { cn } from '@/lib/utils'
 
-// The API's limits (NAME_MAX_LENGTH, CONTEXT_MAX_LENGTH)
+/** The API's limits (NAME_MAX_LENGTH, CONTEXT_MAX_LENGTH) */
 const NAME_MAX_LENGTH = 120
 const CONTEXT_MAX_LENGTH = 20_000
 
 const CONTEXT_PROMPT =
   "Anvil reads this whenever it refines one of this Project's Requirements. Write what you'd tell a new colleague: who it's for, how things work today, the rules, and the words you use."
 
-// The name and Project Context: editable, with Save, for the Project Owner;
-// read-only for anyone else.
+/**
+ * The name and Project Context: editable, with Save, for the Project Owner;
+ * read-only for anyone else.
+ */
 export function ProjectForm({ project }: { project: Project }) {
   const queryClient = useQueryClient()
   const [name, setName] = useState(project.name)
@@ -141,8 +143,10 @@ export function ProjectForm({ project }: { project: Project }) {
   )
 }
 
-// Which field a failed save belongs next to. A taken name is a 409; a field
-// that fails validation is a 422 whose message starts with the field's name.
+/**
+ * Which field a failed save belongs next to. A taken name is a 409; a field
+ * that fails validation is a 422 whose message starts with the field's name.
+ */
 function fieldOf(error: Error): { field: 'name' | 'context' | 'form'; message: string } {
   if (error instanceof ApiError && error.status === 409) return { field: 'name', message: error.message }
   if (error instanceof ApiError && error.status === 422) {

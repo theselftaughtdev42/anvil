@@ -8,14 +8,18 @@ import { configQuery } from '@/lib/config'
 import { projectsKey, projectsQuery } from '@/lib/projects'
 import { createRequirement, requirementsKey } from '@/lib/requirements'
 
-// The Retry and "Create a Project" actions read as links within the caption.
+/**
+ * The Retry and "Create a Project" actions read as links within the caption.
+ */
 const inlineLinkClass =
   'rounded-sm text-foreground underline underline-offset-2 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50'
 
-// "What's your idea?": starts a Requirement in the picked Project from the
-// idea typed here, then opens it. No Project is picked to begin with, so the
-// choice is always deliberate. `showIntro`, for someone with no
-// Requirements yet, adds a line explaining Refinement.
+/**
+ * "What's your idea?": starts a Requirement in the picked Project from the
+ * idea typed here, then opens it. No Project is picked to begin with, so the
+ * choice is always deliberate. `showIntro`, for someone with no
+ * Requirements yet, adds a line explaining Refinement.
+ */
 export function IdeaPrompt({ showIntro = false }: { showIntro?: boolean }) {
   const [idea, setIdea] = useState('')
   const [pickedId, setPickedId] = useState<string | null>(null)

@@ -3,7 +3,7 @@ import { expect, test } from 'vitest'
 import { render } from 'vitest-browser-react'
 import { AppHeader } from '@/components/app-header'
 
-// The home link needs a router around it.
+/** The home link needs a router around it. */
 const renderHeader = () =>
   render(
     <MemoryRouter>

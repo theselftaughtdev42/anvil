@@ -10,8 +10,10 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 
-// While `dirty`, asks before leaving for another page in Anvil, and has the
-// browser ask before closing or reloading the tab. `message` says what's lost.
+/**
+ * While `dirty`, asks before leaving for another page in Anvil, and has the
+ * browser ask before closing or reloading the tab. `message` says what's lost.
+ */
 export function LeaveGuard({ dirty, message }: { dirty: boolean; message: string }) {
   const blocker = useBlocker(
     ({ currentLocation, nextLocation }) => dirty && currentLocation.pathname !== nextLocation.pathname,

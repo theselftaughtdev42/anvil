@@ -9,7 +9,7 @@ import { routes } from '@/routes'
 
 const ID = 'req-1'
 
-// Like the stub agent: batches of three, then nothing more to ask.
+/** Like the stub agent: batches of three, then nothing more to ask. */
 const BANK = [
   { topic: "Who it's for", text: 'Who will use this most?', why: 'It shapes what good looks like.', suggestions: ['Customers', 'Our own staff', 'Both'] },
   { topic: 'The problem', text: 'What happens today, without it?', why: null, suggestions: ['By hand', 'Ask someone', 'Nothing'] },
@@ -17,7 +17,7 @@ const BANK = [
   { topic: 'Edge cases', text: 'What should happen when it goes wrong?', why: null, suggestions: ['Retry', 'Fall back', 'Tell someone'] },
 ]
 const BATCH = 3
-// What the stub asks once the Requirement moves to the Website Project.
+/** What the stub asks once the Requirement moves to the Website Project. */
 const WEBSITE_QUESTION = { topic: 'Pages', text: 'Which pages should show it?', why: null, suggestions: ['Home', 'Checkout', 'Every page'] }
 
 const PROJECTS = [
@@ -25,12 +25,14 @@ const PROJECTS = [
   { id: 'p2', name: 'Website', context: '', has_context: false, requirement_count: 0, is_owner: true },
 ]
 
-// Stands in for the Refinement API, with the server's rules: the first Answer
-// moves a Draft to In progress, Later sends a card to the bottom, and
-// answering the last open card deals the next batch, or exhausts the stack.
-// Moving a Draft to another Project swaps its open cards for ones asked with
-// that Project. `fail` can answer a request instead, and `hold` can delay one
-// until it settles.
+/**
+ * Stands in for the Refinement API, with the server's rules: the first Answer
+ * moves a Draft to In progress, Later sends a card to the bottom, and
+ * answering the last open card deals the next batch, or exhausts the stack.
+ * Moving a Draft to another Project swaps its open cards for ones asked with
+ * that Project. `fail` can answer a request instead, and `hold` can delay one
+ * until it settles.
+ */
 function serveRefinement({
   fail,
   hold,

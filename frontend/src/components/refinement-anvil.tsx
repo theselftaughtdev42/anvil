@@ -2,13 +2,17 @@ import { useId, type CSSProperties } from 'react'
 import { cn } from '@/lib/utils'
 import './refinement-anvil.css'
 
-// The anvil's path comes from src/assets/logo.svg, whose anvil is cold. This is the only
-// anvil that throws sparks: they fly off a hot billet on the face, because it's forging.
+/**
+ * The anvil's path comes from src/assets/logo.svg, whose anvil is cold. This is the only
+ * anvil that throws sparks: they fly off a hot billet on the face, because it's forging.
+ */
 const ANVIL = 'M4 34 C16 34 24 32 28 30 H94 V44 H78 Q68 46 66 58 H76 V70 H28 V58 H38 Q36 46 28 44 Q14 42 4 34 Z'
 const SPARK = 'M0 -8 L4 0 L0 8 L-4 0 Z'
 
-// Placement just above the billet; opacity (--o), loop length, start offset and sideways
-// drift from the prototype.
+/**
+ * Placement just above the billet; opacity (--o), loop length, start offset and sideways
+ * drift from the prototype.
+ */
 const SPARKS = [
   { place: 'translate(61 13) scale(0.75)', o: 0.9, d: '6s', delay: '0s', dx: '2px' },
   { place: 'translate(54 8) scale(0.45)', o: 0.6, d: '7.2s', delay: '-2.4s', dx: '-6px' },
@@ -16,12 +20,12 @@ const SPARKS = [
 ]
 
 type RefinementAnvilProps = {
-  // Bump this on every Answer to replay the strike. 0 means no strike yet.
+  /** Bump this on every Answer to replay the strike. 0 means no strike yet. */
   strike?: number
   className?: string
 }
 
-// The small anvil above the Refinement page's progress marks. Decorative.
+/** The small anvil above the Refinement page's progress marks. Decorative. */
 export function RefinementAnvil({ strike = 0, className }: RefinementAnvilProps) {
   const id = useId()
   // Two identically keyframed classes, swapped on each strike, make the browser restart it.

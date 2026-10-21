@@ -42,9 +42,11 @@ const everyProject = [
   project({ id: 'p3', name: 'Customer support portal', context: '', has_context: false, requirement_count: 0 }),
 ]
 
-// Stands in for the server: /api/config and /api/projects answer straight
-// away, and every other fetch waits for `response`, so tests can look at the
-// form while it's submitting. Returns the mock of those other fetches.
+/**
+ * Stands in for the server: /api/config and /api/projects answer straight
+ * away, and every other fetch waits for `response`, so tests can look at the
+ * form while it's submitting. Returns the mock of those other fetches.
+ */
 function respondWith(
   response: () => Promise<Response>,
   projects: () => Promise<Response> = async () => Response.json({ items: everyProject }),
@@ -63,7 +65,6 @@ function respondWith(
   return fetch
 }
 
-// A response that arrives when the test calls `resolve`.
 function deferred() {
   let resolve!: (response: Response) => void
   const promise = new Promise<Response>((r) => (resolve = r))

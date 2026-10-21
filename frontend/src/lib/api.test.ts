@@ -1,7 +1,6 @@
 import { afterEach, expect, test, vi } from 'vitest'
 import { api, ApiError } from '@/lib/api'
 
-// Stands in for the server: every fetch gets `response`.
 function respondWith(response: Response) {
   const fetch = vi.fn<typeof globalThis.fetch>().mockResolvedValue(response)
   vi.stubGlobal('fetch', fetch)

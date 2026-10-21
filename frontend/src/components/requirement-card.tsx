@@ -8,9 +8,11 @@ import { relativeTime } from '@/lib/relative-time'
 import { isProjectLocked, type Requirement } from '@/lib/requirements'
 import { statusStyles } from '@/lib/status-styles'
 
-// One Requirement on the home page. The title is the link, stretched over the
-// whole card, so the card opens on a click anywhere while a screen reader
-// hears just the title as the link's name.
+/**
+ * One Requirement on the home page. The title is the link, stretched over the
+ * whole card, so the card opens on a click anywhere while a screen reader
+ * hears just the title as the link's name.
+ */
 export function RequirementCard({ requirement }: { requirement: Requirement }) {
   const progressId = useId()
   const style = statusStyles[requirement.status]
