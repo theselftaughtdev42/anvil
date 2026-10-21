@@ -71,12 +71,17 @@ test.describe('at phone width', () => {
     expect(await fitsWidth(page)).toBe(true)
   })
 
-  // The wordmark gives way on a phone, so the title isn't cut to a letter or two.
+  // The wordmark gives way and the section links shrink to icons on a phone,
+  // so the title isn't cut to a letter or two.
   test('the header leaves the title room', async ({ page }) => {
     await serve(page)
     await page.goto('/requirements/r1')
     const title = page.getByRole('banner').getByRole('heading', { level: 1 })
     await expect(title).toBeVisible()
     expect((await title.boundingBox())!.width).toBeGreaterThan(140)
+    const sections = page.getByRole('navigation', { name: 'Sections' })
+    for (const name of ['Requirements', 'Projects'])
+      await expect(sections.getByRole('link', { name })).toBeVisible()
+    expect(await fitsWidth(page)).toBe(true)
   })
 })
