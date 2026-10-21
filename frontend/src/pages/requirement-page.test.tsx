@@ -216,6 +216,64 @@ test('a failed change says so and keeps the Project', async () => {
   await expect.element(page.question('Who will use this most?')).toBeVisible()
 })
 
+test("the Project can't change while an Answer saves, which then locks it", async () => {
+  let release!: () => void
+  const held = new Promise<void>((resolve) => (release = resolve))
+  serveRefinement({ hold: (url) => (url.pathname.endsWith('/answer') ? held : undefined) })
+  const page = await renderPage()
+  await pickAndAnswer(page, 'Who will use this most?', 'Customers')
+
+  const picker = page.screen.getByRole('banner').getByRole('combobox', { name: 'Project' })
+  await expect.element(picker).toBeDisabled()
+
+  release()
+  await expect.element(page.screen.getByRole('banner').getByText('Project: Driver app (locked)')).toBeVisible()
+})
+
+test('a failed change stops saying so once the Project is locked', async () => {
+  serveRefinement({
+    fail: (url, init) => (isChange(url, init) ? Promise.resolve(Response.json({ detail: 'down' }, { status: 503 })) : undefined),
+  })
+  const page = await renderPage()
+  await page.screen.getByRole('banner').getByRole('combobox', { name: 'Project' }).click()
+  await page.screen.getByRole('option', { name: /^Website/ }).click()
+  await expect.element(page.screen.getByRole('alert')).toBeVisible()
+
+  await pickAndAnswer(page, 'Who will use this most?', 'Customers')
+  await expect.element(page.screen.getByRole('banner').getByText('Project: Driver app (locked)')).toBeVisible()
+  await expect.element(page.screen.getByText("Couldn't change the Project. Try again.")).not.toBeInTheDocument()
+})
+
+test("a failed change isn't still shown after leaving and coming back", async () => {
+  serveRefinement({
+    fail: (url, init) => (isChange(url, init) ? Promise.resolve(Response.json({ detail: 'down' }, { status: 503 })) : undefined),
+  })
+  const page = await renderPage()
+  await page.screen.getByRole('banner').getByRole('combobox', { name: 'Project' }).click()
+  await page.screen.getByRole('option', { name: /^Website/ }).click()
+  await expect.element(page.screen.getByRole('alert')).toBeVisible()
+
+  await page.router.navigate('/')
+  await expect.element(page.screen.getByRole('heading', { name: 'Your requirements' })).toBeVisible()
+  await page.router.navigate(`/requirements/${ID}`)
+  await expect.element(page.question('Who will use this most?')).toBeVisible()
+  await expect.element(page.screen.getByText("Couldn't change the Project. Try again.")).not.toBeInTheDocument()
+})
+
+test('a Project that has gone reloads the Projects', async () => {
+  const fetch = serveRefinement({
+    fail: (url, init) =>
+      isChange(url, init) ? Promise.resolve(Response.json({ detail: 'Project not found' }, { status: 422 })) : undefined,
+  })
+  const page = await renderPage()
+  await page.screen.getByRole('banner').getByRole('combobox', { name: 'Project' }).click()
+  const loads = () => fetch.mock.calls.filter(([input]) => new URL(String(input), location.origin).pathname === '/api/projects').length
+  const before = loads()
+  await page.screen.getByRole('option', { name: /^Website/ }).click()
+
+  await expect.poll(loads).toBeGreaterThan(before)
+})
+
 test('after the first Answer the Project is locked, and says why', async () => {
   serveRefinement()
   const page = await renderPage()
