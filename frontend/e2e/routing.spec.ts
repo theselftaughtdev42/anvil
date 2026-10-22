@@ -16,7 +16,7 @@ const stack = {
   exhausted: false,
 }
 
-// The e2e tests run without an API, so this stands in for it.
+/** The e2e tests run without an API, so this stands in for it. */
 async function serveRequirement(page: Page) {
   await page.route('**/api/requirements/abc-123', (route) => route.fulfill({ json: requirement }))
   await page.route('**/api/requirements/abc-123/questions', (route) => route.fulfill({ json: stack }))

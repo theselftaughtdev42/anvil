@@ -9,8 +9,10 @@ const question = (n: number) => ({
   number: n,
 })
 
-// The e2e tests run without an API, so this stands in for it: two answered,
-// four open.
+/**
+ * The e2e tests run without an API, so this stands in for it: two answered,
+ * four open.
+ */
 async function serve(page: Page, status = 'in_progress') {
   await page.route('**/api/projects', (route) =>
     route.fulfill({

@@ -20,22 +20,35 @@ export default defineConfig({
       '/api': 'http://127.0.0.1:8000',
     },
   },
-  // Component and module tests (`npm run test:unit`), run in headless Chromium.
-  // Playwright's tests in e2e/ check the whole built app and run separately.
+  // `npm run test:unit`. Playwright's tests in e2e/ check the whole built app
+  // and run separately.
   test: {
-    include: ['src/**/*.test.{ts,tsx}'],
-    browser: {
-      enabled: true,
-      provider: playwright(),
-      headless: true,
-      instances: [{ browser: 'chromium' }],
-      commands: {
-        // Lets a test switch `prefers-reduced-motion` on and off: `commands.setReducedMotion(true)`.
-        setReducedMotion: async (ctx, reduce: boolean) => {
-          if (!('page' in ctx)) throw new Error('setReducedMotion needs the Playwright provider')
-          await ctx.page.emulateMedia({ reducedMotion: reduce ? 'reduce' : 'no-preference' })
+    projects: [
+      // Component and module tests, run in headless Chromium.
+      {
+        extends: true,
+        test: {
+          name: 'unit',
+          include: ['src/**/*.test.{ts,tsx}'],
+          browser: {
+            enabled: true,
+            provider: playwright(),
+            headless: true,
+            instances: [{ browser: 'chromium' }],
+            commands: {
+              // Lets a test switch `prefers-reduced-motion` on and off: `commands.setReducedMotion(true)`.
+              setReducedMotion: async (ctx, reduce: boolean) => {
+                if (!('page' in ctx)) throw new Error('setReducedMotion needs the Playwright provider')
+                await ctx.page.emulateMedia({ reducedMotion: reduce ? 'reduce' : 'no-preference' })
+              },
+            },
+          },
         },
       },
-    },
+      // The lint rules' tests run oxlint itself, which needs Node.
+      {
+        test: { name: 'lint', include: ['lint/**/*.test.ts'], environment: 'node' },
+      },
+    ],
   },
 })

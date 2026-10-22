@@ -15,8 +15,10 @@ const requirements = statuses.flatMap((status, i) =>
   })),
 )
 
-// The e2e tests run without an API, so this stands in for GET
-// /api/requirements, which returns every requirement.
+/**
+ * The e2e tests run without an API, so this stands in for GET
+ * /api/requirements, which returns every requirement.
+ */
 async function serve(page: Page, items: typeof requirements) {
   await page.route('**/api/config', (route) =>
     route.fulfill({ json: { idea_placeholder: 'Riders can tip their driver' } }),

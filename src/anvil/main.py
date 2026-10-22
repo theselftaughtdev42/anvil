@@ -55,14 +55,14 @@ api.include_router(requirements.router)
 api.include_router(projects.router)
 
 
-# Keep last: unmatched /api paths must 404 rather than fall through to the
-# frontend's index.html fallback.
 @api.api_route(
     "/{path:path}",
     methods=["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"],
     include_in_schema=False,
 )
 def not_found() -> None:
+    """404 an unmatched /api path, rather than fall through to the frontend's
+    index.html fallback. Keep last: routes match in the order they're added."""
     raise HTTPException(status_code=404)
 
 
