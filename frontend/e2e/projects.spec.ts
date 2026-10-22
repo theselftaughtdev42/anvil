@@ -20,7 +20,7 @@ const projects = [
   },
 ]
 
-// The e2e tests run without an API, so this stands in for GET /api/projects.
+/** The e2e tests run without an API, so this stands in for GET /api/projects. */
 async function serve(page: Page) {
   await page.route(
     (url) => url.pathname === '/api/projects',
@@ -28,7 +28,7 @@ async function serve(page: Page) {
   )
 }
 
-// Stands in for GET /api/projects/p1 and its Requirements.
+/** Stands in for GET /api/projects/p1 and its Requirements. */
 async function serveProject(page: Page) {
   await page.route(
     (url) => url.pathname === '/api/projects/p1',
