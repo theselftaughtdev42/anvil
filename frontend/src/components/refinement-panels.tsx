@@ -1,7 +1,7 @@
 import { useId } from 'react'
 import { RefinementAnvil } from '@/components/refinement-anvil'
 import { cn } from '@/lib/utils'
-import type { AnsweredQuestion, OpenQuestion } from '@/lib/questions'
+import type { AnsweredQuestion, OpenQuestion } from '@/lib/api-schema'
 
 const ANSWERED_SHOWN = 4
 const NEXT_SHOWN = 3

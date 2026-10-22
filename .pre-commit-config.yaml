@@ -42,7 +42,8 @@ repos:
         entry: uv run python scripts/check_comment_only_changes.py
         language: system
         types_or: [python, pyi, ts, tsx, javascript, jsx]
-        exclude: ^frontend/src/components/ui/
+        # A backend docstring edit regenerates a comment-only hunk in api-schema.
+        exclude: ^frontend/src/(components/ui/|lib/api-schema\.d\.ts$)
       # Type checkers look at the whole project (a change in one file can break
       # another), so they get no filenames and run when any relevant file changes.
       - id: ty
@@ -50,6 +51,14 @@ repos:
         entry: uv run ty check
         language: system
         types_or: [python, pyi]
+        pass_filenames: false
+      # Fails when the checked-in frontend API types are stale, after fixing
+      # them, like ruff-format. Before oxlint and tsc, so they see the new file.
+      - id: api-schema
+        name: generate frontend API types
+        entry: uv run python scripts/generate_api_schema.py
+        language: system
+        files: ^(src/anvil/|scripts/generate_api_schema\.py$)
         pass_filenames: false
       - id: oxlint
         name: oxlint

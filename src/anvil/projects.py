@@ -34,7 +34,7 @@ class ProjectUpdate(BaseModel):
     )
 
 
-class ProjectPublic(BaseModel):
+class ProjectPublic(BaseModel, use_attribute_docstrings=True):
     id: uuid.UUID
     name: str
     context: str
@@ -45,7 +45,7 @@ class ProjectPublic(BaseModel):
     """Whether the current user is the Project Owner, so may edit it."""
 
 
-class ProjectList(BaseModel):
+class ProjectList(BaseModel, use_attribute_docstrings=True):
     items: list[ProjectPublic]
 
 

@@ -3,7 +3,7 @@ import { createMemoryRouter, RouterProvider } from 'react-router'
 import { afterEach, expect, test, vi } from 'vitest'
 import { userEvent } from 'vitest/browser'
 import { render } from 'vitest-browser-react'
-import type { AnsweredQuestion, OpenQuestion, QuestionStack } from '@/lib/questions'
+import type { AnsweredQuestion, OpenQuestion, QuestionStack } from '@/lib/api-schema'
 import type { Requirement } from '@/lib/requirements'
 import { routes } from '@/routes'
 

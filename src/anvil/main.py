@@ -41,7 +41,7 @@ def me(user: CurrentUserDep) -> PointOfContact:
     return user
 
 
-class Config(BaseModel):
+class Config(BaseModel, use_attribute_docstrings=True):
     idea_placeholder: str
 
 

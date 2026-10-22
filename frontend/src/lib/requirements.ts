@@ -1,7 +1,12 @@
 import { queryOptions } from '@tanstack/react-query'
 import { api, retryUnlessClientError } from '@/lib/api'
-
-export type RequirementStatus = 'draft' | 'in_progress' | 'complete'
+import type {
+  RequirementCreate,
+  RequirementList,
+  RequirementPublic,
+  RequirementStatus,
+  RequirementUpdate,
+} from '@/lib/api-schema'
 
 export const requirementStatuses: readonly RequirementStatus[] = ['draft', 'in_progress', 'complete']
 
@@ -11,38 +16,14 @@ export const statusLabels: Record<RequirementStatus, string> = {
   complete: 'Complete',
 }
 
-/**
- * How many of a Requirement's Questions are answered, out of its open and
- * answered ones.
- */
-export interface Progress {
-  answered: number
-  total: number
-}
+export type Requirement = RequirementPublic
 
-/** A Requirement as the API returns it (RequirementPublic). */
-export interface Requirement {
-  id: string
-  title: string
-  idea: string
-  project: { id: string; name: string }
-  status: RequirementStatus
-  created_at: string
-  updated_at: string
-  /** Null while it has no Questions. */
-  progress: Progress | null
-}
+export const requirementsKey = ['requirements'] as const
 
 /**
  * GET /api/requirements: all of the Point of Contact's Requirements, most
  * recently updated first. The UI filters them.
  */
-export interface RequirementList {
-  items: Requirement[]
-}
-
-export const requirementsKey = ['requirements'] as const
-
 export function requirementsQuery() {
   return queryOptions({
     queryKey: requirementsKey,
@@ -85,7 +66,7 @@ export function countByStatus(requirements: Requirement[]): Record<RequirementSt
 export function createRequirement(body: { projectId: string; idea: string }): Promise<Requirement> {
   return api<Requirement>('/requirements', {
     method: 'POST',
-    json: { project_id: body.projectId, idea: body.idea },
+    json: { project_id: body.projectId, idea: body.idea } satisfies RequirementCreate,
   })
 }
 
@@ -98,7 +79,10 @@ export const isProjectLocked = (requirement: Requirement) => requirement.status 
  * Project Context. A 409 once it's locked.
  */
 export function changeProject(id: string, projectId: string): Promise<Requirement> {
-  return api<Requirement>(`/requirements/${id}`, { method: 'PATCH', json: { project_id: projectId } })
+  return api<Requirement>(`/requirements/${id}`, {
+    method: 'PATCH',
+    json: { project_id: projectId } satisfies RequirementUpdate,
+  })
 }
 
 /**
