@@ -55,8 +55,8 @@ class ProjectSummary(BaseModel):
 
 class Progress(BaseModel):
     answered: int
-    # Open and answered Questions; Dismissed ones don't count.
     total: int
+    """Open and answered Questions; Dismissed ones don't count."""
 
 
 class RequirementPublic(BaseModel):
@@ -67,8 +67,8 @@ class RequirementPublic(BaseModel):
     status: RequirementStatus
     created_at: datetime
     updated_at: datetime
-    # Null while the Requirement has no Questions. The UI shows "Not started".
     progress: Progress | None
+    """Null while the Requirement has no Questions. The UI shows "Not started"."""
 
 
 class RequirementList(BaseModel):
@@ -81,8 +81,8 @@ class OpenQuestion(BaseModel):
     text: str
     why: str | None
     suggestions: list[str]
-    # The "#3" on the card: its order of creation within the Requirement.
     number: int
+    """The "#3" on the card: its order of creation within the Requirement."""
 
 
 class AnsweredQuestion(BaseModel):
@@ -94,12 +94,12 @@ class AnsweredQuestion(BaseModel):
 
 
 class QuestionStack(BaseModel):
-    # Top of the stack first.
     open: list[OpenQuestion]
-    # In the order they were answered.
+    """Top of the stack first."""
     answered: list[AnsweredQuestion]
-    # True once Anvil has nothing more to ask.
+    """In the order they were answered."""
     exhausted: bool
+    """True once Anvil has nothing more to ask."""
 
 
 class AnswerCreate(BaseModel):

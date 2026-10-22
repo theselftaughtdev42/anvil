@@ -11,9 +11,10 @@ from sqlmodel import Field, SQLModel
 class QuestionStatus(StrEnum):
     OPEN = "open"
     ANSWERED = "answered"
-    # Nothing sets this yet; it's here so the enum needn't change when
-    # dismissing arrives.
     DISMISSED = "dismissed"
+    """Nothing sets this yet; it's here so the enum needn't change when dismissing
+    arrives.
+    """
 
 
 # A Postgres enum, for the reasons given on requirement_status.
@@ -56,23 +57,25 @@ class Question(SQLModel, table=True):
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     requirement_id: uuid.UUID = Field(foreign_key="requirement.id")
-    # A short label shown on the card, for example "Edge cases".
     topic: str = Field(max_length=40)
+    """A short label shown on the card, for example "Edge cases"."""
     text: str = Field(sa_type=sa.Text)
-    # Why Anvil is asking, in one sentence.
     why: str | None = Field(default=None, sa_type=sa.Text)
-    # Suggested Answers. The agent's output schema should cap these at three;
-    # the database doesn't, so offering more later needs no migration.
-    # MutableList makes in-place changes (append, extend) get saved.
+    """Why Anvil is asking, in one sentence."""
     suggestions: list[str] = Field(
         default_factory=list,
         sa_type=MutableList.as_mutable(JSONB),
         sa_column_kwargs={"server_default": sa.text("'[]'::jsonb")},
     )
-    # Order in the stack; lower is nearer the top. Changes if user marks it for later.
+    """Suggested Answers. The agent's output schema should cap these at three; the
+    database doesn't, so offering more later needs no migration. MutableList makes
+    in-place changes (append, extend) get saved.
+    """
     position: int
-    # Order of creation within the Requirement, from 1. Never changes.
+    """Order in the stack; lower is nearer the top. Changes if user marks it for later.
+    """
     number: int
+    """Order of creation within the Requirement, from 1. Never changes."""
     status: QuestionStatus = Field(
         default=QuestionStatus.OPEN,
         sa_type=status_type,
@@ -82,10 +85,10 @@ class Question(SQLModel, table=True):
     answered_at: datetime | None = Field(
         default=None, sa_type=sa.DateTime(timezone=True)
     )
-    # Set by the database, so None until the row is flushed.
     created_at: datetime | None = Field(
         default=None,
         sa_type=sa.DateTime(timezone=True),
         sa_column_kwargs={"server_default": sa.func.now()},
         nullable=False,
     )
+    """Set by the database, so None until the row is flushed."""

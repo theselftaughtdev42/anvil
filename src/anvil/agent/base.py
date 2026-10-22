@@ -22,8 +22,8 @@ class AskedQuestion(BaseModel, frozen=True):
 
     topic: str
     text: str
-    # None while the Question is still Open.
     answer: str | None = None
+    """None while the Question is still Open."""
 
 
 class QuestionDraft(BaseModel, frozen=True, str_strip_whitespace=True):
@@ -32,11 +32,11 @@ class QuestionDraft(BaseModel, frozen=True, str_strip_whitespace=True):
     Whitespace is stripped, so a blank value can't reach a card.
     """
 
-    # A short label shown on the card, for example "Edge cases".
     topic: str = Field(min_length=1, max_length=TOPIC_MAX_LENGTH)
+    """A short label shown on the card, for example "Edge cases"."""
     text: str = Field(min_length=1)
-    # Why Anvil is asking, in one sentence.
     why: str | None = None
+    """Why Anvil is asking, in one sentence."""
     suggestions: tuple[Annotated[str, Field(min_length=1)], ...] = Field(
         default=(), max_length=SUGGESTIONS_MAX
     )

@@ -4,7 +4,8 @@
 
 ## Comments and docstrings
 
-- Explain a function, class, component, type or module with a docstring (TSDoc `/** */` on the frontend), not a comment above it. Give one only when its name and types don't already make it obvious.
+- Comment sparingly: add a comment or docstring only where a reader would otherwise misread the code, and only on code you're changing.
+- Explain a function, class, component, type, field or module with a docstring (TSDoc `/** */` on the frontend), not a comment above it. Give one only when its name and types don't already make it obvious.
 - Keep docstrings to a short summary. Skip Args/Returns (or `@param`/`@returns`) when the signature is well typed; add them only for what the types don't say, such as units, side effects or what an exception means.
 - Inline comments say *why* (a constraint, workaround, linked bug or surprising choice), never *what* the next line does.
 

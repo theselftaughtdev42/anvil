@@ -13,8 +13,8 @@ type Comment = ReturnType<Context['sourceCode']['getCommentsBefore']>[number]
 const DIRECTIVE = /^\s*(?:oxlint-|eslint-|@ts-(?:expect-error|ignore|nocheck)|anvil:)/
 
 /**
- * Flags a `//` comment directly above a declaration, which AGENTS.md says
- * should be a `/** *\/` docstring instead.
+ * Flags a `//` comment directly above a declaration or one of its members,
+ * which AGENTS.md says should be a `/** *\/` docstring instead.
  */
 const commentAboveDeclaration: Rule = {
   meta: {
@@ -51,6 +51,10 @@ const commentAboveDeclaration: Rule = {
       ClassDeclaration: check,
       TSInterfaceDeclaration: check,
       TSTypeAliasDeclaration: check,
+      TSPropertySignature: check,
+      TSMethodSignature: check,
+      PropertyDefinition: check,
+      MethodDefinition: check,
       VariableDeclaration(node) {
         if (node.type !== 'VariableDeclaration') return
         if (node.kind === 'const' && node.parent.type === 'ExportNamedDeclaration') check(node)
