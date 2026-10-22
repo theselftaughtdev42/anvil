@@ -34,6 +34,18 @@ updates:
       npm:
         patterns: ["*"]
 
+  # The /frontend entry doesn't bump this local package's own ranges. Watched
+  # for the release that supports TypeScript 7 (see docs/adr/0001), whose PR
+  # also needs `npm install` in frontend to update the lockfile.
+  - package-ecosystem: npm
+    directory: /frontend/tools/openapi-typescript
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    allow:
+      - dependency-name: openapi-typescript
+
   # The postgres image in compose.yaml.
   - package-ecosystem: docker-compose
     directory: /

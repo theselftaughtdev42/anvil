@@ -1,4 +1,4 @@
-import type { RequirementStatus } from '@/lib/requirements'
+import type { RequirementStatus } from '@/lib/api-schema'
 
 /**
  * Each status's badge and dot colours (--status-* in theme.css).

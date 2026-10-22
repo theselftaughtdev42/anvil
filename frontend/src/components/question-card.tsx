@@ -3,7 +3,8 @@ import { RadioGroup } from 'radix-ui'
 import { useEffect, useEffectEvent, useId, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { ANSWER_MAX_LENGTH, type OpenQuestion } from '@/lib/questions'
+import type { OpenQuestion } from '@/lib/api-schema'
+import { ANSWER_MAX_LENGTH } from '@/lib/questions'
 
 const MAX_SUGGESTIONS = 3
 

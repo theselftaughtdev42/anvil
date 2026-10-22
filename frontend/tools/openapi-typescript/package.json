@@ -1,0 +1,10 @@
+{
+  "name": "anvil-openapi-typescript",
+  "private": true,
+  "version": "0.0.0",
+  "description": "openapi-typescript with the TypeScript 5 it needs: the frontend's TypeScript 7 has no JS API.",
+  "dependencies": {
+    "openapi-typescript": "^7.13.0",
+    "typescript": "^5.9.3"
+  }
+}

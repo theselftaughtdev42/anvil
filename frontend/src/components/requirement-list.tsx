@@ -2,13 +2,8 @@ import { LoaderCircle } from 'lucide-react'
 import { RequirementCard } from '@/components/requirement-card'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import {
-  countByStatus,
-  type Requirement,
-  type RequirementStatus,
-  requirementStatuses,
-  statusLabels,
-} from '@/lib/requirements'
+import type { RequirementStatus } from '@/lib/api-schema'
+import { countByStatus, type Requirement, requirementStatuses, statusLabels } from '@/lib/requirements'
 
 export type StatusFilter = RequirementStatus | 'all'
 

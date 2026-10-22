@@ -2,7 +2,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createMemoryRouter, RouterProvider } from 'react-router'
 import { afterEach, expect, test, vi } from 'vitest'
 import { render } from 'vitest-browser-react'
-import type { Requirement, RequirementList } from '@/lib/requirements'
+import type { RequirementList } from '@/lib/api-schema'
+import type { Requirement } from '@/lib/requirements'
 import { HomePage } from '@/pages/home-page'
 
 /**

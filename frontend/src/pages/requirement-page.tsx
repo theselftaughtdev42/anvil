@@ -9,13 +9,8 @@ import { StatusBadge } from '@/components/status-badge'
 import { AnsweredPile, NextInStack, RefinementProgress } from '@/components/refinement-panels'
 import { Button } from '@/components/ui/button'
 import { ApiError } from '@/lib/api'
-import {
-  answerQuestion,
-  putOffQuestion,
-  type QuestionStack,
-  questionsKey,
-  questionsQuery,
-} from '@/lib/questions'
+import type { QuestionStack } from '@/lib/api-schema'
+import { answerQuestion, putOffQuestion, questionsKey, questionsQuery } from '@/lib/questions'
 import {
   changeProjectKey,
   isProjectLocked,

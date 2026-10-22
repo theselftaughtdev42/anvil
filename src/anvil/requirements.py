@@ -48,18 +48,18 @@ class RequirementUpdate(BaseModel):
     project_id: uuid.UUID
 
 
-class ProjectSummary(BaseModel):
+class ProjectSummary(BaseModel, use_attribute_docstrings=True):
     id: uuid.UUID
     name: str
 
 
-class Progress(BaseModel):
+class Progress(BaseModel, use_attribute_docstrings=True):
     answered: int
     total: int
     """Open and answered Questions; Dismissed ones don't count."""
 
 
-class RequirementPublic(BaseModel):
+class RequirementPublic(BaseModel, use_attribute_docstrings=True):
     id: uuid.UUID
     title: str
     idea: str
@@ -71,11 +71,11 @@ class RequirementPublic(BaseModel):
     """Null while the Requirement has no Questions. The UI shows "Not started"."""
 
 
-class RequirementList(BaseModel):
+class RequirementList(BaseModel, use_attribute_docstrings=True):
     items: list[RequirementPublic]
 
 
-class OpenQuestion(BaseModel):
+class OpenQuestion(BaseModel, use_attribute_docstrings=True):
     id: uuid.UUID
     topic: str
     text: str
@@ -85,7 +85,7 @@ class OpenQuestion(BaseModel):
     """The "#3" on the card: its order of creation within the Requirement."""
 
 
-class AnsweredQuestion(BaseModel):
+class AnsweredQuestion(BaseModel, use_attribute_docstrings=True):
     id: uuid.UUID
     topic: str
     text: str
@@ -93,7 +93,7 @@ class AnsweredQuestion(BaseModel):
     number: int
 
 
-class QuestionStack(BaseModel):
+class QuestionStack(BaseModel, use_attribute_docstrings=True):
     open: list[OpenQuestion]
     """Top of the stack first."""
     answered: list[AnsweredQuestion]

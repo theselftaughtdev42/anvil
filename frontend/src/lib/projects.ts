@@ -1,25 +1,12 @@
 import { queryOptions } from '@tanstack/react-query'
 import { api, retryUnlessClientError } from '@/lib/api'
+import type { ProjectCreate, ProjectList, ProjectPublic, ProjectUpdate } from '@/lib/api-schema'
 
-/** A Project as the API returns it (ProjectPublic). */
-export interface Project {
-  id: string
-  name: string
-  context: string
-  /** False while the Project Context is blank. */
-  has_context: boolean
-  requirement_count: number
-  /** Whether the current user is the Project Owner, so may edit it. */
-  is_owner: boolean
-}
-
-/** GET /api/projects: every Project, by name. */
-export interface ProjectList {
-  items: Project[]
-}
+export type Project = ProjectPublic
 
 export const projectsKey = ['projects'] as const
 
+/** GET /api/projects: every Project, by name. */
 export function projectsQuery() {
   return queryOptions({
     queryKey: projectsKey,
@@ -29,7 +16,7 @@ export function projectsQuery() {
 
 /** Throws an ApiError with the API's message when the name is taken (409). */
 export function createProject(name: string): Promise<Project> {
-  return api<Project>('/projects', { method: 'POST', json: { name } })
+  return api<Project>('/projects', { method: 'POST', json: { name } satisfies ProjectCreate })
 }
 
 export const projectKey = (id: string) => ['projects', id] as const
@@ -51,5 +38,5 @@ export function projectQuery(id: string) {
  * when the new name is taken (409).
  */
 export function updateProject(id: string, changes: { name: string; context: string }): Promise<Project> {
-  return api<Project>(`/projects/${id}`, { method: 'PATCH', json: changes })
+  return api<Project>(`/projects/${id}`, { method: 'PATCH', json: changes satisfies ProjectUpdate })
 }
