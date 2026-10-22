@@ -28,8 +28,8 @@ class Project(SQLModel, table=True):
     )
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    # point_of_contact stands in for a users table until real Users (#63).
     owner_id: uuid.UUID = Field(foreign_key="point_of_contact.id", index=True)
+    """point_of_contact stands in for a users table until real Users (#63)."""
     name: str = Field(max_length=NAME_MAX_LENGTH)
     context: str = Field(
         default="", sa_type=sa.Text, sa_column_kwargs={"server_default": ""}

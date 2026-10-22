@@ -38,11 +38,11 @@ class ProjectPublic(BaseModel):
     id: uuid.UUID
     name: str
     context: str
-    # False while the Project Context is blank.
     has_context: bool
+    """False while the Project Context is blank."""
     requirement_count: int
-    # Whether the current user is the Project Owner, so may edit it.
     is_owner: bool
+    """Whether the current user is the Project Owner, so may edit it."""
 
 
 class ProjectList(BaseModel):

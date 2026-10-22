@@ -58,6 +58,19 @@ def test_flags_comment_above_method() -> None:
     ) == [3]
 
 
+@pytest.mark.parametrize(
+    "attribute", ["a: int", "a: int = 1", "a = 1", "a = b = 1", "A = 'enum member'"]
+)
+def test_flags_comment_above_class_attribute(attribute: str) -> None:
+    assert lines_flagged(
+        f"""
+        class C:
+            # Explains it.
+            {attribute}
+        """
+    ) == [3]
+
+
 def test_flags_each_line_of_a_comment_block() -> None:
     assert lines_flagged(
         """
@@ -99,6 +112,20 @@ def test_flags_comment_beside_a_directive() -> None:
             # Explains the line below, not f.
             return 1
         """,
+        """
+        # A module constant may explain its value.
+        A = 1
+        """,
+        """
+        def f():
+            # Explains the local.
+            a = 1
+        """,
+        '''
+        class C:
+            a: int
+            """An attribute docstring."""
+        ''',
         """
         # noqa: E501
         # type: ignore[misc]

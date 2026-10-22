@@ -1,4 +1,4 @@
-"""Fail when a `#` comment sits directly above a `def` or `class`.
+"""Fail when a `#` comment sits directly above a `def`, `class` or class attribute.
 
 AGENTS.md ("Comments and docstrings") says to explain a function or class with
 a docstring, not a comment above it. Ruff has no custom rules, so pre-commit
@@ -10,6 +10,7 @@ import io
 import re
 import sys
 import tokenize
+from collections.abc import Iterator
 from pathlib import Path
 from typing import NamedTuple
 
@@ -34,17 +35,32 @@ def full_line_comments(source: str) -> dict[int, str]:
     return comments
 
 
+def declarations(tree: ast.Module) -> Iterator[tuple[int, str]]:
+    """Each def, class and class attribute, as its first line (decorators
+    included) and name."""
+    for node in ast.walk(tree):
+        if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef):
+            yield (
+                min([node.lineno] + [d.lineno for d in node.decorator_list]),
+                node.name,
+            )
+        if isinstance(node, ast.ClassDef):
+            for statement in node.body:
+                if isinstance(statement, ast.Assign):
+                    yield statement.lineno, ast.unparse(statement.targets[0])
+                elif isinstance(statement, ast.AnnAssign):
+                    yield statement.lineno, ast.unparse(statement.target)
+
+
 def check(source: str) -> list[Violation]:
-    """Find comments directly above a def or class, or above its decorators."""
+    """Find comments directly above a declaration."""
     comments = full_line_comments(source)
     violations = []
-    for node in ast.walk(ast.parse(source)):
-        if not isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef):
-            continue
-        line = min([node.lineno] + [d.lineno for d in node.decorator_list]) - 1
+    for first_line, name in declarations(ast.parse(source)):
+        line = first_line - 1
         while line in comments:
             if not DIRECTIVE.match(comments[line]):
-                violations.append(Violation(line, node.name))
+                violations.append(Violation(line, name))
             line -= 1
     return sorted(violations)
 

@@ -35,6 +35,14 @@ repos:
         entry: uv run python scripts/check_docstrings.py
         language: system
         types: [python]
+      # Compares each file with HEAD, so it checks local changes only: CI's
+      # checkout has none.
+      - id: comment-only-changes
+        name: comment-only changes
+        entry: uv run python scripts/check_comment_only_changes.py
+        language: system
+        types_or: [python, pyi, ts, tsx, javascript, jsx]
+        exclude: ^frontend/src/components/ui/
       # Type checkers look at the whole project (a change in one file can break
       # another), so they get no filenames and run when any relevant file changes.
       - id: ty
