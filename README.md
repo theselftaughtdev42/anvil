@@ -60,6 +60,17 @@ The Release workflow then adds the `0.1.0` tag to that commit's `sha-<sha>` imag
 - the commit has no image yet. If its CI run on `main` is still going, wait for it, then re-run the failed Release run;
 - `X.Y.Z` already points at a different image. Versions are never moved; release a new one.
 
+Once the image is tagged, it creates a GitHub Release for `vX.Y.Z`: the image reference and digest, then GitHub's generated notes for the PRs merged since the previous version tag. If the Release already exists, it's left as is, so edit notes by hand freely; re-runs won't overwrite them.
+
+The notes are grouped by PR label (see [`.github/release.yml`](.github/release.yml)), and the PR labels check fails unless a PR has exactly one of:
+
+- `enhancement`: listed under Features;
+- `bug`: listed under Fixes;
+- `dependencies`: listed under Dependencies;
+- `internal`: left out (docs, agent instructions, CI, tooling).
+
+Add `breaking-change` on top for a change that breaks something; it's then listed only under ⚠️ Breaking. Dependabot labels its own PRs. See [ADR 0002](docs/adr/0002-release-notes-come-from-pr-labels.md) for why.
+
 To find the image for a version, pull `ghcr.io/theselftaughtdev42/anvil:X.Y.Z`. Its digest matches the `sha-` tag of the commit `vX.Y.Z` points at, and that commit is in its `org.opencontainers.image.revision` label:
 
 ```bash

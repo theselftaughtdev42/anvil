@@ -1,8 +1,8 @@
 name: Release
 
 # Pushing a vX.Y.Z tag adds an X.Y.Z tag to the image CI already built and
-# smoke-tested for that commit. Nothing is rebuilt, so the release is
-# byte-for-byte the image that was tested.
+# smoke-tested for that commit, then creates a GitHub Release for it. Nothing
+# is rebuilt, so the release is byte-for-byte the image that was tested.
 on:
   push:
     tags: ["v*.*.*"]
@@ -25,6 +25,9 @@ jobs:
       packages: write
     env:
       IMAGE: ghcr.io/theselftaughtdev42/anvil
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      digest: ${{ steps.source.outputs.digest }}
     steps:
       # Full history, so the tagged commit can be checked against main.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -107,3 +110,48 @@ jobs:
             exit 1
           fi
           echo "Released $IMAGE:$VERSION ($DIGEST), built from $COMMIT." >> "$GITHUB_STEP_SUMMARY"
+
+  release:
+    needs: promote
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      # Full history and tags, to find the previous version.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      # An existing Release is left alone, so re-runs never overwrite hand
+      # edits. As above, only "not found" means it's new.
+      - name: Create the GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          IMAGE: ghcr.io/theselftaughtdev42/anvil
+          VERSION: ${{ needs.promote.outputs.version }}
+          DIGEST: ${{ needs.promote.outputs.digest }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" > /dev/null 2> view.err; then
+            echo "Release $GITHUB_REF_NAME already exists; left unchanged." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          elif ! grep -q 'release not found' view.err; then
+            cat view.err >&2
+            echo "::error::Could not check whether Release $GITHUB_REF_NAME already exists."
+            exit 1
+          fi
+
+          # Notes start from the previous version tag, not the previous
+          # Release: v0.1.0 to v0.3.0 have no Release.
+          start=()
+          if previous=$(git describe --tags --abbrev=0 --match 'v*.*.*' --exclude '*-*' "$GITHUB_REF_NAME^" 2> /dev/null); then
+            start=(--notes-start-tag "$previous")
+          fi
+
+          # GitHub puts these notes above the generated ones.
+          notes="Image: \`$IMAGE:$VERSION\`
+          Digest: \`$DIGEST\`"
+          gh release create "$GITHUB_REF_NAME" --verify-tag --title "$GITHUB_REF_NAME" \
+            --generate-notes "${start[@]}" --notes "$notes"
+          echo "Created Release $GITHUB_REF_NAME." >> "$GITHUB_STEP_SUMMARY"

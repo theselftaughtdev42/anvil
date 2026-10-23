@@ -1,0 +1,16 @@
+# Sections for GitHub's generated release notes, by PR label. The PR labels
+# workflow makes every PR carry exactly one category label.
+changelog:
+  exclude:
+    labels: [internal]
+  # A PR goes in the first category it matches, so a breaking change is
+  # listed only under Breaking.
+  categories:
+    - title: ⚠️ Breaking
+      labels: [breaking-change]
+    - title: Features
+      labels: [enhancement]
+    - title: Fixes
+      labels: [bug]
+    - title: Dependencies
+      labels: [dependencies]

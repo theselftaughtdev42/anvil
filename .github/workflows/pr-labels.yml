@@ -1,0 +1,30 @@
+name: PR labels
+
+# Release notes are grouped by these labels (.github/release.yml), so every PR
+# needs exactly one category. breaking-change may be added on top; other
+# labels are ignored.
+on:
+  pull_request:
+    types: [opened, labeled, unlabeled, synchronize]
+
+permissions: {}
+
+# Adding several labels at once fires one event each; only the last run counts.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  category:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Check for exactly one category label
+        run: |
+          mapfile -t found < <(jq -r '.pull_request.labels[].name
+            | select(IN("enhancement", "bug", "dependencies", "internal"))' "$GITHUB_EVENT_PATH")
+          if (( ${#found[@]} != 1 )); then
+            echo "::error::Label this PR with exactly one of enhancement, bug, dependencies or internal (plus breaking-change if it breaks something). Found: ${found[*]:-none}."
+            exit 1
+          fi
+          echo "Category: ${found[0]}"
