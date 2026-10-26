@@ -1,6 +1,6 @@
 ---
 name: pr
-description: "Use when writing a PR body."
+description: "Use when writing a PR body or opening a PR."
 metadata:
   credits:
     skill: show-me
@@ -168,3 +168,14 @@ Execution-based evidence is A-tier. Test results, console output. Show the exact
 Describe whether it's a one-way or two-way door. You can walk back through two-way doors, but not one-way doors. A PR that is cheap to roll back is lower risk. Changes that involve destructive actions or hard-to-reverse decisions are one-way doors.
 
 The blast radius is the potential impact or scope of the changes introduced by this PR. Consider all possibilities. Examples are layout shift, breakages for consumers, mobile responsiveness, etc.
+
+## Label
+
+Give every PR exactly one category label, which sets where it lands in the release notes (`.github/release.yml`). The PR labels check fails without one.
+
+- `enhancement`: a new feature or improvement
+- `bug`: a fix
+- `dependencies`: a dependency bump
+- `internal`: tooling, CI, docs or refactors, left out of the release notes
+
+Add `breaking-change` on top only when the PR breaks existing users. Not used before 1.0.
