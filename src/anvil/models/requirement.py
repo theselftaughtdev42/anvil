@@ -41,7 +41,7 @@ class Requirement(SQLModel, table=True):
     project_id: uuid.UUID = Field(foreign_key="project.id", index=True)
     idea: str = Field(sa_type=sa.Text)
     """What the person typed, in their own words."""
-    title: str = Field(max_length=255)
+    title: str = Field(sa_type=sa.Text)
     """A short name, set by the refinement agent when the requirement is created."""
     status: RequirementStatus = Field(
         default=RequirementStatus.DRAFT,

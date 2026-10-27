@@ -1,14 +1,12 @@
 import time
 from collections.abc import Sequence
 
-from idea_refiner.base import AskedQuestion, Limits, QuestionDraft, Subject
+from idea_refiner.base import AskedQuestion, QuestionDraft, Subject
 
 TITLE_MAX_WORDS = 6
 ELLIPSIS = "…"
 # Closing brackets and quotes stay, so `the "login" button` keeps its quote.
 TRAILING_PUNCTUATION = ".,;:!?-–—…"
-
-DEFAULT_LIMITS = Limits()
 
 QUESTIONS_PER_BATCH = 3
 # Generic enough to suit any idea, asked in this order.
@@ -74,8 +72,7 @@ class StubAgent:
     `delay_ms` makes every call slow, to exercise a UI's loading states.
     """
 
-    def __init__(self, limits: Limits = DEFAULT_LIMITS, delay_ms: int = 0) -> None:
-        self.limits = limits
+    def __init__(self, delay_ms: int = 0) -> None:
         self.delay_ms = delay_ms
 
     def name_idea(self, idea: str, context: str | None) -> str:
@@ -84,9 +81,6 @@ class StubAgent:
         words = idea.split()
         title = " ".join(words[:TITLE_MAX_WORDS])
         cut = len(words) > TITLE_MAX_WORDS
-        if len(title) > self.limits.title - len(ELLIPSIS):
-            title = title[: self.limits.title - len(ELLIPSIS)]
-            cut = True
         title = title.rstrip().rstrip(TRAILING_PUNCTUATION).rstrip()
         if not title:
             return "Untitled"
@@ -99,18 +93,10 @@ class StubAgent:
         asked: Sequence[AskedQuestion],
         context: str | None,
     ) -> list[QuestionDraft]:
-        """The next few of QUESTIONS not yet asked, matched on text, with their
-        suggestions cut to the limit. Ignores the Subject and the context.
+        """The next few of QUESTIONS not yet asked, matched on text. Ignores the
+        Subject and the context.
         """
         time.sleep(self.delay_ms / 1000)
         asked_texts = {question.text for question in asked}
         unasked = [q for q in QUESTIONS if q.text not in asked_texts]
-        drafts = [
-            q.model_copy(
-                update={"suggestions": q.suggestions[: self.limits.suggestions]}
-            )
-            for q in unasked[:QUESTIONS_PER_BATCH]
-        ]
-        for draft in drafts:
-            self.limits.check(draft)
-        return drafts
+        return unasked[:QUESTIONS_PER_BATCH]

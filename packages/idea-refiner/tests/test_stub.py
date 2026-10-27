@@ -1,7 +1,7 @@
 import time
 
 import pytest
-from idea_refiner import AskedQuestion, Limits, QuestionDraft, StubAgent, Subject
+from idea_refiner import AskedQuestion, QuestionDraft, StubAgent, Subject
 from idea_refiner.stub import QUESTIONS
 
 
@@ -40,12 +40,6 @@ def title(idea: str) -> str:
 )
 def test_titles(idea: str, expected: str) -> None:
     assert title(idea) == expected
-
-
-def test_cuts_long_words_to_the_title_limit() -> None:
-    result = StubAgent(limits=Limits(title=20)).name_idea("a" * 200, None)
-
-    assert result == "A" + "a" * 18 + "…"
 
 
 def test_titles_are_deterministic() -> None:
@@ -134,17 +128,6 @@ def test_questions_are_complete_and_distinct() -> None:
     for question in QUESTIONS:
         assert question.why
         assert len(question.suggestions) == 3
-
-
-def test_cuts_suggestions_to_the_limit() -> None:
-    asked = StubAgent(limits=Limits(suggestions=1)).ask_questions(SUBJECT, [], None)
-
-    assert [q.suggestions for q in asked] == [q.suggestions[:1] for q in QUESTIONS[:3]]
-
-
-def test_refuses_a_topic_over_the_limit() -> None:
-    with pytest.raises(ValueError, match="topic"):
-        StubAgent(limits=Limits(topic=5)).ask_questions(SUBJECT, [], None)
 
 
 def test_question_delay() -> None:

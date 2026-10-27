@@ -91,10 +91,10 @@ export function QuestionCard({ question, busy, onAnswer, onLater, error }: Quest
       className="relative z-3 flex min-h-95 flex-col gap-4.5 rounded-question border border-border-strong bg-card-raised p-7 shadow-[0_18px_40px_rgba(0,0,0,0.45)]"
     >
       <div className="flex items-center justify-between gap-4">
-        <span className="text-caption font-normal tracking-[0.06em] text-topic uppercase">
+        <span className="truncate text-caption font-normal tracking-[0.06em] text-topic uppercase">
           {question.topic}
         </span>
-        <span className="font-mono text-caption text-faint">#{question.number}</span>
+        <span className="shrink-0 font-mono text-caption text-faint">#{question.number}</span>
       </div>
       <h2 id={headingId} className="text-[1.375rem] leading-[1.35] font-semibold tracking-[-0.015em] text-balance">
         {question.text}
