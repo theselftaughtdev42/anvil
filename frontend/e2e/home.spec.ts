@@ -1,4 +1,5 @@
 import { expect, type Page, test } from '@playwright/test'
+import { measureText } from './helpers.ts'
 
 const statuses = ['draft', 'in_progress', 'complete'] as const
 
@@ -94,6 +95,32 @@ for (const width of [320, 360, 1280]) {
     }
     expect(await fitsWidth(page)).toBe(true)
   })
+}
+
+// Titles have no length limit, so a model's long one is cut to two lines
+// rather than stretching the card or widening the page.
+const longTitles = {
+  words:
+    'Let customers rebook a missed delivery themselves, choosing a new day, a neighbour, a locker or a depot, and tell the driver, the depot and the sender about it straight away',
+  'one unbroken word': 'x'.repeat(200),
+}
+for (const width of [390, 1280]) {
+  for (const [kind, title] of Object.entries(longTitles)) {
+    test(`a long title of ${kind} is cut to two lines at ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 800 })
+      await serve(page, [{ ...requirements[0], title }])
+      await page.goto('/')
+      const heading = page.getByRole('heading', { level: 3, name: title })
+      await expect(heading).toBeVisible()
+
+      expect(await measureText(heading)).toEqual({ lines: 2, cutAcross: false, cutDown: true })
+      const card = page.locator('[data-slot=card]').filter({ has: heading })
+      const [headingBox, cardBox] = await Promise.all([heading.boundingBox(), card.boundingBox()])
+      expect(headingBox!.x).toBeGreaterThanOrEqual(cardBox!.x)
+      expect(headingBox!.x + headingBox!.width).toBeLessThanOrEqual(cardBox!.x + cardBox!.width)
+      expect(await fitsWidth(page)).toBe(true)
+    })
+  }
 }
 
 test.describe('at phone width', () => {
