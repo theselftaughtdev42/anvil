@@ -10,6 +10,7 @@ requires-python = ">=3.13"
 dependencies = [
     "alembic>=1.20.0",
     "fastapi[standard]>=0.143.2",
+    "idea-refiner",
     "psycopg[binary]>=3.3.6",
     "pydantic-settings>=2.16.0",
     "sqlmodel>=0.0.48",
@@ -18,6 +19,12 @@ dependencies = [
 [build-system]
 requires = ["uv_build>=0.13.1,<0.14.0"]
 build-backend = "uv_build"
+
+[tool.uv.workspace]
+members = ["packages/*"]
+
+[tool.uv.sources]
+idea-refiner = { workspace = true }
 
 [tool.fastapi]
 entrypoint = "anvil.main:app"

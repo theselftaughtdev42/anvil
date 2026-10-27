@@ -25,12 +25,16 @@ ENV UV_PYTHON_DOWNLOADS=0 \
     UV_LINK_MODE=copy
 
 WORKDIR /app
-# Dependencies first, so source changes don't invalidate this layer.
+# Dependencies first, so source changes don't invalidate this layer. uv needs
+# the workspace members' pyproject.toml files to resolve the lock, but not
+# their source.
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    uv sync --locked --no-dev --no-install-project
+    --mount=type=bind,source=packages/idea-refiner/pyproject.toml,target=packages/idea-refiner/pyproject.toml \
+    uv sync --locked --no-dev --no-install-workspace
 COPY pyproject.toml uv.lock README.md ./
+COPY packages/ packages/
 COPY src/ src/
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-dev
@@ -45,7 +49,8 @@ RUN useradd --system --uid 10001 --no-create-home anvil
 # from a checkout (see PROJECT_ROOT in src/anvil/__init__.py). That's why the
 # project must stay an editable install (uv's default): the venv then points
 # at /app/src, so the lookup resolves to /app. A regular install would put
-# anvil in site-packages and the SPA would not be found.
+# anvil in site-packages and the SPA would not be found. Workspace members such
+# as idea-refiner are editable installs too, so their source is copied as well.
 #
 # Copy by explicit path: anything new the app reads at runtime relative to
 # the repo root must be added here too. pyproject.toml carries the
@@ -53,6 +58,7 @@ RUN useradd --system --uid 10001 --no-create-home anvil
 WORKDIR /app
 COPY --from=builder /app/.venv .venv
 COPY --from=builder /app/src src
+COPY --from=builder /app/packages packages
 COPY --from=frontend /app/frontend/dist frontend/dist
 COPY pyproject.toml alembic.ini ./
 COPY alembic/ alembic/
