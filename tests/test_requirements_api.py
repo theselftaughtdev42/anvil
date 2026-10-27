@@ -28,12 +28,13 @@ client = TestClient(app)
 class FakeAgent:
     """Titles every idea "Title for: <idea>", asks the Questions queued in
     `batches` one batch per call (nothing once they run out), and records what
-    it was asked."""
+    it was asked. `feedback` holds the feedback each ask got."""
 
     def __init__(self) -> None:
         self.calls: list[tuple[str, str | None]] = []
         self.batches: list[list[QuestionDraft]] = []
         self.asks: list[tuple[Subject, list[AskedQuestion], str | None]] = []
+        self.feedback: list[list[str]] = []
 
     def name_idea(self, idea: str, context: str | None) -> str:
         self.calls.append((idea, context))
@@ -44,8 +45,10 @@ class FakeAgent:
         subject: Subject,
         asked: Sequence[AskedQuestion],
         context: str | None,
+        feedback: Sequence[str],
     ) -> list[QuestionDraft]:
         self.asks.append((subject, list(asked), context))
+        self.feedback.append(list(feedback))
         return self.batches.pop(0) if self.batches else []
 
 
@@ -60,6 +63,7 @@ class FailingAgent:
         subject: Subject,
         asked: Sequence[AskedQuestion],
         context: str | None,
+        feedback: Sequence[str],
     ) -> list[QuestionDraft]:
         raise AssertionError("ask_questions was called")
 
@@ -559,6 +563,7 @@ def test_creating_deals_the_first_batch(agent: FakeAgent) -> None:
         ],
         "answered": [],
         "exhausted": False,
+        "nothing_new_since_reopen": False,
     }
     assert agent.asks == [
         (
@@ -621,7 +626,12 @@ def test_editing_the_project_context_changes_the_next_questions(
 def test_creating_with_nothing_to_ask_is_exhausted() -> None:
     created = create("Rebook a missed delivery")
 
-    assert questions(created["id"]) == {"open": [], "answered": [], "exhausted": True}
+    assert questions(created["id"]) == {
+        "open": [],
+        "answered": [],
+        "exhausted": True,
+        "nothing_new_since_reopen": False,
+    }
 
 
 def test_getting_questions_never_asks_the_agent(app_on_test_db: Engine) -> None:
@@ -632,7 +642,12 @@ def test_getting_questions_never_asks_the_agent(app_on_test_db: Engine) -> None:
     id = add_requirement(app_on_test_db, owner)
     app.dependency_overrides[get_agent] = FailingAgent
 
-    assert questions(str(id)) == {"open": [], "answered": [], "exhausted": False}
+    assert questions(str(id)) == {
+        "open": [],
+        "answered": [],
+        "exhausted": False,
+        "nothing_new_since_reopen": False,
+    }
 
 
 def test_answering_moves_a_question_to_answered(agent: FakeAgent) -> None:
@@ -654,6 +669,7 @@ def test_answering_moves_a_question_to_answered(agent: FakeAgent) -> None:
             }
         ],
         "exhausted": False,
+        "nothing_new_since_reopen": False,
     }
     assert questions(created["id"]) == stack
 
@@ -878,6 +894,146 @@ def test_a_bad_answer_is_rejected(agent: FakeAgent, body: dict, message: str) ->
     assert questions(created["id"]) == before
 
 
+# --- Confirming and reopening ------------------------------------------------
+
+
+def confirm(id: str) -> Response:
+    return client.post(f"/api/requirements/{id}/confirm")
+
+
+def reopen(id: str, note: str = "Refunds") -> Response:
+    return client.post(f"/api/requirements/{id}/reopen", json={"note": note})
+
+
+def looks_ready(agent: FakeAgent) -> str:
+    """A Requirement with one Question answered and nothing more to ask."""
+    agent.batches = [[draft("Who")]]
+    created = create("Rebook a missed delivery")
+    answer(created["id"], questions(created["id"])["open"][0])
+    return created["id"]
+
+
+def completed(agent: FakeAgent) -> str:
+    id = looks_ready(agent)
+    assert confirm(id).status_code == 200
+    return id
+
+
+def status_everywhere(id: str) -> set[str]:
+    [listed] = client.get("/api/requirements").json()["items"]
+    return {client.get(f"/api/requirements/{id}").json()["status"], listed["status"]}
+
+
+def test_confirming_makes_it_complete(agent: FakeAgent) -> None:
+    id = looks_ready(agent)
+    before = client.get(f"/api/requirements/{id}").json()
+
+    response = confirm(id)
+
+    assert response.status_code == 200, response.text
+    assert response.json()["status"] == "complete"
+    assert response.json()["updated_at"] > before["updated_at"]
+    assert status_everywhere(id) == {"complete"}
+
+
+def test_confirming_with_questions_still_to_ask_is_409(agent: FakeAgent) -> None:
+    agent.batches = [[draft("Who"), draft("When")]]
+    created = create("Rebook a missed delivery")
+    answer(created["id"], questions(created["id"])["open"][0])
+
+    assert confirm(created["id"]).status_code == 409
+    assert status_everywhere(created["id"]) == {"in_progress"}
+
+
+def test_confirming_a_complete_requirement_is_409(agent: FakeAgent) -> None:
+    assert confirm(completed(agent)).status_code == 409
+
+
+def test_reopening_with_a_note_asks_with_it(agent: FakeAgent) -> None:
+    id = completed(agent)
+    agent.batches = [[draft("Refunds")]]
+
+    response = reopen(id, "  What about refunds?  ")
+
+    assert response.status_code == 200, response.text
+    stack = response.json()
+    assert topics(stack["open"]) == ["Refunds"]
+    assert stack["exhausted"] is False
+    assert stack["nothing_new_since_reopen"] is False
+    assert agent.feedback[-1] == ["What about refunds?"]
+    assert status_everywhere(id) == {"in_progress"}
+
+
+def test_every_later_ask_gets_every_note_in_order(agent: FakeAgent) -> None:
+    id = completed(agent)
+    agent.batches = [[draft("Refunds")]]
+    reopen(id, "Refunds")
+    answer(id, questions(id)["open"][0])
+    confirm(id)
+
+    reopen(id, "Lockers")
+
+    assert agent.feedback == [[], [], ["Refunds"], ["Refunds"], ["Refunds", "Lockers"]]
+
+
+def test_reopening_with_nothing_new_to_ask_looks_ready_again(agent: FakeAgent) -> None:
+    id = completed(agent)
+
+    stack = reopen(id).json()
+
+    assert stack["open"] == []
+    assert stack["exhausted"] is True
+    assert stack["nothing_new_since_reopen"] is True
+    assert questions(id) == stack
+    assert status_everywhere(id) == {"in_progress"}
+    assert confirm(id).status_code == 200
+
+
+def test_answering_after_a_reopen_isnt_nothing_new(agent: FakeAgent) -> None:
+    id = completed(agent)
+    agent.batches = [[draft("Refunds")]]
+    reopen(id)
+
+    stack = answer(id, questions(id)["open"][0])
+
+    assert stack["exhausted"] is True
+    assert stack["nothing_new_since_reopen"] is False
+
+
+@pytest.mark.parametrize("status", ["draft", "in_progress"])
+def test_reopening_a_requirement_that_isnt_complete_is_409(
+    agent: FakeAgent, app_on_test_db: Engine, status: str
+) -> None:
+    id = looks_ready(agent)
+    set_status(app_on_test_db, id, RequirementStatus(status))
+
+    assert reopen(id).status_code == 409
+    assert agent.feedback[-1:] == [[]]
+
+
+@pytest.mark.parametrize("note", ["", "   "])
+def test_reopening_needs_a_note(agent: FakeAgent, note: str) -> None:
+    id = completed(agent)
+
+    assert reopen(id, note).status_code == 422
+    assert status_everywhere(id) == {"complete"}
+
+
+def test_a_note_over_the_limit_is_rejected(agent: FakeAgent) -> None:
+    assert reopen(completed(agent), "x" * 2001).status_code == 422
+
+
+@pytest.mark.parametrize("action", ["confirm", "reopen"])
+def test_someone_elses_requirement_is_404_to_confirm_or_reopen(
+    app_on_test_db: Engine, someone_else: PointOfContact, action: str
+) -> None:
+    id = add_requirement(app_on_test_db, someone_else, RequirementStatus.COMPLETE)
+
+    response = confirm(str(id)) if action == "confirm" else reopen(str(id))
+
+    assert response.status_code == 404
+
+
 # --- Progress ---------------------------------------------------------------
 
 
@@ -968,10 +1124,14 @@ def test_endpoints_are_documented_with_their_response_models() -> None:
         assert response_schema(
             "/api/requirements/{requirement_id}", method, "200"
         ).endswith("/RequirementPublic")
+    assert response_schema(
+        "/api/requirements/{requirement_id}/confirm", "post", "200"
+    ).endswith("/RequirementPublic")
     questions = "/api/requirements/{requirement_id}/questions"
     for path, method in [
         (questions, "get"),
         (questions + "/{question_id}/answer", "post"),
         (questions + "/{question_id}/later", "post"),
+        ("/api/requirements/{requirement_id}/reopen", "post"),
     ]:
         assert response_schema(path, method, "200").endswith("/QuestionStack")

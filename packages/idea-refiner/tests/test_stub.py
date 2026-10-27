@@ -2,7 +2,7 @@ import time
 
 import pytest
 from idea_refiner import AskedQuestion, QuestionDraft, StubAgent, Subject
-from idea_refiner.stub import QUESTIONS
+from idea_refiner.stub import QUESTIONS, follow_up
 
 
 def title(idea: str) -> str:
@@ -74,11 +74,11 @@ def answer_all(questions: list[QuestionDraft]) -> list[AskedQuestion]:
 def test_asks_three_questions_at_a_time_then_none() -> None:
     agent = StubAgent()
 
-    first = agent.ask_questions(SUBJECT, [], None)
+    first = agent.ask_questions(SUBJECT, [], None, [])
     answered = answer_all(first)
-    second = agent.ask_questions(SUBJECT, answered, None)
+    second = agent.ask_questions(SUBJECT, answered, None, [])
     answered += answer_all(second)
-    third = agent.ask_questions(SUBJECT, answered, None)
+    third = agent.ask_questions(SUBJECT, answered, None, [])
 
     assert len(first) == 3
     assert len(second) == 3
@@ -89,17 +89,17 @@ def test_asks_three_questions_at_a_time_then_none() -> None:
 def test_skips_questions_already_answered_in_any_order() -> None:
     answered = answer_all([QUESTIONS[4], QUESTIONS[0]])
 
-    asked = StubAgent().ask_questions(SUBJECT, answered, None)
+    asked = StubAgent().ask_questions(SUBJECT, answered, None, [])
 
     assert asked == [QUESTIONS[1], QUESTIONS[2], QUESTIONS[3]]
 
 
 def test_does_not_ask_unanswered_questions_again() -> None:
     agent = StubAgent()
-    first = agent.ask_questions(SUBJECT, [], None)
+    first = agent.ask_questions(SUBJECT, [], None, [])
     unanswered = [AskedQuestion(topic=q.topic, text=q.text) for q in first]
 
-    second = agent.ask_questions(SUBJECT, unanswered, None)
+    second = agent.ask_questions(SUBJECT, unanswered, None, [])
 
     assert second == list(QUESTIONS[3:])
 
@@ -108,7 +108,7 @@ def test_questions_are_deterministic() -> None:
     agent = StubAgent()
     answered = answer_all(list(QUESTIONS[:3]))
 
-    results = [agent.ask_questions(SUBJECT, answered, None) for _ in range(5)]
+    results = [agent.ask_questions(SUBJECT, answered, None, []) for _ in range(5)]
 
     assert all(result == results[0] for result in results)
 
@@ -117,9 +117,32 @@ def test_questions_ignore_subject_and_context() -> None:
     agent = StubAgent()
     other = Subject(title="Dark mode", idea="Add a dark mode")
 
-    assert agent.ask_questions(other, [], "Some context") == (
-        agent.ask_questions(SUBJECT, [], None)
+    assert agent.ask_questions(other, [], "Some context", []) == (
+        agent.ask_questions(SUBJECT, [], None, [])
     )
+
+
+def test_asks_a_follow_up_for_new_feedback_once_the_questions_run_out() -> None:
+    agent = StubAgent()
+    answered = answer_all(list(QUESTIONS))
+
+    asked = agent.ask_questions(SUBJECT, answered, None, ["Refunds"])
+
+    assert asked == [follow_up("Refunds")]
+    assert "Refunds" in asked[0].text
+
+
+def test_the_same_feedback_again_asks_nothing_new() -> None:
+    agent = StubAgent()
+    answered = answer_all([*QUESTIONS, follow_up("Refunds")])
+
+    assert agent.ask_questions(SUBJECT, answered, None, ["Refunds", "Refunds"]) == []
+
+
+def test_asks_its_own_questions_before_follow_ups() -> None:
+    asked = StubAgent().ask_questions(SUBJECT, [], None, ["Refunds"])
+
+    assert asked == list(QUESTIONS[:3])
 
 
 def test_questions_are_complete_and_distinct() -> None:
@@ -132,6 +155,6 @@ def test_questions_are_complete_and_distinct() -> None:
 
 def test_question_delay() -> None:
     start = time.monotonic()
-    StubAgent(delay_ms=50).ask_questions(SUBJECT, [], None)
+    StubAgent(delay_ms=50).ask_questions(SUBJECT, [], None, [])
 
     assert time.monotonic() - start >= 0.05

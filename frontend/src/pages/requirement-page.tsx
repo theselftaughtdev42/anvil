@@ -3,7 +3,8 @@ import { LoaderCircle } from 'lucide-react'
 import { useState } from 'react'
 import { useParams } from 'react-router'
 import { Crumb } from '@/components/app-shell'
-import { NoMoreQuestionsCard, QuestionCard, ShortcutHint } from '@/components/question-card'
+import { QuestionCard, ShortcutHint } from '@/components/question-card'
+import { CompleteCard, LooksReadyCard } from '@/components/refinement-outcome'
 import { RequirementProject } from '@/components/requirement-project'
 import { StatusBadge } from '@/components/status-badge'
 import { AnsweredPile, NextInStack, RefinementProgress } from '@/components/refinement-panels'
@@ -13,7 +14,9 @@ import type { QuestionStack } from '@/lib/api-schema'
 import { answerQuestion, putOffQuestion, questionsKey, questionsQuery } from '@/lib/questions'
 import {
   changeProjectKey,
+  confirmRequirement,
   isProjectLocked,
+  reopenRequirement,
   type Requirement,
   requirementKey,
   requirementQuery,
@@ -29,7 +32,8 @@ const isNotFound = (error: Error | null) =>
   error instanceof ApiError && (error.status === 404 || error.status === 422)
 
 /**
- * Refinement: the Requirement's Questions as a stack of cards, answered one at a time.
+ * Refinement: the Requirement's Questions as a stack of cards, answered one at a
+ * time, until Anvil suggests it looks ready and the Point of Contact confirms it.
  */
 export function RequirementPage() {
   const { id = '' } = useParams()
@@ -89,7 +93,7 @@ export function RequirementPage() {
           <span className="sr-only">Loading the requirement…</span>
         </div>
       ) : (
-        <Refinement requirementId={id} stack={stack.data} />
+        <Refinement requirement={requirement.data} stack={stack.data} />
       )}
     </>
   )
@@ -121,7 +125,8 @@ function RequirementMeta({ requirement }: { requirement: Requirement }) {
   )
 }
 
-function Refinement({ requirementId, stack }: { requirementId: string; stack: QuestionStack }) {
+function Refinement({ requirement, stack }: { requirement: Requirement; stack: QuestionStack }) {
+  const requirementId = requirement.id
   const queryClient = useQueryClient()
   // Bumped on every Answer, to strike the anvil.
   const [strikes, setStrikes] = useState(0)
@@ -154,6 +159,37 @@ function Refinement({ requirementId, stack }: { requirementId: string; stack: Qu
     },
     onError,
   })
+  // Confirm and Reopen change the status shown on the home page and the tabs.
+  const onStatus = () => {
+    void queryClient.invalidateQueries({ queryKey: requirementKey(requirementId), exact: true })
+    void queryClient.invalidateQueries({ queryKey: requirementsKey, exact: true })
+  }
+  // Already confirmed or reopened elsewhere: show the page as it is now.
+  const onStatusError = (error: Error) => {
+    if (error instanceof ApiError && error.status === 409) {
+      void queryClient.invalidateQueries({ queryKey: requirementKey(requirementId) })
+    }
+  }
+  const confirm = useMutation({
+    mutationFn: () => confirmRequirement(requirementId),
+    onSuccess: (next) => {
+      queryClient.setQueryData(requirementQuery(requirementId).queryKey, next)
+      setStrikes((n) => n + 1)
+      onStatus()
+    },
+    onError: onStatusError,
+  })
+  const reopen = useMutation({
+    mutationFn: (note: string) => reopenRequirement(requirementId, note),
+    onSuccess: (next) => {
+      onStack(next)
+      queryClient.setQueryData(requirementQuery(requirementId).queryKey, (r) =>
+        r ? { ...r, status: 'in_progress' as const } : r,
+      )
+      onStatus()
+    },
+    onError: onStatusError,
+  })
   const later = useMutation({
     mutationKey: questionsKey(requirementId),
     mutationFn: (questionId: string) => putOffQuestion(requirementId, questionId),
@@ -171,39 +207,59 @@ function Refinement({ requirementId, stack }: { requirementId: string; stack: Qu
         ? "Couldn't move this card. Try again."
         : undefined
 
+  if (!top) {
+    return (
+      <div className="flex flex-col gap-7 pt-9 pb-14">
+        <RefinementProgress answered={stack.answered.length} open={0} strike={strikes} />
+        <div className="mx-auto w-full max-w-135">
+          {requirement.status === 'complete' ? (
+            <CompleteCard
+              answered={stack.answered}
+              busy={reopen.isPending}
+              error={reopen.isError ? "Couldn't reopen it. Try again." : undefined}
+              onReopen={(note) => reopen.mutate(note)}
+            />
+          ) : (
+            <LooksReadyCard
+              answered={stack.answered}
+              nothingNew={stack.nothing_new_since_reopen}
+              busy={confirm.isPending}
+              error={confirm.isError ? "Couldn't confirm it. Try again." : undefined}
+              onConfirm={() => confirm.mutate()}
+            />
+          )}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="flex flex-col gap-7 pt-9 pb-14">
       <RefinementProgress answered={stack.answered.length} open={stack.open.length} strike={strikes} />
       <div className="mx-auto grid w-full max-w-135 items-start gap-10 lg:max-w-none lg:grid-cols-[minmax(0,1fr)_minmax(0,33.75rem)_minmax(0,1fr)]">
         <AnsweredPile answered={stack.answered} className="order-2 lg:order-none lg:pt-2" />
         <div data-testid="stack" className="relative order-1 min-w-0 pb-19 lg:order-none">
-          {top ? (
-            <>
-              {stack.open.slice(1, 1 + CARDS_UNDER).map((question, i) => (
-                <div
-                  key={question.id}
-                  aria-hidden="true"
-                  data-testid="card-under"
-                  className={
-                    i === 0
-                      ? 'absolute inset-x-0 top-0 bottom-19 z-2 origin-bottom translate-y-3.5 scale-[0.955] rounded-question border bg-card'
-                      : 'absolute inset-x-0 top-0 bottom-19 z-1 origin-bottom translate-y-7 scale-[0.91] rounded-question border bg-card-sunk'
-                  }
-                />
-              ))}
-              <QuestionCard
-                key={top.id}
-                question={top}
-                busy={busy}
-                error={error}
-                onAnswer={(text) => answer.mutate({ questionId: top.id, text })}
-                onLater={() => later.mutate(top.id)}
-              />
-              <ShortcutHint className="absolute inset-x-0 bottom-0 pointer-coarse:hidden" />
-            </>
-          ) : (
-            <NoMoreQuestionsCard />
-          )}
+          {stack.open.slice(1, 1 + CARDS_UNDER).map((question, i) => (
+            <div
+              key={question.id}
+              aria-hidden="true"
+              data-testid="card-under"
+              className={
+                i === 0
+                  ? 'absolute inset-x-0 top-0 bottom-19 z-2 origin-bottom translate-y-3.5 scale-[0.955] rounded-question border bg-card'
+                  : 'absolute inset-x-0 top-0 bottom-19 z-1 origin-bottom translate-y-7 scale-[0.91] rounded-question border bg-card-sunk'
+              }
+            />
+          ))}
+          <QuestionCard
+            key={top.id}
+            question={top}
+            busy={busy}
+            error={error}
+            onAnswer={(text) => answer.mutate({ questionId: top.id, text })}
+            onLater={() => later.mutate(top.id)}
+          />
+          <ShortcutHint className="absolute inset-x-0 bottom-0 pointer-coarse:hidden" />
         </div>
         <NextInStack open={stack.open} className="order-3 lg:order-none lg:pt-2" />
       </div>

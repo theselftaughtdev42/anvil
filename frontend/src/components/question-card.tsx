@@ -187,16 +187,3 @@ function Kbd({ children }: { children: string }) {
     </kbd>
   )
 }
-
-/** In place of the stack once Anvil has nothing more to ask. No buttons. */
-export function NoMoreQuestionsCard() {
-  const headingId = useId()
-  return (
-    <section aria-labelledby={headingId} className="flex flex-col gap-1.5 rounded-question border bg-card-raised p-7">
-      <p className="text-caption font-normal tracking-[0.06em] text-muted-foreground uppercase">No more questions</p>
-      <h2 id={headingId} className="text-[1.375rem] leading-[1.35] font-semibold tracking-[-0.015em]">
-        Anvil has no more questions for now
-      </h2>
-    </section>
-  )
-}

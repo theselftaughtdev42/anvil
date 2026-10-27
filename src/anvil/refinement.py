@@ -1,4 +1,6 @@
-"""Refinement: dealing a Requirement's Questions and recording their Answers."""
+"""Refinement: dealing a Requirement's Questions, recording their Answers, and
+confirming or reopening the Requirement.
+"""
 
 from datetime import datetime
 
@@ -9,6 +11,7 @@ from anvil.models import (
     Project,
     Question,
     QuestionStatus,
+    ReopenNote,
     Requirement,
     RequirementStatus,
 )
@@ -23,7 +26,8 @@ def deal_questions(
     session: Session, requirement: Requirement, agent: RefinementAgent
 ) -> None:
     """Asks the agent for the next batch of Questions and puts them at the bottom of the
-    stack, with its Project's Project Context as it is now. An empty batch marks the
+    stack, with its Project's Project Context as it is now and its Reopen notes. An
+    empty batch marks the
     Requirement exhausted, and an exhausted one isn't asked again. The caller commits.
     """
     # Locks the Requirement until the caller commits, so two requests can't deal
@@ -48,6 +52,7 @@ def deal_questions(
         Subject(title=requirement.title, idea=requirement.idea),
         [AskedQuestion(topic=q.topic, text=q.text, answer=q.answer) for q in asked],
         project_context(project),
+        [note.note for note in reopen_notes(session, requirement)],
     )
     if not drafts:
         requirement.questions_exhausted_at = database_now(session)
@@ -122,3 +127,45 @@ def record_answer(
     # Set explicitly: updated_at's onupdate only fires when another column
     # changes, and the status usually doesn't.
     requirement.updated_at = now
+
+
+def reopen_notes(session: Session, requirement: Requirement) -> list[ReopenNote]:
+    query = (
+        select(ReopenNote)
+        .where(ReopenNote.requirement_id == requirement.id)
+        .order_by(col(ReopenNote.created_at))
+    )
+    return list(session.exec(query))
+
+
+def nothing_new_since_reopen(session: Session, requirement: Requirement) -> bool:
+    """Whether the Requirement was reopened and Anvil asked no Questions after.
+
+    A Question dealt in the same transaction as the note has the same created_at.
+    """
+    latest_note = session.exec(
+        select(func.max(ReopenNote.created_at)).where(
+            ReopenNote.requirement_id == requirement.id
+        )
+    ).one()
+    if latest_note is None:
+        return False
+    latest_question = session.exec(
+        select(func.max(Question.created_at)).where(
+            Question.requirement_id == requirement.id
+        )
+    ).one()
+    return latest_question is None or latest_question < latest_note
+
+
+def reopen(
+    session: Session, requirement: Requirement, note: str, agent: RefinementAgent
+) -> None:
+    """Moves a Complete Requirement back to In progress with the note, and asks the
+    agent again right away. The caller commits.
+    """
+    requirement.status = RequirementStatus.IN_PROGRESS
+    requirement.questions_exhausted_at = None
+    session.add(ReopenNote(requirement_id=requirement.id, note=note))
+    session.flush()
+    deal_questions(session, requirement, agent)

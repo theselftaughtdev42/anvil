@@ -30,8 +30,9 @@ const PROJECTS = [
  * moves a Draft to In progress, Later sends a card to the bottom, and
  * answering the last open card deals the next batch, or exhausts the stack.
  * Moving a Draft to another Project swaps its open cards for ones asked with
- * that Project. `fail` can answer a request instead, and `hold` can delay one
- * until it settles.
+ * that Project. Confirm makes an exhausted one Complete, and Reopen makes it In
+ * progress and, like the stub agent, asks one follow-up per new note. `fail` can
+ * answer a request instead, and `hold` can delay one until it settles.
  */
 function serveRefinement({
   fail,
@@ -44,6 +45,8 @@ function serveRefinement({
   let open: OpenQuestion[] = []
   const answered: AnsweredQuestion[] = []
   let exhausted = false
+  let nothingNew = false
+  const followUps = new Set<string>()
   const requirement: Requirement = {
     id: ID,
     title: 'Route change alerts',
@@ -61,7 +64,12 @@ function serveRefinement({
     next += batch.length
   }
   deal()
-  const stack = (): QuestionStack => ({ open: [...open], answered: [...answered], exhausted })
+  const stack = (): QuestionStack => ({
+    open: [...open],
+    answered: [...answered],
+    exhausted,
+    nothing_new_since_reopen: nothingNew,
+  })
 
   const fetch = vi.fn<typeof globalThis.fetch>(async (input, init) => {
     const url = new URL(String(input), location.origin)
@@ -89,6 +97,28 @@ function serveRefinement({
     }
     if (path === `/api/requirements/${ID}`) return Response.json(withProgress())
     if (path === `/api/requirements/${ID}/questions`) return Response.json(stack())
+    if (path === `/api/requirements/${ID}/confirm`) {
+      if (!exhausted || requirement.status === 'complete') {
+        return Response.json({ detail: 'Anvil still has Questions to ask' }, { status: 409 })
+      }
+      requirement.status = 'complete'
+      return Response.json(withProgress())
+    }
+    if (path === `/api/requirements/${ID}/reopen`) {
+      if (requirement.status !== 'complete') {
+        return Response.json({ detail: 'Only a Complete Requirement can be reopened' }, { status: 409 })
+      }
+      const { note } = JSON.parse(String(init?.body)) as { note: string }
+      requirement.status = 'in_progress'
+      nothingNew = followUps.has(note)
+      if (!nothingNew) {
+        followUps.add(note)
+        next += 1
+        open.push({ topic: "What's missing", text: `What about ${note}?`, why: null, suggestions: [], id: `q${next}`, number: next })
+        exhausted = false
+      }
+      return Response.json(stack())
+    }
     const action = path.match(/^\/api\/requirements\/req-1\/questions\/(\w+)\/(answer|later)$/)
     if (action) {
       const [, questionId, verb] = action
@@ -101,6 +131,7 @@ function serveRefinement({
         const { answer } = JSON.parse(String(init?.body)) as { answer: string }
         answered.push({ id: question.id, topic: question.topic, text: question.text, number: question.number, answer })
         if (requirement.status === 'draft') requirement.status = 'in_progress'
+        nothingNew = false
         if (open.length === 0) deal()
       }
       return Response.json(stack())
@@ -337,6 +368,9 @@ test('the Answered pile shows the latest four, newest first', async () => {
   await pickAndAnswer(page, 'What happens today, without it?', 'By hand')
   await pickAndAnswer(page, 'How will you know it works?', 'Fewer requests')
   await pickAndAnswer(page, 'What should happen when it goes wrong?', 'Retry')
+  // Reopening deals a card, so the pile shows again with all four answered.
+  await page.screen.getByRole('button', { name: 'Confirm' }).click()
+  await reopenWith(page, 'refunds')
 
   await expect.element(page.answeredPile()).toMatchTextContent(/Answered · 4/i)
   const items = page.answeredPile().getByRole('listitem')
@@ -556,24 +590,152 @@ for (const verb of ['answer', 'later'] as const) {
   })
 }
 
-test('answering the last Question ends on the "no more questions" card, keeping the pile', async () => {
-  serveRefinement()
-  const page = await renderPage()
+async function answerAll(page: Page) {
   await pickAndAnswer(page, 'Who will use this most?', 'Customers')
   await pickAndAnswer(page, 'What happens today, without it?', 'By hand')
   // Answering the last open card deals the next batch: one more here.
   await pickAndAnswer(page, 'How will you know it works?', 'Fewer requests')
   await expect.element(page.screen.getByText('Question 4 of about 4')).toBeVisible()
   await pickAndAnswer(page, 'What should happen when it goes wrong?', 'Retry')
+}
 
-  await expect.element(page.screen.getByRole('heading', { name: 'Anvil has no more questions for now' })).toBeVisible()
-  await expect.element(page.screen.getByText('No more questions', { exact: true })).toBeVisible()
+const looksReady = (page: Page) => page.screen.getByRole('region', { name: 'This looks clear enough to act on' })
+const complete = (page: Page) => page.screen.getByRole('region', { name: 'You confirmed this is clear enough to act on' })
+const qAndA = (page: Page) => page.screen.getByRole('region', { name: /^Questions and Answers/ }).getByRole('listitem')
+
+test('answering the last Question ends on Looks ready, listing every Question and Answer in order', async () => {
+  serveRefinement()
+  const page = await renderPage()
+  await answerAll(page)
+
+  await expect.element(looksReady(page)).toMatchTextContent(/^Looks ready/)
+  await expect.element(looksReady(page)).toMatchTextContent("Whether it's ready is your call")
+  await expect.element(looksReady(page)).not.toMatchTextContent('nothing new to ask')
+  expect(qAndA(page).elements().map((item) => item.textContent)).toEqual([
+    "Who it's forWho will use this most?Customers",
+    'The problemWhat happens today, without it?By hand',
+    'SuccessHow will you know it works?Fewer requests',
+    'Edge casesWhat should happen when it goes wrong?Retry',
+  ])
   await expect.element(page.screen.getByText('All 4 answered')).toBeVisible()
-  expect(marks()).toEqual(Array(4).fill('answered'))
+  await expect.element(page.screen.getByRole('button', { name: 'Confirm' })).toBeVisible()
   await expect.element(page.screen.getByRole('button', { name: 'Answer' })).not.toBeInTheDocument()
-  await expect.element(page.screen.getByRole('button', { name: 'Later' })).not.toBeInTheDocument()
+  await expect.element(page.screen.getByRole('region', { name: /^In the stack/ })).not.toBeInTheDocument()
+})
+
+test('Confirm makes it Complete on the page, its home page card and the status tabs', async () => {
+  const fetch = serveRefinement()
+  const page = await renderPage()
+  await answerAll(page)
+
+  await page.screen.getByRole('button', { name: 'Confirm' }).click()
+
+  await expect.element(complete(page)).toMatchTextContent(/^Complete/)
+  expect(qAndA(page).elements()).toHaveLength(4)
+  await expect.element(page.screen.getByRole('button', { name: 'Reopen' })).toBeVisible()
+  await expect.element(page.screen.getByRole('banner').getByText('Complete')).toBeVisible()
+  expect(fetch.mock.calls.some(([input]) => String(input).endsWith(`/requirements/${ID}/confirm`))).toBe(true)
+
+  await page.router.navigate('/')
+  await expect.element(page.screen.getByRole('listitem').first()).toMatchTextContent('Complete')
+  await expect.element(page.screen.getByRole('tab', { name: /Complete/ })).toMatchTextContent('1')
+})
+
+test('a failed Confirm says so and stays on Looks ready', async () => {
+  serveRefinement({
+    fail: (url) => (url.pathname.endsWith('/confirm') ? Promise.resolve(Response.json({}, { status: 500 })) : undefined),
+  })
+  const page = await renderPage()
+  await answerAll(page)
+
+  await page.screen.getByRole('button', { name: 'Confirm' }).click()
+
+  await expect.element(page.screen.getByRole('alert')).toHaveTextContent("Couldn't confirm it. Try again.")
+  await expect.element(looksReady(page)).toBeVisible()
+})
+
+async function confirmed() {
+  serveRefinement()
+  const page = await renderPage()
+  await answerAll(page)
+  await page.screen.getByRole('button', { name: 'Confirm' }).click()
+  await expect.element(complete(page)).toBeVisible()
+  return page
+}
+
+const noteField = (page: Page) => page.screen.getByRole('textbox', { name: "What's missing?" })
+
+async function reopenWith(page: Page, note: string) {
+  await page.screen.getByRole('button', { name: 'Reopen' }).click()
+  await noteField(page).fill(note)
+  await page.screen.getByRole('button', { name: 'Reopen' }).click()
+}
+
+test('Reopen with a note makes it In progress and deals the new Question', async () => {
+  const page = await confirmed()
+
+  await reopenWith(page, 'refunds')
+
+  await expect.element(page.question('What about refunds?')).toBeVisible()
+  await expect.element(page.screen.getByRole('banner').getByText('In progress')).toBeVisible()
   await expect.element(page.answeredPile()).toMatchTextContent(/Answered · 4/i)
-  await expect.element(page.inTheStack()).toMatchTextContent(/In the stack · 0/i)
+})
+
+test("Reopen can't be sent without a note, and says why", async () => {
+  const fetch = serveRefinement()
+  const page = await renderPage()
+  await answerAll(page)
+  await page.screen.getByRole('button', { name: 'Confirm' }).click()
+  await page.screen.getByRole('button', { name: 'Reopen' }).click()
+  await expect.element(noteField(page)).toHaveFocus()
+
+  await noteField(page).fill('   ')
+  await page.screen.getByRole('button', { name: 'Reopen' }).click()
+
+  await expect.element(page.screen.getByRole('alert')).toHaveTextContent("Say what's missing to reopen it.")
+  await expect.element(noteField(page)).toHaveAttribute('aria-invalid', 'true')
+  expect(fetch.mock.calls.some(([input]) => String(input).endsWith('/reopen'))).toBe(false)
+  await expect.element(complete(page)).toBeVisible()
+})
+
+test('Cancel puts the Reopen button back', async () => {
+  const page = await confirmed()
+  await page.screen.getByRole('button', { name: 'Reopen' }).click()
+
+  await page.screen.getByRole('button', { name: 'Cancel' }).click()
+
+  await expect.element(noteField(page)).not.toBeInTheDocument()
+  await expect.element(page.screen.getByRole('button', { name: 'Reopen' })).toBeVisible()
+})
+
+test('a reopen with nothing new to ask shows Looks ready again, saying so', async () => {
+  const page = await confirmed()
+  await reopenWith(page, 'refunds')
+  await expect.element(page.question('What about refunds?')).toBeVisible()
+  await page.ownWords().fill('Full refunds')
+  await page.answerButton().click()
+  await page.screen.getByRole('button', { name: 'Confirm' }).click()
+  await expect.element(complete(page)).toBeVisible()
+
+  await reopenWith(page, 'refunds')
+
+  await expect.element(looksReady(page)).toMatchTextContent('You reopened it, but Anvil has nothing new to ask.')
+  await expect.element(page.screen.getByRole('banner').getByText('In progress')).toBeVisible()
+  await expect.element(page.screen.getByRole('button', { name: 'Confirm' })).toBeVisible()
+})
+
+test('a failed Reopen says so and keeps the note', async () => {
+  serveRefinement({
+    fail: (url) => (url.pathname.endsWith('/reopen') ? Promise.resolve(Response.json({}, { status: 500 })) : undefined),
+  })
+  const page = await renderPage()
+  await answerAll(page)
+  await page.screen.getByRole('button', { name: 'Confirm' }).click()
+
+  await reopenWith(page, 'refunds')
+
+  await expect.element(page.screen.getByRole('alert')).toHaveTextContent("Couldn't reopen it. Try again.")
+  await expect.element(noteField(page)).toHaveValue('refunds')
 })
 
 test('the home page shows the Requirement as In progress after its first Answer', async () => {

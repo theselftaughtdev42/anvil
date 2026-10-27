@@ -12,9 +12,10 @@ const question = (n: number, topic = ['Who it’s for', 'The problem', 'Success'
 
 /**
  * The e2e tests run without an API, so this stands in for it: two answered,
- * four open. `topic` replaces each Question's topic.
+ * four open. `topic` replaces each Question's topic. `done` answers all six,
+ * with nothing more to ask.
  */
-async function serve(page: Page, status = 'in_progress', topic?: (n: number) => string) {
+async function serve(page: Page, status = 'in_progress', topic?: (n: number) => string, done = false) {
   await page.route('**/api/projects', (route) =>
     route.fulfill({
       json: {
@@ -48,9 +49,10 @@ async function serve(page: Page, status = 'in_progress', topic?: (n: number) => 
   await page.route('**/api/requirements/r1/questions', (route) =>
     route.fulfill({
       json: {
-        open: [3, 4, 5, 6].map((n) => question(n, topic?.(n))),
-        answered: [1, 2].map((n) => ({ ...question(n, topic?.(n)), answer: 'An answer' })),
-        exhausted: false,
+        open: done ? [] : [3, 4, 5, 6].map((n) => question(n, topic?.(n))),
+        answered: (done ? [1, 2, 3, 4, 5, 6] : [1, 2]).map((n) => ({ ...question(n, topic?.(n)), answer: 'An answer' })),
+        exhausted: done,
+        nothing_new_since_reopen: false,
       },
     }),
   )
@@ -150,6 +152,21 @@ test.describe('at phone width', () => {
     expect(next.y).toBeGreaterThan(answered.y + answered.height)
     expect(await fitsWidth(page)).toBe(true)
   })
+
+  for (const status of ['in_progress', 'complete']) {
+    test(`the ${status === 'complete' ? 'Complete' : 'Looks ready'} card fits, with long topics cut`, async ({ page }) => {
+      await serve(page, status, longTopics.words, true)
+      await page.goto('/requirements/r1')
+      const card = page.getByRole('region', { name: /clear enough to act on$/ })
+      await expect(card).toBeVisible()
+
+      const topic = card.getByText(longTopics.words(6), { exact: true })
+      expect(await measureText(topic)).toMatchObject({ lines: 1, cutAcross: true })
+      if (status === 'complete') await card.getByRole('button', { name: 'Reopen' }).click()
+      await expect(card.getByRole('button', { name: status === 'complete' ? 'Reopen' : 'Confirm' })).toBeVisible()
+      expect(await fitsWidth(page)).toBe(true)
+    })
+  }
 
   // The wordmark gives way and the section links shrink to icons on a phone,
   // so the title isn't cut to a letter or two.

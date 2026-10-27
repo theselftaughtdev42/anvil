@@ -92,11 +92,22 @@ class StubAgent:
         subject: Subject,
         asked: Sequence[AskedQuestion],
         context: str | None,
+        feedback: Sequence[str],
     ) -> list[QuestionDraft]:
-        """The next few of QUESTIONS not yet asked, matched on text. Ignores the
-        Subject and the context.
+        """The next few of QUESTIONS, then one follow-up per piece of feedback, that
+        haven't been asked, matched on text. So the same feedback twice asks nothing
+        new. Ignores the Subject and the context.
         """
         time.sleep(self.delay_ms / 1000)
         asked_texts = {question.text for question in asked}
-        unasked = [q for q in QUESTIONS if q.text not in asked_texts]
+        candidates = [*QUESTIONS, *(follow_up(note) for note in feedback)]
+        unasked = [q for q in candidates if q.text not in asked_texts]
         return unasked[:QUESTIONS_PER_BATCH]
+
+
+def follow_up(feedback: str) -> QuestionDraft:
+    return QuestionDraft(
+        topic="What's missing",
+        text=f"You said this is missing: “{feedback}”. What should it cover?",
+        why="You said the idea wasn't clear enough yet.",
+    )

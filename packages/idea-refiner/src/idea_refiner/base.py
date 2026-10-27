@@ -57,12 +57,14 @@ class RefinementAgent(Protocol):
         subject: Subject,
         asked: Sequence[AskedQuestion],
         context: str | None,
+        feedback: Sequence[str],
     ) -> list[QuestionDraft]:
-        """The next batch of Questions. An empty list means nothing more to ask.
+        """The next batch of Questions. An empty list means nothing more to ask, which
+        is the agent's whole verdict that the Subject is clear enough to act on.
 
         `asked` is every Question asked so far, answered or not, in the order they
-        were asked, so the agent never asks one twice.
+        were asked, so the agent never asks one twice. `feedback` is what the
+        Subject's author said was still missing each time they disagreed with that
+        verdict, oldest first.
         """
         ...
-
-    # Judging when a Subject is clear enough to suggest it's done goes here next.
