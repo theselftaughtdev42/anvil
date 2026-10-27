@@ -108,14 +108,14 @@ class QuestionStack(BaseModel, use_attribute_docstrings=True):
     """True when the Requirement was reopened and Anvil had no new Questions."""
 
 
-class ReopenCreate(BaseModel):
+class ReopenCreate(BaseModel, use_attribute_docstrings=True):
     note: Annotated[
         str,
         StringConstraints(
             strip_whitespace=True, min_length=1, max_length=REOPEN_NOTE_MAX_LENGTH
         ),
     ]
-    """For when a user reopen's a completed requirement and states what's missing."""
+    """The Point of Contact's Reopen note: what the Complete Requirement is missing."""
 
 
 class AnswerCreate(BaseModel):
