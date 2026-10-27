@@ -48,6 +48,14 @@ _Avoid_: Response
 A Question set aside without an Answer, with the reason recorded, usually because something learned since has made it unnecessary.
 _Avoid_: Closed, skipped, removed
 
+**Looks ready**:
+What Anvil suggests about a Requirement once it has no more Questions to ask: that it's clear enough to act on. The Point of Contact decides, by confirming it Complete.
+_Avoid_: Done, finished
+
+**Reopen note**:
+What a Point of Contact says is missing when they reopen a Complete Requirement, moving it back to In progress. Anvil asks new Questions about it, and keeps every Reopen note for the Questions it asks later.
+_Avoid_: Reason, feedback, comment
+
 ### Project
 
 **Project**:

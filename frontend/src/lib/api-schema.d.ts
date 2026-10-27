@@ -189,6 +189,48 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/requirements/{requirement_id}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm Requirement
+         * @description Moves the Requirement to Complete. 409 unless Anvil has nothing more to ask, or
+         *     if it's Complete already.
+         */
+        post: operations["confirm_requirement_api_requirements__requirement_id__confirm_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/requirements/{requirement_id}/reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reopen Requirement
+         * @description Moves a Complete Requirement back to In progress, and asks for new Questions
+         *     with the note. 409 unless it's Complete.
+         */
+        post: operations["reopen_requirement_api_requirements__requirement_id__reopen_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects": {
         parameters: {
             query?: never;
@@ -380,9 +422,20 @@ export interface components {
             answered: components["schemas"]["AnsweredQuestion"][];
             /**
              * Exhausted
-             * @description True once Anvil has nothing more to ask.
+             * @description True once Anvil has nothing more to ask, so suggests the Requirement looks
+             *     clear enough to act on.
              */
             exhausted: boolean;
+            /**
+             * Nothing New Since Reopen
+             * @description True when the Requirement was reopened and Anvil had no new Questions.
+             */
+            nothing_new_since_reopen: boolean;
+        };
+        /** ReopenCreate */
+        ReopenCreate: {
+            /** Note */
+            note: string;
         };
         /** RequirementCreate */
         RequirementCreate: {
@@ -471,6 +524,7 @@ export type ProjectPublic = components['schemas']['ProjectPublic'];
 export type ProjectSummary = components['schemas']['ProjectSummary'];
 export type ProjectUpdate = components['schemas']['ProjectUpdate'];
 export type QuestionStack = components['schemas']['QuestionStack'];
+export type ReopenCreate = components['schemas']['ReopenCreate'];
 export type RequirementCreate = components['schemas']['RequirementCreate'];
 export type RequirementList = components['schemas']['RequirementList'];
 export type RequirementPublic = components['schemas']['RequirementPublic'];
@@ -771,6 +825,72 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuestionStack"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    confirm_requirement_api_requirements__requirement_id__confirm_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                requirement_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RequirementPublic"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reopen_requirement_api_requirements__requirement_id__reopen_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                requirement_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReopenCreate"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {

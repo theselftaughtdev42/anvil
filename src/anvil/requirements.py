@@ -23,13 +23,16 @@ from anvil.refinement import (
     answered_questions,
     bottom_position,
     deal_questions,
+    nothing_new_since_reopen,
     open_questions,
     project_context,
     record_answer,
+    reopen,
 )
 
 IDEA_MAX_LENGTH = 5000
 ANSWER_MAX_LENGTH = 2000
+REOPEN_NOTE_MAX_LENGTH = 2000
 
 router = APIRouter(prefix="/requirements", tags=["requirements"])
 
@@ -99,7 +102,20 @@ class QuestionStack(BaseModel, use_attribute_docstrings=True):
     answered: list[AnsweredQuestion]
     """In the order they were answered."""
     exhausted: bool
-    """True once Anvil has nothing more to ask."""
+    """True once Anvil has nothing more to ask, so suggests the Requirement looks
+    clear enough to act on."""
+    nothing_new_since_reopen: bool
+    """True when the Requirement was reopened and Anvil had no new Questions."""
+
+
+class ReopenCreate(BaseModel):
+    note: Annotated[
+        str,
+        StringConstraints(
+            strip_whitespace=True, min_length=1, max_length=REOPEN_NOTE_MAX_LENGTH
+        ),
+    ]
+    """For when a user reopen's a completed requirement and states what's missing."""
 
 
 class AnswerCreate(BaseModel):
@@ -229,6 +245,7 @@ def question_stack(session: Session, requirement: Requirement) -> QuestionStack:
             for question in answered_questions(session, requirement)
         ],
         exhausted=requirement.questions_exhausted_at is not None,
+        nothing_new_since_reopen=nothing_new_since_reopen(session, requirement),
     )
 
 
@@ -361,5 +378,43 @@ def put_off_question(
     question = get_open_question(session, requirement, question_id)
     if open_questions(session, requirement)[-1].id != question.id:
         question.position = bottom_position(session, requirement)
+    session.commit()
+    return question_stack(session, requirement)
+
+
+@router.post("/{requirement_id}/confirm")
+def confirm_requirement(
+    requirement_id: uuid.UUID, session: SessionDep, user: CurrentUserDep
+) -> RequirementPublic:
+    """Moves the Requirement to Complete. 409 unless Anvil has nothing more to ask, or
+    if it's Complete already.
+    """
+    requirement = get_own_requirement(session, requirement_id, user, for_update=True)
+    if requirement.status == RequirementStatus.COMPLETE:
+        raise HTTPException(status_code=409, detail="Requirement is already Complete")
+    if requirement.questions_exhausted_at is None:
+        raise HTTPException(status_code=409, detail="Anvil still has Questions to ask")
+    requirement.status = RequirementStatus.COMPLETE
+    session.commit()
+    return get_own_requirement_public(session, requirement.id, user)
+
+
+@router.post("/{requirement_id}/reopen")
+def reopen_requirement(
+    requirement_id: uuid.UUID,
+    body: ReopenCreate,
+    session: SessionDep,
+    user: CurrentUserDep,
+    agent: AgentDep,
+) -> QuestionStack:
+    """Moves a Complete Requirement back to In progress, and asks for new Questions
+    with the note. 409 unless it's Complete.
+    """
+    requirement = get_own_requirement(session, requirement_id, user, for_update=True)
+    if requirement.status != RequirementStatus.COMPLETE:
+        raise HTTPException(
+            status_code=409, detail="Only a Complete Requirement can be reopened"
+        )
+    reopen(session, requirement, body.note, agent)
     session.commit()
     return question_stack(session, requirement)

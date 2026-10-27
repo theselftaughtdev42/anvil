@@ -1,6 +1,8 @@
 import { queryOptions } from '@tanstack/react-query'
 import { api, retryUnlessClientError } from '@/lib/api'
 import type {
+  QuestionStack,
+  ReopenCreate,
   RequirementCreate,
   RequirementList,
   RequirementPublic,
@@ -90,3 +92,25 @@ export function changeProject(id: string, projectId: string): Promise<Requiremen
  * reloading while a change is saving.
  */
 export const changeProjectKey = (id: string) => ['requirements', id, 'project'] as const
+
+/** The server's limit on a Reopen note's length (REOPEN_NOTE_MAX_LENGTH). */
+export const REOPEN_NOTE_MAX_LENGTH = 2000
+
+/**
+ * POST /api/requirements/:id/confirm: moves it to Complete. A 409 while Anvil
+ * still has Questions to ask, or once it's Complete.
+ */
+export function confirmRequirement(id: string): Promise<Requirement> {
+  return api<Requirement>(`/requirements/${id}/confirm`, { method: 'POST' })
+}
+
+/**
+ * POST /api/requirements/:id/reopen: moves a Complete Requirement back to In
+ * progress, and returns the stack with any Questions Anvil asks about the note.
+ */
+export function reopenRequirement(id: string, note: string): Promise<QuestionStack> {
+  return api<QuestionStack>(`/requirements/${id}/reopen`, {
+    method: 'POST',
+    json: { note } satisfies ReopenCreate,
+  })
+}
