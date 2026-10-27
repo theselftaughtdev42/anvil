@@ -37,7 +37,7 @@ export function RequirementCard({ requirement }: { requirement: Requirement }) {
         </time>
       </div>
       <div className="flex flex-col gap-1.5">
-        <h3 className="line-clamp-2 text-card-title break-words">
+        <h3 className="line-clamp-2 text-card-title wrap-anywhere">
           <Link
             to={`/requirements/${requirement.id}`}
             className="outline-none after:absolute after:inset-0 after:rounded-card"

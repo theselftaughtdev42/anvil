@@ -1,8 +1,9 @@
 import { expect, type Page, test } from '@playwright/test'
+import { measureText } from './helpers.ts'
 
-const question = (n: number) => ({
+const question = (n: number, topic = ['Who it’s for', 'The problem', 'Success', 'Edge cases'][n % 4]) => ({
   id: `q${n}`,
-  topic: ['Who it’s for', 'The problem', 'Success', 'Edge cases'][n % 4],
+  topic,
   text: `Question number ${n}, long enough that it wraps onto a second line on a phone?`,
   why: 'Why Anvil is asking.',
   suggestions: ['First suggestion', 'Second suggestion', 'Third suggestion'],
@@ -11,9 +12,9 @@ const question = (n: number) => ({
 
 /**
  * The e2e tests run without an API, so this stands in for it: two answered,
- * four open.
+ * four open. `topic` replaces each Question's topic.
  */
-async function serve(page: Page, status = 'in_progress') {
+async function serve(page: Page, status = 'in_progress', topic?: (n: number) => string) {
   await page.route('**/api/projects', (route) =>
     route.fulfill({
       json: {
@@ -47,8 +48,8 @@ async function serve(page: Page, status = 'in_progress') {
   await page.route('**/api/requirements/r1/questions', (route) =>
     route.fulfill({
       json: {
-        open: [3, 4, 5, 6].map(question),
-        answered: [1, 2].map((n) => ({ ...question(n), answer: 'An answer' })),
+        open: [3, 4, 5, 6].map((n) => question(n, topic?.(n))),
+        answered: [1, 2].map((n) => ({ ...question(n, topic?.(n)), answer: 'An answer' })),
         exhausted: false,
       },
     }),
@@ -83,6 +84,45 @@ test('on a wide screen the Answered pile and the stack sit either side of the ca
   expect(next.x).toBeGreaterThan(card.x + card.width)
   expect(answered.y).toBeLessThan(card.y + card.height)
 })
+
+// Topics have no length limit, so a model's long one is cut to a line
+// wherever it shows, rather than wrapping or widening the page.
+const longTopics = {
+  words: (n: number) =>
+    `What happens when a customer misses several deliveries in a row across different depots on the same day ${n}`,
+  'one unbroken word': (n: number) => `${'x'.repeat(200)}${n}`,
+}
+for (const width of [390, 1280]) {
+  for (const [kind, topic] of Object.entries(longTopics)) {
+    test(`a long topic of ${kind} is cut to one line at ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 })
+      await serve(page, 'in_progress', topic)
+      await page.goto('/requirements/r1')
+      await expect(page.getByText('Question 3 of about 6')).toBeVisible()
+
+      const card = page.getByRole('region', { name: /^Question number 3/ })
+      const topics = [
+        card.getByText(topic(3), { exact: true }),
+        page.getByRole('region', { name: /^Answered/ }).getByText(topic(2), { exact: true }),
+        page.getByRole('region', { name: /^In the stack/ }).getByText(topic(4), { exact: true }),
+      ]
+      for (const shown of topics) {
+        await expect(shown).toBeVisible()
+        expect(await measureText(shown)).toMatchObject({ lines: 1, cutAcross: true })
+      }
+
+      // The number beside it keeps its room, inside the card.
+      const number = card.getByText('#3', { exact: true })
+      expect(await measureText(number)).toEqual({ lines: 1, cutAcross: false, cutDown: false })
+      const [numberBox, topicBox, cardBox] = await Promise.all(
+        [number, topics[0], card].map(async (locator) => (await locator.boundingBox())!),
+      )
+      expect(numberBox.x).toBeGreaterThan(topicBox.x + topicBox.width)
+      expect(numberBox.x + numberBox.width).toBeLessThanOrEqual(cardBox.x + cardBox.width)
+      expect(await fitsWidth(page)).toBe(true)
+    })
+  }
+}
 
 test.describe('at phone width', () => {
   test.use({ viewport: { width: 360, height: 800 } })
