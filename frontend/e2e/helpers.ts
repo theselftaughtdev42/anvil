@@ -27,7 +27,9 @@ export function measureText(locator: Locator): Promise<{ lines: number; cutAcros
     const height = el.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom)
     return {
       lines: Math.round(height / lineHeight),
-      cutAcross: el.scrollWidth > el.clientWidth,
+      // 1px slack: on Linux, Chromium snaps glyph widths to whole pixels, so a
+      // line broken anywhere can end 1px past the box though nothing is cut.
+      cutAcross: el.scrollWidth > el.clientWidth + 1,
       cutDown: el.scrollHeight > el.clientHeight,
     }
   })
