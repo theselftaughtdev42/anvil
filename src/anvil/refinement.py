@@ -27,8 +27,8 @@ def deal_questions(
 ) -> None:
     """Asks the agent for the next batch of Questions and puts them at the bottom of the
     stack, with its Project's Project Context as it is now and its Reopen notes. An
-    empty batch marks the
-    Requirement exhausted, and an exhausted one isn't asked again. The caller commits.
+    empty batch marks the Requirement exhausted, and an exhausted one isn't asked
+    again. The caller commits.
     """
     # Locks the Requirement until the caller commits, so two requests can't deal
     # twice. populate_existing reloads it, in case another request has just

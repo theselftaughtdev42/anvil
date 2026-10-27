@@ -434,7 +434,10 @@ export interface components {
         };
         /** ReopenCreate */
         ReopenCreate: {
-            /** Note */
+            /**
+             * Note
+             * @description The Point of Contact's Reopen note: what the Complete Requirement is missing.
+             */
             note: string;
         };
         /** RequirementCreate */
