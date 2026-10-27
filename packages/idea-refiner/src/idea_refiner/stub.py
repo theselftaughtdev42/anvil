@@ -1,20 +1,17 @@
 import time
 from collections.abc import Sequence
 
-from anvil.agent.base import (
-    TITLE_MAX_LENGTH,
-    AskedQuestion,
-    QuestionDraft,
-    RequirementBrief,
-)
+from idea_refiner.base import AskedQuestion, Limits, QuestionDraft, Subject
 
 TITLE_MAX_WORDS = 6
 ELLIPSIS = "…"
 # Closing brackets and quotes stay, so `the "login" button` keeps its quote.
 TRAILING_PUNCTUATION = ".,;:!?-–—…"
 
+DEFAULT_LIMITS = Limits()
+
 QUESTIONS_PER_BATCH = 3
-# Generic enough to suit any Requirement, asked in this order.
+# Generic enough to suit any idea, asked in this order.
 QUESTIONS = (
     QuestionDraft(
         topic="Who it's for",
@@ -72,22 +69,23 @@ QUESTIONS = (
 
 
 class StubAgent:
-    """A deterministic, offline RefinementAgent, so Anvil runs with no model.
+    """A deterministic, offline RefinementAgent, so its consumer runs with no model.
 
-    `delay_ms` makes every call slow, to exercise the UI's loading states.
+    `delay_ms` makes every call slow, to exercise a UI's loading states.
     """
 
-    def __init__(self, delay_ms: int = 0) -> None:
+    def __init__(self, limits: Limits = DEFAULT_LIMITS, delay_ms: int = 0) -> None:
+        self.limits = limits
         self.delay_ms = delay_ms
 
-    def name_requirement(self, idea: str, context: str | None) -> str:
-        """The idea's first few words. Ignores the Project Context."""
+    def name_idea(self, idea: str, context: str | None) -> str:
+        """The idea's first few words. Ignores the context."""
         time.sleep(self.delay_ms / 1000)
         words = idea.split()
         title = " ".join(words[:TITLE_MAX_WORDS])
         cut = len(words) > TITLE_MAX_WORDS
-        if len(title) > TITLE_MAX_LENGTH - len(ELLIPSIS):
-            title = title[: TITLE_MAX_LENGTH - len(ELLIPSIS)]
+        if len(title) > self.limits.title - len(ELLIPSIS):
+            title = title[: self.limits.title - len(ELLIPSIS)]
             cut = True
         title = title.rstrip().rstrip(TRAILING_PUNCTUATION).rstrip()
         if not title:
@@ -97,14 +95,22 @@ class StubAgent:
 
     def ask_questions(
         self,
-        requirement: RequirementBrief,
+        subject: Subject,
         asked: Sequence[AskedQuestion],
         context: str | None,
     ) -> list[QuestionDraft]:
-        """The next few of QUESTIONS not yet asked, matched on text. Ignores the
-        Requirement and the Project Context.
+        """The next few of QUESTIONS not yet asked, matched on text, with their
+        suggestions cut to the limit. Ignores the Subject and the context.
         """
         time.sleep(self.delay_ms / 1000)
         asked_texts = {question.text for question in asked}
         unasked = [q for q in QUESTIONS if q.text not in asked_texts]
-        return unasked[:QUESTIONS_PER_BATCH]
+        drafts = [
+            q.model_copy(
+                update={"suggestions": q.suggestions[: self.limits.suggestions]}
+            )
+            for q in unasked[:QUESTIONS_PER_BATCH]
+        ]
+        for draft in drafts:
+            self.limits.check(draft)
+        return drafts

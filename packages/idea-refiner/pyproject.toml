@@ -1,0 +1,16 @@
+[project]
+name = "idea-refiner"
+version = "0.0.0"
+description = "Refines an idea through questions until it's clear enough to act on."
+readme = "README.md"
+authors = [
+    { name = "Tim MacKay", email = "tim_mackay_git@fastmail.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "pydantic>=2.12",
+]
+
+[build-system]
+requires = ["uv_build>=0.13.1,<0.14.0"]
+build-backend = "uv_build"

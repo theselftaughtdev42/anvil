@@ -4,11 +4,11 @@ from collections.abc import Iterator, Sequence
 import pytest
 from fastapi.testclient import TestClient
 from httpx import Response
+from idea_refiner import AskedQuestion, QuestionDraft, Subject
 from sqlalchemy import Engine, event
 from sqlmodel import Session, select
 
-from anvil.agent import AskedQuestion, QuestionDraft, RequirementBrief
-from anvil.agent.deps import get_agent
+from anvil.agent import get_agent
 from anvil.auth import get_current_user
 from anvil.db import get_session
 from anvil.main import app
@@ -33,31 +33,31 @@ class FakeAgent:
     def __init__(self) -> None:
         self.calls: list[tuple[str, str | None]] = []
         self.batches: list[list[QuestionDraft]] = []
-        self.asks: list[tuple[RequirementBrief, list[AskedQuestion], str | None]] = []
+        self.asks: list[tuple[Subject, list[AskedQuestion], str | None]] = []
 
-    def name_requirement(self, idea: str, context: str | None) -> str:
+    def name_idea(self, idea: str, context: str | None) -> str:
         self.calls.append((idea, context))
         return f"Title for: {idea}"[:80]
 
     def ask_questions(
         self,
-        requirement: RequirementBrief,
+        subject: Subject,
         asked: Sequence[AskedQuestion],
         context: str | None,
     ) -> list[QuestionDraft]:
-        self.asks.append((requirement, list(asked), context))
+        self.asks.append((subject, list(asked), context))
         return self.batches.pop(0) if self.batches else []
 
 
 class FailingAgent:
     """Fails any test that asks it anything."""
 
-    def name_requirement(self, idea: str, context: str | None) -> str:
-        raise AssertionError("name_requirement was called")
+    def name_idea(self, idea: str, context: str | None) -> str:
+        raise AssertionError("name_idea was called")
 
     def ask_questions(
         self,
-        requirement: RequirementBrief,
+        subject: Subject,
         asked: Sequence[AskedQuestion],
         context: str | None,
     ) -> list[QuestionDraft]:
@@ -562,7 +562,7 @@ def test_creating_deals_the_first_batch(agent: FakeAgent) -> None:
     }
     assert agent.asks == [
         (
-            RequirementBrief(
+            Subject(
                 title="Title for: Rebook a missed delivery",
                 idea="Rebook a missed delivery",
             ),

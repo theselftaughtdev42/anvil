@@ -2,9 +2,9 @@
 
 from datetime import datetime
 
+from idea_refiner import AskedQuestion, RefinementAgent, Subject
 from sqlmodel import Session, col, func, select
 
-from anvil.agent import AskedQuestion, RefinementAgent, RequirementBrief
 from anvil.models import (
     Project,
     Question,
@@ -45,7 +45,7 @@ def deal_questions(
         .order_by(col(Question.number))
     ).all()
     drafts = agent.ask_questions(
-        RequirementBrief(title=requirement.title, idea=requirement.idea),
+        Subject(title=requirement.title, idea=requirement.idea),
         [AskedQuestion(topic=q.topic, text=q.text, answer=q.answer) for q in asked],
         project_context(project),
     )

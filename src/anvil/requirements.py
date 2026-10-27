@@ -244,7 +244,7 @@ def create_requirement(
         point_of_contact_id=user.id,
         project_id=project.id,
         idea=body.idea,
-        title=agent.name_requirement(body.idea, project_context(project)),
+        title=agent.name_idea(body.idea, project_context(project)),
         status=RequirementStatus.DRAFT,
     )
     session.add(requirement)
