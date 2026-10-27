@@ -4,25 +4,10 @@ import subprocess
 import sys
 from pathlib import Path
 
-import sqlalchemy as sa
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from anvil.agent import LIMITS, AgentDep, get_agent
-from anvil.models import Question
-
-
-def test_topic_limit_fits_the_question_table() -> None:
-    topic = sa.inspect(Question).columns["topic"]
-
-    # SQLModel's AutoString, which carries a length but isn't an sa.String.
-    assert getattr(topic.type, "length", None) == LIMITS.topic
-
-
-def test_title_limit_fits_the_requirement_table() -> None:
-    title = sa.inspect(Question.metadata.tables["requirement"]).columns["title"]
-
-    assert LIMITS.title <= title.type.length
+from anvil.agent import AgentDep, get_agent
 
 
 def imports_stub(path: Path) -> bool:

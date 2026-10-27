@@ -128,7 +128,7 @@ def test_downgrade_drops_projects_and_keeps_requirements(empty_db: Engine) -> No
     add_person_with_requirements(empty_db, "Ada")
     alembic(empty_db, command.upgrade, "head")
 
-    alembic(empty_db, command.downgrade, "-1")
+    alembic(empty_db, command.downgrade, BEFORE_PROJECTS)
 
     inspector = inspect(empty_db)
     assert "project" not in inspector.get_table_names()

@@ -7,8 +7,6 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.mutable import MutableList
 from sqlmodel import Field, SQLModel
 
-TOPIC_MAX_LENGTH = 40
-
 
 class QuestionStatus(StrEnum):
     OPEN = "open"
@@ -59,7 +57,7 @@ class Question(SQLModel, table=True):
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     requirement_id: uuid.UUID = Field(foreign_key="requirement.id")
-    topic: str = Field(max_length=TOPIC_MAX_LENGTH)
+    topic: str = Field(sa_type=sa.Text)
     """A short label shown on the card, for example "Edge cases"."""
     text: str = Field(sa_type=sa.Text)
     why: str | None = Field(default=None, sa_type=sa.Text)
@@ -69,9 +67,8 @@ class Question(SQLModel, table=True):
         sa_type=MutableList.as_mutable(JSONB),
         sa_column_kwargs={"server_default": sa.text("'[]'::jsonb")},
     )
-    """Suggested Answers. The agent's Limits cap these at three; the database doesn't,
-    so offering more later needs no migration. MutableList makes in-place changes
-    (append, extend) get saved.
+    """Suggested Answers. Unbounded, so offering more later needs no migration.
+    MutableList makes in-place changes (append, extend) get saved.
     """
     position: int
     """Order in the stack; lower is nearer the top. Changes if user marks it for later.

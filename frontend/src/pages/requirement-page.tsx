@@ -176,7 +176,7 @@ function Refinement({ requirementId, stack }: { requirementId: string; stack: Qu
       <RefinementProgress answered={stack.answered.length} open={stack.open.length} strike={strikes} />
       <div className="mx-auto grid w-full max-w-135 items-start gap-10 lg:max-w-none lg:grid-cols-[minmax(0,1fr)_minmax(0,33.75rem)_minmax(0,1fr)]">
         <AnsweredPile answered={stack.answered} className="order-2 lg:order-none lg:pt-2" />
-        <div data-testid="stack" className="relative order-1 pb-19 lg:order-none">
+        <div data-testid="stack" className="relative order-1 min-w-0 pb-19 lg:order-none">
           {top ? (
             <>
               {stack.open.slice(1, 1 + CARDS_UNDER).map((question, i) => (

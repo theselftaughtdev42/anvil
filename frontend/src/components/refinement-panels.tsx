@@ -52,7 +52,7 @@ export function AnsweredPile({ answered, className }: { answered: AnsweredQuesti
   const labelId = useId()
   const latest = answered.slice(-ANSWERED_SHOWN).reverse()
   return (
-    <section aria-labelledby={labelId} className={cn('flex flex-col gap-2.5', className)}>
+    <section aria-labelledby={labelId} className={cn('flex min-w-0 flex-col gap-2.5', className)}>
       <h2 id={labelId} className={eyebrow}>
         Answered · {answered.length}
       </h2>
@@ -63,7 +63,9 @@ export function AnsweredPile({ answered, className }: { answered: AnsweredQuesti
               key={question.id}
               className="flex flex-col gap-1 rounded-lg border border-answered-border bg-answered-background px-3 py-2.5"
             >
-              <span className="text-[0.6875rem] tracking-[0.04em] text-answered uppercase">{question.topic}</span>
+              <span className="truncate text-[0.6875rem] tracking-[0.04em] text-answered uppercase">
+                {question.topic}
+              </span>
               <span className="text-[0.8125rem] text-answered-foreground">{question.text}</span>
               <span className="text-[0.8125rem] break-words">{question.answer}</span>
             </li>
@@ -79,7 +81,7 @@ export function NextInStack({ open, className }: { open: OpenQuestion[]; classNa
   const labelId = useId()
   const under = open.slice(1)
   return (
-    <section aria-labelledby={labelId} className={cn('flex flex-col gap-2.5', className)}>
+    <section aria-labelledby={labelId} className={cn('flex min-w-0 flex-col gap-2.5', className)}>
       <h2 id={labelId} className={eyebrow}>
         In the stack · {under.length}
       </h2>
@@ -88,7 +90,7 @@ export function NextInStack({ open, className }: { open: OpenQuestion[]; classNa
           {under.slice(0, NEXT_SHOWN).map((question) => (
             <li
               key={question.id}
-              className="rounded-lg border bg-card px-3 py-2.5 text-caption font-normal tracking-[0.04em] text-muted-foreground uppercase"
+              className="truncate rounded-lg border bg-card px-3 py-2.5 text-caption font-normal tracking-[0.04em] text-muted-foreground uppercase"
             >
               {question.topic}
             </li>
