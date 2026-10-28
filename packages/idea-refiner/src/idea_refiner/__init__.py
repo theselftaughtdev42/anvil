@@ -5,6 +5,7 @@ StubAgent.
 """
 
 from idea_refiner.base import (
+    AgentUnavailable,
     AskedQuestion,
     QuestionDraft,
     RefinementAgent,
@@ -13,6 +14,7 @@ from idea_refiner.base import (
 from idea_refiner.stub import StubAgent
 
 __all__ = [
+    "AgentUnavailable",
     "AskedQuestion",
     "QuestionDraft",
     "RefinementAgent",

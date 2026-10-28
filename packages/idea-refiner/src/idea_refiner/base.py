@@ -37,8 +37,17 @@ class QuestionDraft(BaseModel, frozen=True, str_strip_whitespace=True):
     three."""
 
 
+class AgentUnavailable(Exception):
+    """The agent can't produce a result right now, for example because its model is
+    down. Trying again later may work.
+    """
+
+
 class RefinementAgent(Protocol):
     """Refines an idea through Questions.
+
+    AgentUnavailable is the one error a method raises when it can't produce a
+    result.
 
     `context` is background about where the idea comes from, or None when there
     isn't any.
