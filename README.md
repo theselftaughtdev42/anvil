@@ -100,7 +100,8 @@ Configuration comes only from environment variables; the image contains no `.env
   - a managed platform where only the platform's proxy can reach the container (e.g. Fly.io, Render, Cloud Run): `*`
   - no proxy in front: leave it unset. Never use `*` when clients can reach the container directly, or they can spoof their IP.
 - `STUB_USER_NAME` and `STUB_USER_EMAIL`: until there is authentication, every request acts as the Point of Contact with this email, created on first use. Default to `Dev User` and `dev@example.com`.
-- `AGENT`: the refinement agent that names requirements (and, later, refines them). Defaults to `stub`, the only one so far: deterministic and offline, it titles a requirement with the first words of its idea. Any other value stops the app starting.
+- `AGENT`: the refinement agent that names and refines requirements: `stub` (the default), deterministic and offline, or `model`, which asks the language model in `AGENT_MODEL`. Any other value stops the app starting.
+- `AGENT_MODEL`: the model the `model` agent uses, as `provider:model` (e.g. `anthropic:claude-sonnet-5-5`, `ovhcloud:gpt-oss-20b` or `ollama:llama3.2`). Required when `AGENT=model`. The provider reads its API key and base URL from its own environment variables, such as `ANTHROPIC_API_KEY`, `OVHCLOUD_API_KEY` or `OLLAMA_BASE_URL`. For another OpenAI-compatible endpoint, use `openai-chat:<model>` with `OPENAI_API_KEY` and `OPENAI_BASE_URL`: plain `openai:` uses OpenAI's Responses API, which most compatible servers don't support. An unknown provider or missing key stops the app starting.
 - `STUB_AGENT_DELAY_MS`: makes every stub agent call this many milliseconds slow, to see the UI's loading states. Defaults to `0`.
 - `IDEA_PLACEHOLDER`: the example idea shown in the home page's empty prompt, served to the UI by `GET /api/config`. Defaults to `Drivers should see route changes on their phone without calling the depot`.
 
