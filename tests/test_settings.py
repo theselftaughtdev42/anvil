@@ -75,12 +75,13 @@ def test_rejects_invalid_stub_user_email(monkeypatch: pytest.MonkeyPatch) -> Non
 
 def test_agent_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("DATABASE_URL", URL)
-    for name in ("AGENT", "STUB_AGENT_DELAY_MS"):
+    for name in ("AGENT", "AGENT_MODEL", "STUB_AGENT_DELAY_MS"):
         monkeypatch.delenv(name, raising=False)
 
     settings = Settings(_env_file=None)
 
     assert settings.agent == "stub"
+    assert settings.agent_model is None
     assert settings.stub_agent_delay_ms == 0
 
 
@@ -98,3 +99,23 @@ def test_rejects_negative_stub_agent_delay(monkeypatch: pytest.MonkeyPatch) -> N
 
     with pytest.raises(ValidationError, match="stub_agent_delay_ms"):
         Settings(_env_file=None)
+
+
+def test_model_agent_requires_a_model(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("DATABASE_URL", URL)
+    monkeypatch.setenv("AGENT", "model")
+    monkeypatch.delenv("AGENT_MODEL", raising=False)
+
+    with pytest.raises(ValidationError, match="AGENT_MODEL"):
+        Settings(_env_file=None)
+
+
+def test_model_agent_with_a_model(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("DATABASE_URL", URL)
+    monkeypatch.setenv("AGENT", "model")
+    monkeypatch.setenv("AGENT_MODEL", "anthropic:claude-sonnet-5-5")
+
+    settings = Settings(_env_file=None)
+
+    assert settings.agent == "model"
+    assert settings.agent_model == "anthropic:claude-sonnet-5-5"

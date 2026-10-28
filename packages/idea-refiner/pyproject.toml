@@ -11,6 +11,14 @@ dependencies = [
     "pydantic>=2.12",
 ]
 
+[project.optional-dependencies]
+anthropic = [
+    "pydantic-ai-slim[anthropic]>=2.63.0",
+]
+openai = [
+    "pydantic-ai-slim[openai]>=2.63.0",
+]
+
 [build-system]
 requires = ["uv_build>=0.13.1,<0.14.0"]
 build-backend = "uv_build"

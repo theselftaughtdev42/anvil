@@ -3,7 +3,7 @@ from collections.abc import Iterator, Sequence
 
 import pytest
 from fastapi.testclient import TestClient
-from httpx import Response
+from httpx2 import Response
 from idea_refiner import AgentUnavailable, AskedQuestion, QuestionDraft, Subject
 from sqlalchemy import Engine, event
 from sqlmodel import Session, select

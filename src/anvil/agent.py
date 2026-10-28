@@ -8,6 +8,7 @@ from typing import Annotated
 
 from fastapi import Depends
 from idea_refiner import RefinementAgent, StubAgent
+from idea_refiner.model import ModelAgent
 
 from anvil.settings import Settings, settings
 
@@ -17,6 +18,9 @@ def create_agent(settings: Settings) -> RefinementAgent:
     match settings.agent:
         case "stub":
             return StubAgent(delay_ms=settings.stub_agent_delay_ms)
+        case "model":
+            assert settings.agent_model
+            return ModelAgent(settings.agent_model)
 
 
 # Built once, on import, so a bad configuration stops the app starting.
