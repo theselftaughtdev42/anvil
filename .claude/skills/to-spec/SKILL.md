@@ -16,7 +16,7 @@ The issue tracker and triage label vocabulary should have been provided to you. 
 
 Check with the user that these seams match their expectations.
 
-3. Write the spec using the template below, then publish it to the project issue tracker. Apply the `ready-for-agent` triage label - no need for additional triage.
+3. Write the spec using the template below, then publish it to the project issue tracker. Apply the `ready-for-agent` triage label - no need for additional triage. Also apply a `spec` label, creating it first if the tracker doesn't have it yet (with `gh`: `gh label create spec --description "A spec written by /to-spec" --force` is safe to run every time).
 
 <spec-template>
 
