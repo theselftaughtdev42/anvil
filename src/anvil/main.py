@@ -1,4 +1,6 @@
-from fastapi import APIRouter, FastAPI, HTTPException
+from fastapi import APIRouter, FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse
+from idea_refiner import AgentUnavailable
 from pydantic import BaseModel
 from sqlalchemy.exc import SQLAlchemyError
 from sqlmodel import text
@@ -14,6 +16,18 @@ from anvil.settings import settings
 FRONTEND_DIST = PROJECT_ROOT / "frontend" / "dist"
 
 app = FastAPI()
+
+
+@app.exception_handler(AgentUnavailable)
+def agent_unavailable(request: Request, exc: AgentUnavailable) -> JSONResponse:
+    """503 for any endpoint that asks the agent. Nothing was committed, so the
+    request's transaction rolls back.
+    """
+    return JSONResponse(
+        status_code=503,
+        content={"detail": "The refinement agent is unavailable. Try again."},
+    )
+
 
 api = APIRouter(prefix="/api")
 

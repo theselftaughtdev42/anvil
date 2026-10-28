@@ -4,7 +4,7 @@ from collections.abc import Iterator, Sequence
 import pytest
 from fastapi.testclient import TestClient
 from httpx import Response
-from idea_refiner import AskedQuestion, QuestionDraft, Subject
+from idea_refiner import AgentUnavailable, AskedQuestion, QuestionDraft, Subject
 from sqlalchemy import Engine, event
 from sqlmodel import Session, select
 
@@ -17,6 +17,7 @@ from anvil.models import (
     Project,
     Question,
     QuestionStatus,
+    ReopenNote,
     Requirement,
     RequirementStatus,
 )
@@ -28,15 +29,19 @@ client = TestClient(app)
 class FakeAgent:
     """Titles every idea "Title for: <idea>", asks the Questions queued in
     `batches` one batch per call (nothing once they run out), and records what
-    it was asked. `feedback` holds the feedback each ask got."""
+    it was asked. `feedback` holds the feedback each ask got. The methods named
+    in `unavailable` raise AgentUnavailable instead."""
 
     def __init__(self) -> None:
+        self.unavailable: set[str] = set()
         self.calls: list[tuple[str, str | None]] = []
         self.batches: list[list[QuestionDraft]] = []
         self.asks: list[tuple[Subject, list[AskedQuestion], str | None]] = []
         self.feedback: list[list[str]] = []
 
     def name_idea(self, idea: str, context: str | None) -> str:
+        if "name_idea" in self.unavailable:
+            raise AgentUnavailable
         self.calls.append((idea, context))
         return f"Title for: {idea}"[:80]
 
@@ -47,6 +52,8 @@ class FakeAgent:
         context: str | None,
         feedback: Sequence[str],
     ) -> list[QuestionDraft]:
+        if "ask_questions" in self.unavailable:
+            raise AgentUnavailable
         self.asks.append((subject, list(asked), context))
         self.feedback.append(list(feedback))
         return self.batches.pop(0) if self.batches else []
@@ -1032,6 +1039,80 @@ def test_someone_elses_requirement_is_404_to_confirm_or_reopen(
     response = confirm(str(id)) if action == "confirm" else reopen(str(id))
 
     assert response.status_code == 404
+
+
+# --- The agent being unavailable ---------------------------------------------
+
+UNAVAILABLE = {"detail": "The refinement agent is unavailable. Try again."}
+
+
+@pytest.mark.parametrize("method", ["name_idea", "ask_questions"])
+def test_creating_while_the_agent_is_unavailable_saves_nothing(
+    agent: FakeAgent, method: str
+) -> None:
+    project = parcels()
+    agent.unavailable = {method}
+
+    response = client.post(
+        "/api/requirements", json={"project_id": project["id"], "idea": "Rebook"}
+    )
+
+    assert response.status_code == 503
+    assert response.json() == UNAVAILABLE
+    assert client.get("/api/requirements").json()["items"] == []
+
+
+def test_answering_while_the_agent_is_unavailable_changes_nothing(
+    agent: FakeAgent,
+) -> None:
+    agent.batches = [[draft("Who")]]
+    created = create("Rebook a missed delivery")
+    before = questions(created["id"])
+    agent.unavailable = {"ask_questions"}
+
+    response = client.post(
+        f"/api/requirements/{created['id']}/questions/{before['open'][0]['id']}/answer",
+        json={"answer": "Anyone"},
+    )
+
+    assert response.status_code == 503
+    assert response.json() == UNAVAILABLE
+    assert questions(created["id"]) == before
+    assert client.get(f"/api/requirements/{created['id']}").json() == created
+
+
+def test_changing_the_project_while_the_agent_is_unavailable_changes_nothing(
+    agent: FakeAgent,
+) -> None:
+    agent.batches = [[draft("Who")]]
+    created = create("Rebook a missed delivery")
+    before = questions(created["id"])
+    lockers = add_project("Lockers")
+    agent.unavailable = {"ask_questions"}
+
+    response = change_project(created["id"], lockers["id"])
+
+    assert response.status_code == 503
+    assert response.json() == UNAVAILABLE
+    assert client.get(f"/api/requirements/{created['id']}").json() == created
+    assert questions(created["id"]) == before
+
+
+def test_reopening_while_the_agent_is_unavailable_changes_nothing(
+    agent: FakeAgent, app_on_test_db: Engine
+) -> None:
+    id = completed(agent)
+    before = questions(id)
+    agent.unavailable = {"ask_questions"}
+
+    response = reopen(id)
+
+    assert response.status_code == 503
+    assert response.json() == UNAVAILABLE
+    assert status_everywhere(id) == {"complete"}
+    assert questions(id) == before
+    with Session(app_on_test_db) as session:
+        assert session.exec(select(ReopenNote)).all() == []
 
 
 # --- Progress ---------------------------------------------------------------
