@@ -20,7 +20,9 @@ def create_agent(settings: Settings) -> RefinementAgent:
             return StubAgent(delay_ms=settings.stub_agent_delay_ms)
         case "model":
             assert settings.agent_model
-            return ModelAgent(settings.agent_model)
+            return ModelAgent(
+                settings.agent_model, timeout_seconds=settings.agent_timeout_seconds
+            )
 
 
 # Built once, on import, so a bad configuration stops the app starting.

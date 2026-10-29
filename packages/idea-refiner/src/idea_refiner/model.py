@@ -8,9 +8,10 @@ import time
 from collections.abc import Sequence
 
 from pydantic_ai import Agent, AgentRunResult
+from pydantic_ai.exceptions import AgentRunError
 from pydantic_ai.models import Model, infer_model
 
-from idea_refiner.base import AskedQuestion, QuestionDraft, Subject
+from idea_refiner.base import AgentUnavailable, AskedQuestion, QuestionDraft, Subject
 
 logger = logging.getLogger(__name__)
 
@@ -52,20 +53,31 @@ class ModelAgent:
     `anthropic:claude-sonnet-5-5`, whose provider reads its API key and base URL
     from its standard environment variables.
 
+    A reply that doesn't match the expected output is sent back to the model to
+    correct, up to `OUTPUT_RETRIES` times. Each call, retries included, must finish
+    within `timeout_seconds`.
+
     Raises pydantic-ai's UserError on construction when the provider is unknown or
     its configuration is incomplete.
     """
 
-    def __init__(self, model: Model | str) -> None:
+    OUTPUT_RETRIES = 2
+
+    def __init__(self, model: Model | str, timeout_seconds: float = 60) -> None:
         self.model = infer_model(model)
+        self.timeout_seconds = timeout_seconds
         self._namer = Agent(
-            self.model, name="name_idea", instructions=NAME_INSTRUCTIONS
+            self.model,
+            name="name_idea",
+            instructions=NAME_INSTRUCTIONS,
+            retries={"output": self.OUTPUT_RETRIES},
         )
         self._asker = Agent(
             self.model,
             name="ask_questions",
             output_type=list[QuestionDraft],
             instructions=ASK_INSTRUCTIONS,
+            retries={"output": self.OUTPUT_RETRIES},
         )
 
     def name_idea(self, idea: str, context: str | None) -> str:
@@ -97,7 +109,15 @@ class ModelAgent:
 
     def _run[T](self, agent: Agent[None, T], prompt: str) -> T:
         start = time.perf_counter()
-        result: AgentRunResult[T] = agent.run_sync(prompt)
+        try:
+            result: AgentRunResult[T] = agent.run_sync(
+                prompt, timeout=self.timeout_seconds
+            )
+        # pydantic-ai raises an AgentRunError for exhausted retries, timeouts and
+        # provider or network failures alike; anything else is a bug and propagates.
+        except AgentRunError as error:
+            logger.warning("%s failed: %s", agent.name, error)
+            raise AgentUnavailable(f"{agent.name} failed: {error}") from error
         usage = result.usage
         logger.info(
             "%s with %s:%s took %.0f ms, %d input and %d output tokens",
