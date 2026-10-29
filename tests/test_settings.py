@@ -1,9 +1,10 @@
+import os
 from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
 
-from anvil.settings import Settings
+from anvil.settings import Settings, load_settings
 
 URL = "postgresql+psycopg://user:pass@localhost:5432/db"
 
@@ -136,3 +137,27 @@ def test_model_agent_with_a_model(monkeypatch: pytest.MonkeyPatch) -> None:
 
     assert settings.agent == "model"
     assert settings.agent_model == "anthropic:claude-sonnet-5-5"
+
+
+def test_load_settings_exports_env_file_for_model_providers(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(os, "environ", {"PATH": os.environ.get("PATH", "")})
+    env_file = tmp_path / ".env"
+    env_file.write_text(f"DATABASE_URL={URL}\nANTHROPIC_API_KEY=from-file\n")
+
+    load_settings(env_file)
+
+    assert os.environ["ANTHROPIC_API_KEY"] == "from-file"
+
+
+def test_load_settings_keeps_real_environment_over_env_file(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(os, "environ", {"ANTHROPIC_API_KEY": "from-env"})
+    env_file = tmp_path / ".env"
+    env_file.write_text(f"DATABASE_URL={URL}\nANTHROPIC_API_KEY=from-file\n")
+
+    load_settings(env_file)
+
+    assert os.environ["ANTHROPIC_API_KEY"] == "from-env"

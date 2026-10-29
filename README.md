@@ -108,7 +108,7 @@ Configuration comes only from environment variables; the image contains no `.env
 
 ### Setting up a model
 
-API keys and base URLs use each provider's standard environment variables; Anvil has no settings of its own for them. See [ADR 0004](docs/adr/0004-the-model-agent-calls-the-model-through-pydantic-ai.md) for how the agent calls the model and fails.
+API keys and base URLs use each provider's standard environment variables; Anvil has no settings of its own for them. In local dev they can go in `.env`, which Anvil exports to the environment for the provider to read. See [ADR 0004](docs/adr/0004-the-model-agent-calls-the-model-through-pydantic-ai.md) for how the agent calls the model and fails.
 
 Hosted Claude:
 

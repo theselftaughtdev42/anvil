@@ -88,6 +88,7 @@ dependencies = [
     { name = "idea-refiner", extra = ["anthropic", "openai"] },
     { name = "psycopg", extra = ["binary"] },
     { name = "pydantic-settings" },
+    { name = "python-dotenv" },
     { name = "sqlmodel" },
 ]
 
@@ -110,6 +111,7 @@ requires-dist = [
     { name = "idea-refiner", extras = ["anthropic", "openai"], editable = "packages/idea-refiner" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.3.6" },
     { name = "pydantic-settings", specifier = ">=2.16.0" },
+    { name = "python-dotenv", specifier = ">=1.2.4" },
     { name = "sqlmodel", specifier = ">=0.0.48" },
 ]
 
