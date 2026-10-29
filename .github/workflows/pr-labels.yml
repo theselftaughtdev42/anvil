@@ -9,20 +9,26 @@ on:
 
 permissions: {}
 
-# Adding several labels at once fires one event each; only the last run counts.
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
-
 jobs:
   category:
     runs-on: ubuntu-latest
     timeout-minutes: 2
+    permissions:
+      pull-requests: read
     steps:
+      # Opening a PR with a label, or adding several, fires one run per event
+      # at once. Each reads the PR's current labels rather than its event's, so
+      # whichever run GitHub shows as the check is right. Cancelling the
+      # others instead can leave a cancelled run as the required check.
       - name: Check for exactly one category label
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
         run: |
-          mapfile -t found < <(jq -r '.pull_request.labels[].name
-            | select(IN("enhancement", "bug", "dependencies", "internal"))' "$GITHUB_EVENT_PATH")
+          # Assigned first, so a failing gh stops the step instead of reading as no labels.
+          categories=$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json labels --jq '.labels[].name
+            | select(IN("enhancement", "bug", "dependencies", "internal"))')
+          mapfile -t found < <(printf '%s' "$categories")
           if (( ${#found[@]} != 1 )); then
             echo "::error::Label this PR with exactly one of enhancement, bug, dependencies or internal (plus breaking-change if it breaks something). Found: ${found[*]:-none}."
             exit 1
