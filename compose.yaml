@@ -43,8 +43,13 @@ services:
       AGENT: ${AGENT:-stub}
       AGENT_MODEL: ${AGENT_MODEL:-}
       AGENT_TIMEOUT_SECONDS: ${AGENT_TIMEOUT_SECONDS:-60}
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
-      OVHCLOUD_API_KEY: ${OVHCLOUD_API_KEY:-}
+      # No value: passed through only when set, since providers treat an empty
+      # variable as set (an empty OPENAI_BASE_URL replaces OpenAI's own).
+      ANTHROPIC_API_KEY:
+      OVHCLOUD_API_KEY:
+      OPENAI_API_KEY:
+      OPENAI_BASE_URL:
+      IDEA_PLACEHOLDER:
     ports:
       - "${APP_PORT:-8001}:8000"
     # Lets `up --wait` return only once the app is serving. Compose-only: the

@@ -118,6 +118,14 @@ AGENT_MODEL=anthropic:claude-sonnet-5-5
 ANTHROPIC_API_KEY=sk-ant-...
 ```
 
+Hosted OpenAI:
+
+```bash
+AGENT=model
+AGENT_MODEL=openai:gpt-6.1-terra
+OPENAI_API_KEY=sk-...
+```
+
 An OpenAI-compatible endpoint, here OVHcloud AI Endpoints with gpt-oss-20b. pydantic-ai knows OVHcloud's base URL, so only the key is needed:
 
 ```bash
