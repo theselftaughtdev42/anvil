@@ -1,5 +1,7 @@
+from pathlib import Path
 from typing import Literal, Self
 
+from dotenv import load_dotenv
 from pydantic import EmailStr, Field, PostgresDsn, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -41,4 +43,15 @@ class Settings(BaseSettings):
         return self
 
 
-settings = Settings()
+def load_settings(env_file: Path = PROJECT_ROOT / ".env") -> Settings:
+    """Settings from the environment and env_file, which is also exported to os.environ.
+
+    pydantic-settings keeps .env values to itself, but model providers (such as
+    pydantic-ai's) read their API keys from os.environ. Real environment variables
+    still win.
+    """
+    load_dotenv(env_file)
+    return Settings(_env_file=env_file)
+
+
+settings = load_settings()

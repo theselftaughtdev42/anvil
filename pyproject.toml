@@ -13,6 +13,7 @@ dependencies = [
     "idea-refiner[anthropic,openai]",
     "psycopg[binary]>=3.3.6",
     "pydantic-settings>=2.16.0",
+    "python-dotenv>=1.2.4",
     "sqlmodel>=0.0.48",
 ]
 
