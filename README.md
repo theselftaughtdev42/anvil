@@ -106,6 +106,28 @@ Configuration comes only from environment variables; the image contains no `.env
 - `STUB_AGENT_DELAY_MS`: makes every stub agent call this many milliseconds slow, to see the UI's loading states. Defaults to `0`.
 - `IDEA_PLACEHOLDER`: the example idea shown in the home page's empty prompt, served to the UI by `GET /api/config`. Defaults to `Drivers should see route changes on their phone without calling the depot`.
 
+### Setting up a model
+
+API keys and base URLs use each provider's standard environment variables; Anvil has no settings of its own for them. See [ADR 0004](docs/adr/0004-the-model-agent-calls-the-model-through-pydantic-ai.md) for how the agent calls the model and fails.
+
+Hosted Claude:
+
+```bash
+AGENT=model
+AGENT_MODEL=anthropic:claude-sonnet-5-5
+ANTHROPIC_API_KEY=sk-ant-...
+```
+
+An OpenAI-compatible endpoint, here OVHcloud AI Endpoints with gpt-oss-20b. pydantic-ai knows OVHcloud's base URL, so only the key is needed:
+
+```bash
+AGENT=model
+AGENT_MODEL=ovhcloud:gpt-oss-20b
+OVHCLOUD_API_KEY=...
+```
+
+Self-hosted models work through the same OpenAI-compatible route. For Ollama, use `AGENT_MODEL=ollama:<model>` with `OLLAMA_BASE_URL` (e.g. `http://localhost:11434/v1`); for vLLM or any other compatible server, use `AGENT_MODEL=openai-chat:<model>` with `OPENAI_BASE_URL` pointing at its `/v1` and `OPENAI_API_KEY` (any value if the server doesn't check it). Smaller models get the output format wrong more often; each call retries a malformed reply twice before failing with a 503, so raise `AGENT_TIMEOUT_SECONDS` if a slow local model times out.
+
 ### Migrations must work with the running version
 
 Migrations run before the new version rolls out, so the old version keeps serving traffic against the new schema for a while. Every migration must therefore work with the app version that is currently running. Make destructive changes (dropping or renaming a column or table, tightening a constraint) with expand/contract across releases:
