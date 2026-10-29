@@ -6,7 +6,7 @@ It knows nothing of Anvil: no FastAPI, no database, and none of Anvil's terms. I
 
 Output lengths are guidance to the agent, not validated. The package's docstrings ask for a short title, a 2–4 word topic and at most three suggestions, and a model-backed agent states those in its prompt or output schema. Nothing checks them, so a long value never fails a request: consumers store unbounded text and clip it on display.
 
-The API is unstable (`0.x`) until a real, model-backed agent has reshaped it: async calls and what happens when the model returns malformed output are still to come. The verdict on when an idea is clear enough is an empty batch from `ask_questions`, not a separate call. With one consumer in the same repo, changing it costs a single commit.
+The API is unstable (`0.x`) while the model-backed agent settles. Calls stay synchronous, and malformed model output ends in `AgentUnavailable` after retries; see [ADR 0004](0004-the-model-agent-calls-the-model-through-pydantic-ai.md). The verdict on when an idea is clear enough is an empty batch from `ask_questions`, not a separate call. With one consumer in the same repo, changing it costs a single commit.
 
 ## Considered Options
 
