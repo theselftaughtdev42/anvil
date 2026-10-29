@@ -471,7 +471,7 @@ def test_changing_to_an_unknown_project_is_422(agent: FakeAgent) -> None:
     assert questions(created["id"]) == before
 
 
-def test_changing_the_project_needs_a_project_id() -> None:
+def test_an_update_needs_a_project_id_or_a_title() -> None:
     created = create("Rebook a missed delivery")
 
     response = client.patch(f"/api/requirements/{created['id']}", json={})
@@ -485,6 +485,114 @@ def test_changing_someone_elses_requirement_is_404(
     theirs = add_requirement(app_on_test_db, someone_else)
 
     response = change_project(str(theirs), parcels()["id"])
+
+    assert response.status_code == 404
+
+
+# --- Renaming ---------------------------------------------------------------
+
+
+def rename(id: str, title: str) -> Response:
+    return client.patch(f"/api/requirements/{id}", json={"title": title})
+
+
+@pytest.mark.parametrize("status", list(RequirementStatus))
+def test_renaming_works_in_any_status(
+    status: RequirementStatus, agent: FakeAgent, app_on_test_db: Engine
+) -> None:
+    agent.batches = [[draft("Who")]]
+    created = create("Rebook a missed delivery")
+    set_status(app_on_test_db, created["id"], status)
+    before = questions(created["id"])
+    app.dependency_overrides[get_agent] = FailingAgent
+
+    response = rename(created["id"], "  Rebook by text  ")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["title"] == "Rebook by text"
+    assert body["status"] == status
+    assert body["project"] == created["project"]
+    assert client.get(f"/api/requirements/{created['id']}").json() == body
+    assert questions(created["id"]) == before
+
+
+@pytest.mark.parametrize("title", ["", "   ", "x" * 201])
+def test_a_blank_or_long_title_is_422(title: str) -> None:
+    created = create("Rebook a missed delivery")
+
+    response = rename(created["id"], title)
+
+    assert response.status_code == 422
+    assert client.get(f"/api/requirements/{created['id']}").json() == created
+
+
+def test_a_title_can_be_200_characters() -> None:
+    created = create("Rebook a missed delivery")
+
+    response = rename(created["id"], "x" * 200)
+
+    assert response.status_code == 200
+    assert response.json()["title"] == "x" * 200
+
+
+def test_a_draft_can_be_renamed_and_moved_at_once(agent: FakeAgent) -> None:
+    agent.batches = [[draft("Who")], [draft("Where")]]
+    created = create("Rebook a missed delivery")
+    lockers = add_project("Lockers")
+
+    response = client.patch(
+        f"/api/requirements/{created['id']}",
+        json={"title": "Rebook at a locker", "project_id": lockers["id"]},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["title"] == "Rebook at a locker"
+    assert body["project"] == {"id": lockers["id"], "name": "Lockers"}
+    assert topics(questions(created["id"])["open"]) == ["Where"]
+    # The new batch is asked with the new title.
+    assert agent.asks[-1][0].title == "Rebook at a locker"
+
+
+def test_a_locked_move_with_a_rename_changes_nothing(
+    agent: FakeAgent, app_on_test_db: Engine
+) -> None:
+    created = create("Rebook a missed delivery")
+    set_status(app_on_test_db, created["id"], RequirementStatus.IN_PROGRESS)
+
+    response = client.patch(
+        f"/api/requirements/{created['id']}",
+        json={
+            "title": "Rebook at a locker",
+            "project_id": add_project("Lockers")["id"],
+        },
+    )
+
+    assert response.status_code == 409
+    assert (
+        client.get(f"/api/requirements/{created['id']}").json()["title"]
+        == (created["title"])
+    )
+
+
+def test_the_next_turn_asks_with_the_new_title(agent: FakeAgent) -> None:
+    agent.batches = [[draft("Who")], [draft("When")]]
+    created = create("Rebook a missed delivery")
+    rename(created["id"], "Rebook by text")
+
+    answer(created["id"], questions(created["id"])["open"][0])
+
+    assert agent.asks[-1][0].title == "Rebook by text"
+    assert len(agent.calls) == 1  # Only named at creation, never re-titled.
+
+
+def test_renaming_someone_elses_requirement_is_404(
+    app_on_test_db: Engine, someone_else: PointOfContact
+) -> None:
+    theirs = add_requirement(app_on_test_db, someone_else)
+
+    response = rename(str(theirs), "Mine now")
 
     assert response.status_code == 404
 

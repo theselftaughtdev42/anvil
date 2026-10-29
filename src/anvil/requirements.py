@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel, StringConstraints
+from pydantic import BaseModel, StringConstraints, model_validator
 from sqlalchemy import ColumnElement, and_, delete, func
 from sqlmodel import Session, col, select
 from sqlmodel.sql.expression import Select
@@ -34,6 +34,7 @@ from anvil.refinement import (
 IDEA_MAX_LENGTH = 5000
 ANSWER_MAX_LENGTH = 2000
 REOPEN_NOTE_MAX_LENGTH = 2000
+TITLE_MAX_LENGTH = 200
 
 router = APIRouter(prefix="/requirements", tags=["requirements"])
 
@@ -48,8 +49,27 @@ class RequirementCreate(BaseModel):
     ]
 
 
-class RequirementUpdate(BaseModel):
-    project_id: uuid.UUID
+class RequirementUpdate(BaseModel, use_attribute_docstrings=True):
+    """Needs at least one of the fields."""
+
+    project_id: uuid.UUID | None = None
+    """Only a Draft can move to another Project."""
+    title: (
+        Annotated[
+            str,
+            StringConstraints(
+                strip_whitespace=True, min_length=1, max_length=TITLE_MAX_LENGTH
+            ),
+        ]
+        | None
+    ) = None
+    """Renames it, in any status."""
+
+    @model_validator(mode="after")
+    def needs_a_change(self) -> "RequirementUpdate":
+        if self.project_id is None and self.title is None:
+            raise ValueError("Give a project_id or a title")
+        return self
 
 
 class ProjectSummary(BaseModel, use_attribute_docstrings=True):
@@ -316,19 +336,27 @@ def update_requirement(
     user: CurrentUserDep,
     agent: AgentDep,
 ) -> RequirementPublic:
-    """Moves a Draft Requirement to another Project. Its Open Questions were asked with
-    the old Project Context, so they're removed and a new batch is dealt. Locked once a
-    Question is answered.
+    """Renames the Requirement, moves a Draft to another Project, or both.
+
+    A move removes its Open Questions, which were asked with the old Project
+    Context, and deals a new batch. The Project is locked once a Question is
+    answered, and a 409 then changes nothing, title included.
     """
     requirement = get_own_requirement(session, requirement_id, user, for_update=True)
-    if requirement.status != RequirementStatus.DRAFT:
+    if body.project_id is not None and requirement.status != RequirementStatus.DRAFT:
         raise HTTPException(
             status_code=409,
             detail="The Project is locked once a Question is answered",
         )
-    project = get_project_or_422(session, body.project_id)
-    if project.id != requirement.project_id:
-        requirement.project_id = project.id
+    project_id = (
+        get_project_or_422(session, body.project_id).id
+        if body.project_id is not None
+        else requirement.project_id
+    )
+    if body.title is not None:
+        requirement.title = body.title
+    if project_id != requirement.project_id:
+        requirement.project_id = project_id
         # A Draft has no answered Questions, so this leaves only Dismissed
         # ones, if any.
         session.exec(

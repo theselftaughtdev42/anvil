@@ -42,7 +42,9 @@ class Requirement(SQLModel, table=True):
     idea: str = Field(sa_type=sa.Text)
     """What the person typed, in their own words."""
     title: str = Field(sa_type=sa.Text)
-    """A short name, set by the refinement agent when the requirement is created."""
+    """A short name. The refinement agent sets it at creation; after that, only the
+    Point of Contact changes it.
+    """
     status: RequirementStatus = Field(
         default=RequirementStatus.DRAFT,
         sa_type=status_type,

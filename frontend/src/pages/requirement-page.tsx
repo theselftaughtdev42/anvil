@@ -7,6 +7,7 @@ import { RequirementActions } from '@/components/requirement-actions'
 import { QuestionCard, ShortcutHint } from '@/components/question-card'
 import { CompleteCard, LooksReadyCard } from '@/components/refinement-outcome'
 import { RequirementProject } from '@/components/requirement-project'
+import { RequirementTitle } from '@/components/requirement-title'
 import { StatusBadge } from '@/components/status-badge'
 import { AnsweredPile, NextInStack, RefinementProgress } from '@/components/refinement-panels'
 import { Button } from '@/components/ui/button'
@@ -17,6 +18,7 @@ import {
   changeProjectKey,
   confirmRequirement,
   isProjectLocked,
+  renameKey,
   reopenRequirement,
   type Requirement,
   requirementKey,
@@ -44,6 +46,10 @@ export function RequirementPage() {
   const changingProject = useIsMutating({ mutationKey: changeProjectKey(id) }) > 0
   const lastChange = useMutationState({
     filters: { mutationKey: changeProjectKey(id) },
+    select: (mutation) => mutation.state.status,
+  }).at(-1)
+  const lastRename = useMutationState({
+    filters: { mutationKey: renameKey(id) },
     select: (mutation) => mutation.state.status,
   }).at(-1)
 
@@ -77,6 +83,11 @@ export function RequirementPage() {
           Couldn't change the Project. Try again.
         </p>
       )}
+      {lastRename === 'error' && (
+        <p role="alert" className="pt-6 text-center text-body-sm text-destructive">
+          Couldn't rename it. Try again.
+        </p>
+      )}
       {requirement.isError || stack.isError ? (
         <div className="flex flex-col items-center gap-3 py-16 text-center">
           <p role="alert" className="text-body-sm text-muted-foreground">
@@ -104,7 +115,8 @@ export function RequirementPage() {
 }
 
 /**
- * The Requirement's title, Project and status, once it loads. A phone only
+ * The Requirement's title, which renames in place, with its Project and
+ * status, once it loads. A phone only
  * has room for the title, so the page shows the rest there.
  */
 export function RequirementCrumb({ id }: { id: string }) {
@@ -112,7 +124,9 @@ export function RequirementCrumb({ id }: { id: string }) {
   if (!data) return null
   return (
     <>
-      <Crumb>{data.title}</Crumb>
+      <Crumb>
+        <RequirementTitle requirement={data} />
+      </Crumb>
       <div className="flex shrink-0 items-center gap-3 max-sm:hidden">
         <RequirementMeta requirement={data} />
         <PageActions requirement={data} className="-ml-1" />
