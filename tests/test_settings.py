@@ -75,13 +75,19 @@ def test_rejects_invalid_stub_user_email(monkeypatch: pytest.MonkeyPatch) -> Non
 
 def test_agent_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("DATABASE_URL", URL)
-    for name in ("AGENT", "AGENT_MODEL", "STUB_AGENT_DELAY_MS"):
+    for name in (
+        "AGENT",
+        "AGENT_MODEL",
+        "AGENT_TIMEOUT_SECONDS",
+        "STUB_AGENT_DELAY_MS",
+    ):
         monkeypatch.delenv(name, raising=False)
 
     settings = Settings(_env_file=None)
 
     assert settings.agent == "stub"
     assert settings.agent_model is None
+    assert settings.agent_timeout_seconds == 60
     assert settings.stub_agent_delay_ms == 0
 
 
@@ -98,6 +104,17 @@ def test_rejects_negative_stub_agent_delay(monkeypatch: pytest.MonkeyPatch) -> N
     monkeypatch.setenv("STUB_AGENT_DELAY_MS", "-1")
 
     with pytest.raises(ValidationError, match="stub_agent_delay_ms"):
+        Settings(_env_file=None)
+
+
+@pytest.mark.parametrize("value", ["0", "-1"])
+def test_rejects_a_timeout_that_isnt_positive(
+    monkeypatch: pytest.MonkeyPatch, value: str
+) -> None:
+    monkeypatch.setenv("DATABASE_URL", URL)
+    monkeypatch.setenv("AGENT_TIMEOUT_SECONDS", value)
+
+    with pytest.raises(ValidationError, match="agent_timeout_seconds"):
         Settings(_env_file=None)
 
 

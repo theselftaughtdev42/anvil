@@ -25,6 +25,8 @@ class Settings(BaseSettings):
     """The `provider:model` the model agent uses, such as
     `anthropic:claude-sonnet-5-5`. Required when `agent` is `model`.
     """
+    agent_timeout_seconds: float = Field(default=60, gt=0)
+    """How long the model agent may take over one call, retries included."""
     stub_agent_delay_ms: int = Field(default=0, ge=0)
     """Makes every StubAgent call this slow, to exercise the UI's loading states."""
     idea_placeholder: str = (

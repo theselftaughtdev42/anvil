@@ -101,6 +101,7 @@ def test_model_agent_uses_the_configured_model(
         database_url=URL,
         agent="model",
         agent_model="anthropic:claude-sonnet-5-5",
+        agent_timeout_seconds=12.5,
     )
 
     agent = create_agent(settings)
@@ -108,3 +109,4 @@ def test_model_agent_uses_the_configured_model(
     assert isinstance(agent, ModelAgent)
     assert agent.model.system == "anthropic"
     assert agent.model.model_name == "claude-sonnet-5-5"
+    assert agent.timeout_seconds == 12.5

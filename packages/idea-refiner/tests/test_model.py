@@ -1,10 +1,12 @@
+import asyncio
 import logging
 from typing import Any
 
 import pytest
-from idea_refiner import AskedQuestion, QuestionDraft, Subject
+from idea_refiner import AgentUnavailable, AskedQuestion, QuestionDraft, Subject
 from idea_refiner.model import ModelAgent
 from pydantic_ai import ModelMessage, ModelResponse, TextPart, ToolCallPart
+from pydantic_ai.exceptions import ModelAPIError
 from pydantic_ai.messages import UserPromptPart
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 
@@ -16,12 +18,14 @@ SUBJECT = Subject(
 
 class ScriptedModel:
     """Replies with `output`, as text or as the output tool's arguments, and keeps
-    the user prompt of every request.
+    the user prompt of every request. Given several outputs, replies with the next
+    one each request, repeating the last.
     """
 
-    def __init__(self, output: Any) -> None:
-        self.output = output
+    def __init__(self, output: Any, *more: Any) -> None:
+        self.outputs = [output, *more]
         self.prompts: list[str] = []
+        self.requests = 0
 
     def __call__(self, messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
         self.prompts.extend(
@@ -30,10 +34,12 @@ class ScriptedModel:
             for part in message.parts
             if isinstance(part, UserPromptPart)
         )
+        output = self.outputs[min(self.requests, len(self.outputs) - 1)]
+        self.requests += 1
         if info.output_tools:
             tool = info.output_tools[0].name
-            return ModelResponse(parts=[ToolCallPart(tool, {"response": self.output})])
-        return ModelResponse(parts=[TextPart(self.output)])
+            return ModelResponse(parts=[ToolCallPart(tool, {"response": output})])
+        return ModelResponse(parts=[TextPart(output)])
 
     def agent(self) -> ModelAgent:
         return ModelAgent(FunctionModel(self))
@@ -169,3 +175,48 @@ def test_accepts_a_provider_and_model_string(monkeypatch: pytest.MonkeyPatch) ->
 
     assert agent.model.system == "anthropic"
     assert agent.model.model_name == "claude-sonnet-5-5"
+
+
+INVALID = [{"topic": "", "text": "A Question with no topic"}]
+VALID = [{"topic": "Refunds", "text": "Can a rebooked delivery be refunded?"}]
+
+
+def test_an_invalid_reply_is_sent_back_to_be_corrected() -> None:
+    model = ScriptedModel(INVALID, VALID)
+
+    assert ask(model) == [
+        QuestionDraft(topic="Refunds", text="Can a rebooked delivery be refunded?")
+    ]
+    assert model.requests == 2
+
+
+def test_replies_that_stay_invalid_make_the_agent_unavailable() -> None:
+    model = ScriptedModel(INVALID)
+
+    with pytest.raises(AgentUnavailable):
+        ask(model)
+    assert model.requests == 1 + ModelAgent.OUTPUT_RETRIES
+
+
+def test_a_provider_error_makes_the_agent_unavailable() -> None:
+    error = ModelAPIError("function", "Connection refused")
+
+    def fail(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+        raise error
+
+    agent = ModelAgent(FunctionModel(fail))
+
+    with pytest.raises(AgentUnavailable) as raised:
+        agent.name_idea(SUBJECT.idea, None)
+    assert raised.value.__cause__ is error
+
+
+def test_a_call_slower_than_the_timeout_makes_the_agent_unavailable() -> None:
+    async def hang(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+        await asyncio.sleep(10)
+        return ModelResponse(parts=[TextPart("Too late")])
+
+    agent = ModelAgent(FunctionModel(hang), timeout_seconds=0.05)
+
+    with pytest.raises(AgentUnavailable):
+        agent.name_idea(SUBJECT.idea, None)
