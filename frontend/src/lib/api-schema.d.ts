@@ -124,9 +124,11 @@ export interface paths {
         head?: never;
         /**
          * Update Requirement
-         * @description Moves a Draft Requirement to another Project. Its Open Questions were asked with
-         *     the old Project Context, so they're removed and a new batch is dealt. Locked once a
-         *     Question is answered.
+         * @description Renames the Requirement, moves a Draft to another Project, or both.
+         *
+         *     A move removes its Open Questions, which were asked with the old Project
+         *     Context, and deals a new batch. The Project is locked once a Question is
+         *     answered, and a 409 then changes nothing, title included.
          */
         patch: operations["update_requirement_api_requirements__requirement_id__patch"];
         trace?: never;
@@ -490,13 +492,21 @@ export interface components {
          * @enum {string}
          */
         RequirementStatus: "draft" | "in_progress" | "complete";
-        /** RequirementUpdate */
+        /**
+         * RequirementUpdate
+         * @description Needs at least one of the fields.
+         */
         RequirementUpdate: {
             /**
              * Project Id
-             * Format: uuid
+             * @description Only a Draft can move to another Project.
              */
-            project_id: string;
+            project_id?: string | null;
+            /**
+             * Title
+             * @description Renames it, in any status.
+             */
+            title?: string | null;
         };
         /** ValidationError */
         ValidationError: {

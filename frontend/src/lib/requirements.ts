@@ -93,6 +93,20 @@ export function changeProject(id: string, projectId: string): Promise<Requiremen
  */
 export const changeProjectKey = (id: string) => ['requirements', id, 'project'] as const
 
+/** The server's limit on a title's length (TITLE_MAX_LENGTH). */
+export const TITLE_MAX_LENGTH = 200
+
+/** PATCH /api/requirements/:id: renames it, in any status. */
+export function renameRequirement(id: string, title: string): Promise<Requirement> {
+  return api<Requirement>(`/requirements/${id}`, {
+    method: 'PATCH',
+    json: { title } satisfies RequirementUpdate,
+  })
+}
+
+/** Shared by the title in the header and the page, which says when a rename fails. */
+export const renameKey = (id: string) => ['requirements', id, 'title'] as const
+
 /** The server's limit on a Reopen note's length (REOPEN_NOTE_MAX_LENGTH). */
 export const REOPEN_NOTE_MAX_LENGTH = 2000
 

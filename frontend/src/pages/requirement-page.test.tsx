@@ -85,14 +85,17 @@ function serveRefinement({
     if (path === '/api/projects') return Response.json({ items: PROJECTS })
     if (path === '/api/requirements') return Response.json({ items: [withProgress()] })
     if (path === `/api/requirements/${ID}` && init?.method === 'PATCH') {
-      if (requirement.status !== 'draft') {
+      const { project_id, title } = JSON.parse(String(init.body)) as { project_id?: string; title?: string }
+      if (project_id !== undefined && requirement.status !== 'draft') {
         return Response.json({ detail: 'The Project is locked once a Question is answered' }, { status: 409 })
       }
-      const { project_id } = JSON.parse(String(init.body)) as { project_id: string }
-      const project = PROJECTS.find((p) => p.id === project_id)!
-      requirement.project = { id: project.id, name: project.name }
-      open = [{ ...WEBSITE_QUESTION, id: `q${next + 1}`, number: next + 1 }]
-      next += 1
+      if (title !== undefined) requirement.title = title.trim()
+      if (project_id !== undefined) {
+        const project = PROJECTS.find((p) => p.id === project_id)!
+        requirement.project = { id: project.id, name: project.name }
+        open = [{ ...WEBSITE_QUESTION, id: `q${next + 1}`, number: next + 1 }]
+        next += 1
+      }
       return Response.json(withProgress())
     }
     if (path === `/api/requirements/${ID}` && init?.method === 'DELETE') return new Response(null, { status: 204 })
@@ -306,6 +309,117 @@ test('a Project that has gone reloads the Projects', async () => {
   await page.screen.getByRole('option', { name: /^Website/ }).click()
 
   await expect.poll(loads).toBeGreaterThan(before)
+})
+
+const renames = (fetch: ReturnType<typeof serveRefinement>) =>
+  fetch.mock.calls
+    .filter(([input, init]) => isChange(new URL(String(input), location.origin), init))
+    .map(([, init]) => JSON.parse(String(init!.body)) as unknown)
+
+const titleHeading = (page: Page, name: string) =>
+  page.screen.getByRole('banner').getByRole('heading', { level: 1, name })
+
+test('clicking the title renames it, and Enter saves', async () => {
+  let release!: () => void
+  const held = new Promise<void>((resolve) => (release = resolve))
+  const fetch = serveRefinement({ hold: (url, init) => (isChange(url, init) ? held : undefined) })
+  const page = await renderPage()
+
+  await page.screen.getByRole('button', { name: 'Route change alerts' }).click()
+  const box = page.screen.getByRole('textbox', { name: 'Title' })
+  await expect.element(box).toHaveFocus()
+  await expect.element(box).toHaveValue('Route change alerts')
+  await userEvent.fill(box, '  Live route alerts  ')
+  await userEvent.keyboard('{Enter}')
+
+  // The new title shows while it saves.
+  await expect.element(titleHeading(page, 'Live route alerts')).toBeVisible()
+  expect(renames(fetch)).toEqual([{ title: 'Live route alerts' }])
+  release()
+  await expect.element(titleHeading(page, 'Live route alerts')).toBeVisible()
+  await expect.element(page.question('Who will use this most?')).toBeVisible()
+
+  await page.router.navigate('/')
+  await expect.element(page.screen.getByRole('listitem').first()).toMatchTextContent('Live route alerts')
+})
+
+test('clicking away saves the title too', async () => {
+  const fetch = serveRefinement()
+  const page = await renderPage()
+
+  await page.screen.getByRole('button', { name: 'Route change alerts' }).click()
+  await userEvent.fill(page.screen.getByRole('textbox', { name: 'Title' }), 'Live route alerts')
+  await page.question('Who will use this most?').click()
+
+  await expect.element(titleHeading(page, 'Live route alerts')).toBeVisible()
+  expect(renames(fetch)).toEqual([{ title: 'Live route alerts' }])
+})
+
+test('Esc cancels a rename, and an unchanged title isn\'t sent', async () => {
+  const fetch = serveRefinement()
+  const page = await renderPage()
+
+  await page.screen.getByRole('button', { name: 'Route change alerts' }).click()
+  await userEvent.fill(page.screen.getByRole('textbox', { name: 'Title' }), 'Live route alerts')
+  await userEvent.keyboard('{Escape}')
+  await expect.element(titleHeading(page, 'Route change alerts')).toBeVisible()
+
+  await page.screen.getByRole('button', { name: 'Route change alerts' }).click()
+  await userEvent.keyboard('{Enter}')
+  await expect.element(titleHeading(page, 'Route change alerts')).toBeVisible()
+  expect(renames(fetch)).toEqual([])
+})
+
+test("a blank title isn't saved: Enter keeps editing, and clicking away puts the title back", async () => {
+  const fetch = serveRefinement()
+  const page = await renderPage()
+
+  await page.screen.getByRole('button', { name: 'Route change alerts' }).click()
+  const box = page.screen.getByRole('textbox', { name: 'Title' })
+  await userEvent.fill(box, '   ')
+  await userEvent.keyboard('{Enter}')
+  await expect.element(box).toHaveFocus()
+  await expect.element(box).toHaveAttribute('aria-invalid', 'true')
+
+  await page.question('Who will use this most?').click()
+  await expect.element(titleHeading(page, 'Route change alerts')).toBeVisible()
+  expect(renames(fetch)).toEqual([])
+})
+
+test('the title caps at the server limit', async () => {
+  serveRefinement()
+  const page = await renderPage()
+
+  await page.screen.getByRole('button', { name: 'Route change alerts' }).click()
+  await expect.element(page.screen.getByRole('textbox', { name: 'Title' })).toHaveAttribute('maxlength', '200')
+})
+
+test('a Complete Requirement can still be renamed', async () => {
+  serveRefinement()
+  const page = await renderPage()
+  await answerAll(page)
+  await page.screen.getByRole('button', { name: 'Confirm' }).click()
+  await expect.element(page.screen.getByRole('banner').getByText('Complete')).toBeVisible()
+
+  await page.screen.getByRole('button', { name: 'Route change alerts' }).click()
+  await userEvent.fill(page.screen.getByRole('textbox', { name: 'Title' }), 'Live route alerts')
+  await userEvent.keyboard('{Enter}')
+
+  await expect.element(titleHeading(page, 'Live route alerts')).toBeVisible()
+})
+
+test('a failed rename says so and keeps the old title', async () => {
+  serveRefinement({
+    fail: (url, init) => (isChange(url, init) ? Promise.resolve(Response.json({ detail: 'down' }, { status: 503 })) : undefined),
+  })
+  const page = await renderPage()
+
+  await page.screen.getByRole('button', { name: 'Route change alerts' }).click()
+  await userEvent.fill(page.screen.getByRole('textbox', { name: 'Title' }), 'Live route alerts')
+  await userEvent.keyboard('{Enter}')
+
+  await expect.element(page.screen.getByRole('alert')).toHaveTextContent("Couldn't rename it. Try again.")
+  await expect.element(titleHeading(page, 'Route change alerts')).toBeVisible()
 })
 
 test('after the first Answer the Project is locked, and says why', async () => {
