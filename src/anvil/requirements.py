@@ -16,6 +16,7 @@ from anvil.models import (
     Project,
     Question,
     QuestionStatus,
+    ReopenNote,
     Requirement,
     RequirementStatus,
 )
@@ -187,6 +188,15 @@ def get_project_or_422(session: Session, project_id: uuid.UUID) -> Project:
     return project
 
 
+def delete_requirements(session: Session, requirement_ids: list[uuid.UUID]) -> None:
+    """Deletes the Requirements with their Questions and Reopen notes. Doesn't commit."""
+    for child in (Question, ReopenNote):
+        session.exec(
+            delete(child).where(col(child.requirement_id).in_(requirement_ids))
+        )
+    session.exec(delete(Requirement).where(col(Requirement.id).in_(requirement_ids)))
+
+
 def select_with_progress() -> Select:
     """Each Requirement with its Project and Question counts, in one query however many
     there are. Callers add the where and order_by; read rows with requirement_public.
@@ -332,6 +342,16 @@ def update_requirement(
         deal_questions(session, requirement, agent)
     session.commit()
     return get_own_requirement_public(session, requirement.id, user)
+
+
+@router.delete("/{requirement_id}", status_code=204)
+def delete_requirement(
+    requirement_id: uuid.UUID, session: SessionDep, user: CurrentUserDep
+) -> None:
+    """Deletes the Requirement for good, whatever its status."""
+    requirement = get_own_requirement(session, requirement_id, user, for_update=True)
+    delete_requirements(session, [requirement.id])
+    session.commit()
 
 
 @router.get("/{requirement_id}/questions")

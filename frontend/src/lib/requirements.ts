@@ -114,3 +114,8 @@ export function reopenRequirement(id: string, note: string): Promise<QuestionSta
     json: { note } satisfies ReopenCreate,
   })
 }
+
+/** DELETE /api/requirements/:id: deletes it with its Questions, whatever its status. */
+export function deleteRequirement(id: string): Promise<void> {
+  return api<void>(`/requirements/${id}`, { method: 'DELETE' })
+}

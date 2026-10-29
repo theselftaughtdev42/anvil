@@ -1,6 +1,7 @@
 import { Lock } from 'lucide-react'
 import { useId } from 'react'
 import { Link } from 'react-router'
+import { RequirementActions } from '@/components/requirement-actions'
 import { StatusBadge } from '@/components/status-badge'
 import { Card } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
@@ -28,13 +29,17 @@ export function RequirementCard({ requirement }: { requirement: Requirement }) {
     <Card className="relative gap-3.5 rounded-card p-4.5 shadow-none transition-[color,box-shadow,border-color] hover:border-muted-foreground/40 has-[a:focus-visible]:border-ring has-[a:focus-visible]:ring-[3px] has-[a:focus-visible]:ring-ring/50">
       <div className="flex items-center justify-between gap-2">
         <StatusBadge status={requirement.status} />
-        <time
-          dateTime={requirement.updated_at}
-          title={updated.toLocaleString()}
-          className="text-caption font-normal text-muted-foreground"
-        >
-          {relativeTime(updated)}
-        </time>
+        <div className="flex items-center gap-1">
+          <time
+            dateTime={requirement.updated_at}
+            title={updated.toLocaleString()}
+            className="text-caption font-normal text-muted-foreground"
+          >
+            {relativeTime(updated)}
+          </time>
+          {/* Above the title's stretched link, so the click doesn't open the card */}
+          <RequirementActions requirement={requirement} className="relative z-10 -my-2 -mr-2" />
+        </div>
       </div>
       <div className="flex flex-col gap-1.5">
         <h3 className="line-clamp-2 text-card-title wrap-anywhere">
