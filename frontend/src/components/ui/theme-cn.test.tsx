@@ -1,6 +1,7 @@
 import { expect, test } from 'vitest'
 import { render } from 'vitest-browser-react'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -78,4 +79,18 @@ test('tooltip content takes a theme type size in place of its own', async () => 
   const classes = screen.getByText('Why', { exact: true }).first().element().classList
   expect(classes).toContain('text-caption')
   expect(classes).not.toContain('text-xs')
+})
+
+test('dropdown menu content takes a theme radius in place of its own', async () => {
+  const screen = await render(
+    <DropdownMenu open>
+      <DropdownMenuTrigger>Trigger</DropdownMenuTrigger>
+      <DropdownMenuContent className="rounded-card">
+        <DropdownMenuItem>Item</DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>,
+  )
+  const classes = screen.getByRole('menu').element().classList
+  expect(classes).toContain('rounded-card')
+  expect(classes).not.toContain('rounded-md')
 })

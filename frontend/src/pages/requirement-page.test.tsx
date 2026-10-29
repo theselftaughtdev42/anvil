@@ -95,6 +95,7 @@ function serveRefinement({
       next += 1
       return Response.json(withProgress())
     }
+    if (path === `/api/requirements/${ID}` && init?.method === 'DELETE') return new Response(null, { status: 204 })
     if (path === `/api/requirements/${ID}`) return Response.json(withProgress())
     if (path === `/api/requirements/${ID}/questions`) return Response.json(stack())
     if (path === `/api/requirements/${ID}/confirm`) {
@@ -788,4 +789,40 @@ test.each(['/requirements/missing', '/requirements/not-a-uuid'])('%s shows the n
 
   await expect.element(page.screen.getByRole('heading', { name: "Nothing's on the anvil here" })).toBeVisible()
   await expect.element(page.screen.getByText('404 · Requirement not found')).toBeVisible()
+})
+
+const isDelete = (url: URL, init?: RequestInit) => url.pathname === `/api/requirements/${ID}` && init?.method === 'DELETE'
+
+test('deleting from the header asks first, then goes back to the list', async () => {
+  const fetch = serveRefinement()
+  const page = await renderPage()
+  await pickAndAnswer(page, 'Who will use this most?', 'Customers')
+  await expect.element(page.question('What happens today, without it?')).toBeVisible()
+
+  await page.screen.getByRole('banner').getByRole('button', { name: 'Actions for Route change alerts' }).click()
+  await page.screen.getByRole('menuitem', { name: 'Delete…' }).click()
+  const dialog = page.screen.getByRole('dialog', { name: 'Delete this requirement?' })
+  await expect
+    .element(dialog)
+    .toMatchTextContent("Route change alerts (In progress) will be deleted for good. Its 1 answer will be lost. This can't be undone.")
+
+  await dialog.getByRole('button', { name: 'Delete requirement' }).click()
+
+  await expect.poll(() => page.router.state.location.pathname).toBe('/')
+  expect(fetch.mock.calls.filter(([input, init]) => isDelete(new URL(String(input), location.origin), init))).toHaveLength(1)
+})
+
+test('a failed delete says so and stays on the page', async () => {
+  serveRefinement({
+    fail: (url, init) => (isDelete(url, init) ? Promise.resolve(Response.json({ detail: 'down' }, { status: 503 })) : undefined),
+  })
+  const page = await renderPage()
+
+  await page.screen.getByRole('banner').getByRole('button', { name: 'Actions for Route change alerts' }).click()
+  await page.screen.getByRole('menuitem', { name: 'Delete…' }).click()
+  const dialog = page.screen.getByRole('dialog', { name: 'Delete this requirement?' })
+  await dialog.getByRole('button', { name: 'Delete requirement' }).click()
+
+  await expect.element(dialog.getByRole('alert')).toHaveTextContent("Couldn't delete it. Try again.")
+  expect(page.router.state.location.pathname).toBe(`/requirements/${ID}`)
 })

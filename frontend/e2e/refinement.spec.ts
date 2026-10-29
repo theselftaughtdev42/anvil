@@ -63,7 +63,7 @@ const fitsWidth = (page: Page) =>
 
 const box = async (page: Page, name: RegExp) => (await page.getByRole('region', { name }).boundingBox())!
 
-test('on a wide screen the Project and status sit in the header, by the title', async ({ page }) => {
+test('on a wide screen the Project, status and actions sit in the header, by the title', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 })
   await serve(page, 'draft')
   await page.goto('/requirements/r1')
@@ -71,6 +71,8 @@ test('on a wide screen the Project and status sit in the header, by the title', 
   await expect(banner.getByRole('combobox', { name: 'Project' })).toBeVisible()
   await expect(banner.getByText('Draft')).toBeVisible()
   await expect(page.getByRole('combobox', { name: 'Project' })).toHaveCount(1)
+  await expect(banner.getByRole('button', { name: /^Actions for / })).toBeVisible()
+  await expect(page.getByRole('button', { name: /^Actions for / })).toHaveCount(1)
 })
 
 test('on a wide screen the Answered pile and the stack sit either side of the card', async ({ page }) => {
@@ -130,13 +132,20 @@ test.describe('at phone width', () => {
   test.use({ viewport: { width: 360, height: 800 } })
 
   // The header only has room for the title, so they go under it.
-  test('the Project and status sit under the header, with no sideways scroll', async ({ page }) => {
+  test('the Project, status and actions sit under the header, with no sideways scroll', async ({ page }) => {
     await serve(page, 'draft')
     await page.goto('/requirements/r1')
     const main = page.getByRole('main')
     await expect(main.getByRole('combobox', { name: 'Project' })).toBeVisible()
     await expect(main.getByText('Draft')).toBeVisible()
     await expect(page.getByRole('combobox', { name: 'Project' })).toHaveCount(1)
+    const actions = main.getByRole('button', { name: /^Actions for / })
+    await expect(actions).toBeVisible()
+    await expect(page.getByRole('button', { name: /^Actions for / })).toHaveCount(1)
+    // The Project and status sit together on the left, with the menu on the right.
+    const picker = (await main.getByRole('combobox', { name: 'Project' }).boundingBox())!
+    const menu = (await actions.boundingBox())!
+    expect(360 - (menu.x + menu.width)).toBeCloseTo(picker.x, 0)
     expect(await fitsWidth(page)).toBe(true)
   })
 

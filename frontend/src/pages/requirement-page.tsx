@@ -1,8 +1,9 @@
 import { useIsMutating, useMutation, useMutationState, useQuery, useQueryClient } from '@tanstack/react-query'
 import { LoaderCircle } from 'lucide-react'
 import { useState } from 'react'
-import { useParams } from 'react-router'
+import { useNavigate, useParams } from 'react-router'
 import { Crumb } from '@/components/app-shell'
+import { RequirementActions } from '@/components/requirement-actions'
 import { QuestionCard, ShortcutHint } from '@/components/question-card'
 import { CompleteCard, LooksReadyCard } from '@/components/refinement-outcome'
 import { RequirementProject } from '@/components/requirement-project'
@@ -64,7 +65,10 @@ export function RequirementPage() {
     <>
       {requirement.data && (
         <div className="flex items-center justify-between gap-3 pt-4 sm:hidden">
-          <RequirementMeta requirement={requirement.data} />
+          <div className="flex min-w-0 items-center gap-3">
+            <RequirementMeta requirement={requirement.data} />
+          </div>
+          <PageActions requirement={requirement.data} />
         </div>
       )}
       {/* Once it's locked, there's nothing to try again */}
@@ -111,6 +115,7 @@ export function RequirementCrumb({ id }: { id: string }) {
       <Crumb>{data.title}</Crumb>
       <div className="flex shrink-0 items-center gap-3 max-sm:hidden">
         <RequirementMeta requirement={data} />
+        <PageActions requirement={data} className="-ml-1" />
       </div>
     </>
   )
@@ -123,6 +128,12 @@ function RequirementMeta({ requirement }: { requirement: Requirement }) {
       <StatusBadge status={requirement.status} className="shrink-0" />
     </>
   )
+}
+
+/** Deleting from here goes back to the list. */
+function PageActions({ requirement, className }: { requirement: Requirement; className?: string }) {
+  const navigate = useNavigate()
+  return <RequirementActions requirement={requirement} onDeleted={() => void navigate('/')} className={className} />
 }
 
 function Refinement({ requirement, stack }: { requirement: Requirement; stack: QuestionStack }) {

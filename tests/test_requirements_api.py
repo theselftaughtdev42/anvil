@@ -1185,6 +1185,66 @@ def test_listing_runs_the_same_queries_however_many_there_are(
     assert count_list_queries() == one
 
 
+# --- Deleting -----------------------------------------------------------------
+
+
+def delete(id: str) -> Response:
+    return client.delete(f"/api/requirements/{id}")
+
+
+def test_deleting_removes_it_with_its_questions_and_reopen_notes(
+    agent: FakeAgent, app_on_test_db: Engine
+) -> None:
+    id = completed(agent)
+    assert reopen(id).status_code == 200
+
+    response = delete(id)
+
+    assert response.status_code == 204
+    assert client.get(f"/api/requirements/{id}").status_code == 404
+    assert client.get("/api/requirements").json()["items"] == []
+    with Session(app_on_test_db) as session:
+        assert session.exec(select(Question)).all() == []
+        assert session.exec(select(ReopenNote)).all() == []
+
+
+@pytest.mark.parametrize("status", list(RequirementStatus))
+def test_a_requirement_can_be_deleted_whatever_its_status(
+    app_on_test_db: Engine, status: RequirementStatus
+) -> None:
+    created = create("Rebook a missed delivery")
+    set_status(app_on_test_db, created["id"], status)
+
+    assert delete(created["id"]).status_code == 204
+
+
+def test_deleting_leaves_other_requirements_alone(agent: FakeAgent) -> None:
+    agent.batches = [[draft("Who")], [draft("When")]]
+    gone = create("Rebook a missed delivery")
+    kept = create("Leave it with a neighbour")
+
+    assert delete(gone["id"]).status_code == 204
+
+    assert [r["id"] for r in client.get("/api/requirements").json()["items"]] == [
+        kept["id"]
+    ]
+    assert [q["text"] for q in questions(kept["id"])["open"]] == ["About When?"]
+
+
+def test_deleting_an_unknown_requirement_is_404() -> None:
+    assert delete(str(uuid.uuid4())).status_code == 404
+
+
+def test_deleting_someone_elses_requirement_is_404(
+    app_on_test_db: Engine, someone_else: PointOfContact
+) -> None:
+    theirs = add_requirement(app_on_test_db, someone_else)
+
+    assert delete(str(theirs)).status_code == 404
+    with Session(app_on_test_db) as session:
+        assert session.get(Requirement, theirs) is not None
+
+
 # --- OpenAPI ----------------------------------------------------------------
 
 

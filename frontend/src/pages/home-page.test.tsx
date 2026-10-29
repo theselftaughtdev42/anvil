@@ -172,6 +172,56 @@ test('a card opens its requirement', async () => {
   expect(router.state.location.pathname).toBe('/requirements/r3')
 })
 
+test("a card's delete button asks first, then removes it from the list", async () => {
+  let remaining = everyRequirement
+  const fetch = vi.fn<typeof globalThis.fetch>(async (input, init) => {
+    const url = new URL(String(input), location.origin)
+    if (url.pathname === '/api/config') return Response.json({ idea_placeholder: 'An idea' })
+    if (url.pathname === '/api/projects') return Response.json({ items: [] })
+    if (init?.method === 'DELETE') {
+      remaining = remaining.filter((r) => url.pathname !== `/api/requirements/${r.id}`)
+      return new Response(null, { status: 204 })
+    }
+    return Response.json({ items: remaining })
+  })
+  vi.stubGlobal('fetch', fetch)
+  const { screen, router } = await renderHome()
+
+  await screen.getByRole('button', { name: 'Actions for Offline sync for drivers' }).click()
+  await screen.getByRole('menuitem', { name: 'Delete…' }).click()
+
+  const dialog = screen.getByRole('dialog', { name: 'Delete this requirement?' })
+  await expect
+    .element(dialog)
+    .toMatchTextContent(
+      "Offline sync for drivers (Complete) will be deleted for good. Its 4 answers will be lost. This can't be undone.",
+    )
+  expect(router.state.location.pathname).toBe('/')
+  expect(fetch.mock.calls.some(([, init]) => init?.method === 'DELETE')).toBe(false)
+
+  await dialog.getByRole('button', { name: 'Delete requirement' }).click()
+
+  await expect.element(dialog).not.toBeInTheDocument()
+  await expect.element(screen.getByRole('link', { name: 'Offline sync for drivers' })).not.toBeInTheDocument()
+  await expect.element(screen.getByRole('link', { name: 'Bulk import depots' })).toBeVisible()
+  expect(router.state.location.pathname).toBe('/')
+})
+
+test('cancelling the delete keeps the card', async () => {
+  const fetch = serve(everyRequirement)
+  const { screen } = await renderHome()
+
+  await screen.getByRole('button', { name: 'Actions for Bulk import depots' }).click()
+  await screen.getByRole('menuitem', { name: 'Delete…' }).click()
+  const dialog = screen.getByRole('dialog', { name: 'Delete this requirement?' })
+  await expect.element(dialog).toMatchTextContent('Bulk import depots (Draft) will be deleted for good. It has no answers yet.')
+  await dialog.getByRole('button', { name: 'Cancel' }).click()
+
+  await expect.element(dialog).not.toBeInTheDocument()
+  await expect.element(screen.getByRole('link', { name: 'Bulk import depots' })).toBeVisible()
+  expect(fetch.mock.calls.some(([, init]) => init?.method === 'DELETE')).toBe(false)
+})
+
 test('each tab shows its count', async () => {
   serve([...everyRequirement, requirement({ id: 'r4', status: 'draft' })])
   const { screen } = await renderHome()
