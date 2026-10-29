@@ -36,7 +36,15 @@ services:
   app:
     profiles: [image]
     image: *app-image
-    environment: *app-env
+    environment:
+      <<: *app-env
+      # Unset, these keep the app on the offline stub agent (as the image
+      # smoke test needs); set them in .env to try the model agent.
+      AGENT: ${AGENT:-stub}
+      AGENT_MODEL: ${AGENT_MODEL:-}
+      AGENT_TIMEOUT_SECONDS: ${AGENT_TIMEOUT_SECONDS:-60}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OVHCLOUD_API_KEY: ${OVHCLOUD_API_KEY:-}
     ports:
       - "${APP_PORT:-8001}:8000"
     # Lets `up --wait` return only once the app is serving. Compose-only: the
