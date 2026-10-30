@@ -45,6 +45,17 @@ export function projectRequirementsQuery(projectId: string) {
   })
 }
 
+/**
+ * GET /api/projects/:id/requirements: every Requirement in the Project,
+ * whoever its Point of Contact. Only the Project Owner may.
+ */
+export function everyProjectRequirementQuery(projectId: string) {
+  return queryOptions({
+    queryKey: [...requirementsKey, { projectId, everyone: true }] as const,
+    queryFn: () => api<RequirementList>(`/projects/${projectId}/requirements`),
+  })
+}
+
 export const requirementKey = (id: string) => ['requirements', id] as const
 
 /**

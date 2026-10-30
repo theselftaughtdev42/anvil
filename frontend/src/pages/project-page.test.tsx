@@ -38,10 +38,21 @@ function serve({
   project = parcels,
   requirements = [requirement({}), requirement({ id: 'r2', title: 'Bulk import depots', status: 'draft' })],
   patch,
-}: { project?: Project | Response; requirements?: Requirement[]; patch?: Patch } = {}) {
+  remove = () => new Response(null, { status: 204 }),
+  everyRequirement = requirements,
+}: {
+  project?: Project | Response
+  requirements?: Requirement[]
+  patch?: Patch
+  remove?: (url: URL) => Response
+  /** Every Requirement in the Project, as its Project Owner sees them. */
+  everyRequirement?: Requirement[]
+} = {}) {
   const fetch = vi.fn<typeof globalThis.fetch>(async (input, init) => {
     const url = new URL(String(input), location.href)
     if (url.pathname === '/api/requirements') return Response.json({ items: requirements })
+    if (init?.method === 'DELETE') return remove(url)
+    if (url.pathname === '/api/projects/p1/requirements') return Response.json({ items: everyRequirement })
     if (init?.method === 'PATCH' && patch) return patch(JSON.parse(String(init.body)))
     return project instanceof Response ? project.clone() : Response.json(project)
   })
@@ -251,4 +262,150 @@ test('keeps unsaved changes when the Project fails to reload', async () => {
   )
   await expect.element(screen.getByLabelText('Project Context')).toHaveValue('A long, unsaved Project Context')
   await expect.element(screen.getByText("Couldn't load this project.")).not.toBeInTheDocument()
+})
+
+const deletes = (fetch: ReturnType<typeof serve>) =>
+  fetch.mock.calls.filter(([, init]) => init?.method === 'DELETE').map(([input]) => String(input))
+
+async function openDelete(screen: Awaited<ReturnType<typeof renderProject>>['screen']) {
+  const zone = screen.getByRole('region', { name: 'Danger zone' })
+  await zone.getByRole('button', { name: 'Delete project…' }).click()
+  return screen.getByRole('dialog', { name: 'Delete this project?' })
+}
+
+test('the delete dialog lists every Requirement that will go', async () => {
+  serve({
+    everyRequirement: Array.from({ length: 7 }, (_, i) =>
+      requirement({ id: `r${i}`, title: `Requirement ${i}`, status: i === 0 ? 'draft' : 'complete' }),
+    ),
+  })
+  const { screen } = await renderProject()
+
+  const dialog = await openDelete(screen)
+
+  await expect
+    .element(dialog.getByRole('paragraph').first())
+    .toMatchTextContent(
+      "Parcel delivery platform will be deleted for good. Its 7 Requirements, and all their Questions and Answers, will be deleted with it. This can't be undone.",
+    )
+  const listed = dialog.getByRole('list', { name: 'Requirements to delete' }).getByRole('listitem')
+  await expect.element(listed.nth(0)).toMatchTextContent('Requirement 0Draft')
+  expect(listed.elements()).toHaveLength(7)
+  await expect.element(listed.nth(6)).toMatchTextContent('Requirement 6Complete')
+})
+
+test('the delete dialog lists Requirements from other Points of Contact too', async () => {
+  const fetch = serve({
+    everyRequirement: [
+      requirement({}),
+      requirement({ id: 'r2', title: 'Bulk import depots', status: 'draft' }),
+      requirement({ id: 'r3', title: 'Their own idea', status: 'complete' }),
+    ],
+  })
+  const { screen } = await renderProject()
+  // The side column shows only yours.
+  const side = screen.getByRole('region', { name: 'Requirements in this Project' })
+  await expect.element(side.getByRole('listitem').nth(1)).toBeVisible()
+  expect(side.getByRole('listitem').elements()).toHaveLength(2)
+
+  const dialog = await openDelete(screen)
+
+  await expect.element(dialog).toMatchTextContent(/Its 3 Requirements, and all their Questions/)
+  await expect.element(dialog.getByRole('listitem').nth(2)).toMatchTextContent('Their own ideaComplete')
+  expect(fetch.mock.calls.map(([input]) => String(input))).toContain('/api/projects/p1/requirements')
+})
+
+test('reopening the delete dialog lists Requirements added since', async () => {
+  let everyRequirement = [requirement({})]
+  const fetch = serve()
+  const base = fetch.getMockImplementation()!
+  fetch.mockImplementation(async (input, init) =>
+    String(input) === '/api/projects/p1/requirements'
+      ? Response.json({ items: everyRequirement })
+      : base(input, init),
+  )
+  const { screen } = await renderProject()
+
+  let dialog = await openDelete(screen)
+  await expect.element(dialog).toMatchTextContent(/Its 1 Requirement,/)
+  await dialog.getByRole('button', { name: 'Cancel' }).click()
+
+  everyRequirement = [...everyRequirement, requirement({ id: 'r9', title: 'Added meanwhile' })]
+  dialog = await openDelete(screen)
+  await expect.element(dialog).toMatchTextContent(/Its 2 Requirements,/)
+  await expect.element(dialog.getByText('Added meanwhile')).toBeVisible()
+})
+
+test('the delete stays disabled until DELETE is typed', async () => {
+  const fetch = serve()
+  const { screen } = await renderProject()
+
+  const dialog = await openDelete(screen)
+  const confirm = dialog.getByRole('button', { name: 'Delete project' })
+  await expect.element(dialog.getByRole('listitem').nth(1)).toBeVisible()
+  await expect.element(confirm).toBeDisabled()
+
+  const typed = dialog.getByLabelText('Type DELETE to confirm')
+  for (const wrong of ['delete', 'DELET', ' DELETE']) {
+    await typed.fill(wrong)
+    await expect.element(confirm).toBeDisabled()
+  }
+  await typed.fill('DELETE')
+  await expect.element(confirm).toBeEnabled()
+
+  await dialog.getByRole('button', { name: 'Cancel' }).click()
+  await expect.element(dialog).not.toBeInTheDocument()
+  expect(deletes(fetch)).toEqual([])
+
+  // Opening it again starts from nothing typed.
+  const again = await openDelete(screen)
+  await expect.element(again.getByLabelText('Type DELETE to confirm')).toHaveValue('')
+})
+
+test('deleting goes to the Projects list, even with unsaved changes', async () => {
+  const fetch = serve()
+  const { screen, router } = await renderProject()
+  await screen.getByLabelText('Project Context').fill('Half written')
+
+  const dialog = await openDelete(screen)
+  await dialog.getByLabelText('Type DELETE to confirm').fill('DELETE')
+  await dialog.getByRole('button', { name: 'Delete project' }).click()
+
+  await expect.element(screen.getByText('Now at Projects')).toBeVisible()
+  await expect.element(screen.getByRole('dialog')).not.toBeInTheDocument()
+  expect(router.state.location.pathname).toBe('/projects')
+  expect(deletes(fetch)).toEqual(['/api/projects/p1?with_requirements=true'])
+})
+
+test('an empty Project deletes without taking Requirements', async () => {
+  const fetch = serve({ requirements: [] })
+  const { screen } = await renderProject()
+
+  const dialog = await openDelete(screen)
+  await expect.element(dialog).toMatchTextContent(/It has no Requirements\./)
+  await dialog.getByLabelText('Type DELETE to confirm').fill('DELETE')
+  await dialog.getByRole('button', { name: 'Delete project' }).click()
+
+  await expect.element(screen.getByText('Now at Projects')).toBeVisible()
+  expect(deletes(fetch)).toEqual(['/api/projects/p1?with_requirements=false'])
+})
+
+test('a failed delete says so and stays on the Project', async () => {
+  serve({ remove: () => Response.json({ detail: 'down' }, { status: 503 }) })
+  const { screen, router } = await renderProject()
+
+  const dialog = await openDelete(screen)
+  await dialog.getByLabelText('Type DELETE to confirm').fill('DELETE')
+  await dialog.getByRole('button', { name: 'Delete project' }).click()
+
+  await expect.element(dialog.getByRole('alert')).toHaveTextContent("Couldn't delete it. Try again.")
+  expect(router.state.location.pathname).toBe('/projects/p1')
+})
+
+test("there's no danger zone when you're not the Project Owner", async () => {
+  serve({ project: { ...parcels, is_owner: false } })
+  const { screen } = await renderProject()
+
+  await expect.element(screen.getByText('Only the Project Owner can change this Project.')).toBeVisible()
+  await expect.element(screen.getByRole('region', { name: 'Danger zone' })).not.toBeInTheDocument()
 })

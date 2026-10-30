@@ -40,3 +40,12 @@ export function projectQuery(id: string) {
 export function updateProject(id: string, changes: { name: string; context: string }): Promise<Project> {
   return api<Project>(`/projects/${id}`, { method: 'PATCH', json: changes satisfies ProjectUpdate })
 }
+
+/**
+ * DELETE /api/projects/:id, for the Project Owner only. Without
+ * `withRequirements`, a Project that has Requirements is a 409; with it, they
+ * go too, with their Questions and Reopen notes.
+ */
+export function deleteProject(id: string, withRequirements: boolean): Promise<void> {
+  return api<void>(`/projects/${id}?with_requirements=${withRequirements}`, { method: 'DELETE' })
+}
