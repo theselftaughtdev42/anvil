@@ -1,6 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
 import { ArrowLeft, LoaderCircle } from 'lucide-react'
-import { Link, useParams } from 'react-router'
+import { useState } from 'react'
+import { flushSync } from 'react-dom'
+import { Link, useNavigate, useParams } from 'react-router'
+import { ProjectDangerZone } from '@/components/project-danger-zone'
 import { ProjectForm } from '@/components/project-form'
 import { ProjectRequirements } from '@/components/project-requirements'
 import { Button } from '@/components/ui/button'
@@ -18,6 +21,16 @@ const isNotFound = (error: Error | null) =>
 export function ProjectPage() {
   const { id = '' } = useParams()
   const project = useQuery(projectQuery(id))
+  const navigate = useNavigate()
+  const [deleted, setDeleted] = useState(false)
+
+  const leave = () => {
+    // Unmount the form first, so its leave guard doesn't ask about unsaved changes.
+    flushSync(() => setDeleted(true))
+    void navigate('/projects', { replace: true })
+  }
+
+  if (deleted) return null
 
   // Once the Project has loaded, a failed reload keeps it on screen, so it
   // never throws away unsaved changes.
@@ -48,7 +61,10 @@ export function ProjectPage() {
           )}
           <div className="mt-8 grid items-start gap-12 lg:grid-cols-[minmax(0,1fr)_17.5rem] lg:gap-8">
             {/* Remounts with a different Project, so the draft starts from it */}
-            <ProjectForm key={project.data.id} project={project.data} />
+            <div>
+              <ProjectForm key={project.data.id} project={project.data} />
+              {project.data.is_owner && <ProjectDangerZone project={project.data} onDeleted={leave} />}
+            </div>
             <ProjectRequirements projectId={project.data.id} />
           </div>
         </>

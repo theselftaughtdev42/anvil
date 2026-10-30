@@ -9,7 +9,13 @@ from sqlmodel import Session, col, select
 from anvil.auth import get_current_user
 from anvil.db import get_session
 from anvil.main import app
-from anvil.models import PointOfContact, Project, Requirement
+from anvil.models import (
+    PointOfContact,
+    Project,
+    Question,
+    ReopenNote,
+    Requirement,
+)
 
 client = TestClient(app)
 
@@ -288,6 +294,150 @@ def test_only_the_owner_can_update(
 
 def test_update_an_unknown_project_is_404() -> None:
     response = client.patch(f"/api/projects/{uuid.uuid4()}", json={"name": "X"})
+
+    assert response.status_code == 404
+
+
+# --- Listing every Requirement ---------------------------------------------
+
+
+def test_the_owner_sees_every_requirement_in_the_project(
+    app_on_test_db: Engine, someone_else: PointOfContact
+) -> None:
+    created = create("Parcels")
+    other = create("Trains")
+    add_requirements(app_on_test_db, created["id"], 2)
+    add_requirements(app_on_test_db, other["id"], 1)
+    with Session(app_on_test_db) as session:
+        session.add(
+            Requirement(
+                point_of_contact_id=someone_else.id,
+                project_id=uuid.UUID(created["id"]),
+                idea="Theirs",
+                title="Theirs",
+            )
+        )
+        session.commit()
+
+    response = client.get(f"/api/projects/{created['id']}/requirements")
+
+    assert response.status_code == 200
+    assert sorted(r["title"] for r in response.json()["items"]) == [
+        "Idea 0",
+        "Idea 1",
+        "Theirs",
+    ]
+
+
+def test_only_the_owner_can_list_every_requirement(
+    someone_else: PointOfContact,
+) -> None:
+    created = create("Parcels")
+    app.dependency_overrides[get_current_user] = lambda: someone_else
+
+    response = client.get(f"/api/projects/{created['id']}/requirements")
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == (
+        "Only the Project Owner can see every Requirement in this Project"
+    )
+
+
+def test_listing_the_requirements_of_an_unknown_project_is_404() -> None:
+    assert client.get(f"/api/projects/{uuid.uuid4()}/requirements").status_code == 404
+
+
+# --- Deleting ---------------------------------------------------------------
+
+
+def test_an_empty_project_deletes_without_the_flag(app_on_test_db: Engine) -> None:
+    created = create("Parcels")
+    kept = create("Trains")
+
+    response = client.delete(f"/api/projects/{created['id']}")
+
+    assert response.status_code == 204
+    assert client.get(f"/api/projects/{created['id']}").status_code == 404
+    assert [p["id"] for p in client.get("/api/projects").json()["items"]] == [
+        kept["id"]
+    ]
+
+
+def test_a_project_with_requirements_is_409_without_the_flag(
+    app_on_test_db: Engine,
+) -> None:
+    created = create("Parcels")
+    add_requirements(app_on_test_db, created["id"], 3)
+
+    response = client.delete(f"/api/projects/{created['id']}")
+
+    assert response.status_code == 409
+    assert response.json()["detail"] == (
+        "This Project has 3 Requirements; pass with_requirements=true to delete them too"
+    )
+    assert client.get(f"/api/projects/{created['id']}").json()["requirement_count"] == 3
+
+
+def test_with_the_flag_it_deletes_the_requirements_and_their_questions_and_notes(
+    app_on_test_db: Engine, someone_else: PointOfContact
+) -> None:
+    created = create("Parcels")
+    kept_project = create("Trains")
+    add_requirements(app_on_test_db, created["id"], 2)
+    add_requirements(app_on_test_db, kept_project["id"], 1)
+    with Session(app_on_test_db) as session:
+        # Someone else's Requirement in the Project goes too.
+        theirs = Requirement(
+            point_of_contact_id=someone_else.id,
+            project_id=uuid.UUID(created["id"]),
+            idea="Theirs",
+            title="Theirs",
+        )
+        session.add(theirs)
+        session.flush()
+        for requirement_id in session.exec(select(col(Requirement.id))):
+            session.add(
+                Question(
+                    requirement_id=requirement_id,
+                    topic="Who",
+                    text="Who?",
+                    position=0,
+                    number=1,
+                )
+            )
+            session.add(ReopenNote(requirement_id=requirement_id, note="More"))
+        session.commit()
+
+    response = client.delete(
+        f"/api/projects/{created['id']}", params={"with_requirements": "true"}
+    )
+
+    assert response.status_code == 204
+    with Session(app_on_test_db) as session:
+        [kept] = session.exec(select(Requirement)).all()
+        assert str(kept.project_id) == kept_project["id"]
+        assert [q.requirement_id for q in session.exec(select(Question))] == [kept.id]
+        assert [n.requirement_id for n in session.exec(select(ReopenNote))] == [kept.id]
+        assert session.get(Project, uuid.UUID(created["id"])) is None
+
+
+def test_only_the_owner_can_delete(
+    app_on_test_db: Engine, someone_else: PointOfContact
+) -> None:
+    created = create("Parcels")
+    app.dependency_overrides[get_current_user] = lambda: someone_else
+
+    response = client.delete(
+        f"/api/projects/{created['id']}", params={"with_requirements": "true"}
+    )
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Only the Project Owner can delete this Project"
+    assert client.get(f"/api/projects/{created['id']}").status_code == 200
+
+
+def test_delete_an_unknown_project_is_404() -> None:
+    response = client.delete(f"/api/projects/{uuid.uuid4()}")
 
     assert response.status_code == 404
 

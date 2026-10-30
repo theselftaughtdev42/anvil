@@ -1,7 +1,7 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, StringConstraints
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
@@ -12,6 +12,12 @@ from anvil.auth import CurrentUserDep
 from anvil.db import SessionDep
 from anvil.models import PointOfContact, Project, Requirement
 from anvil.models.project import NAME_MAX_LENGTH
+from anvil.requirements import (
+    RequirementList,
+    delete_requirements,
+    requirement_public,
+    select_with_progress,
+)
 
 CONTEXT_MAX_LENGTH = 20_000
 
@@ -126,6 +132,30 @@ def get_project(
     return get_project_public(session, project_id, user)
 
 
+def get_own_project(
+    session: Session,
+    project_id: uuid.UUID,
+    user: PointOfContact,
+    action: str,
+    *,
+    for_update: bool = True,
+) -> Project:
+    """The Project; 404 if missing, 403 unless `user` is its Project Owner.
+    `for_update` locks it until the request commits.
+    """
+    query = select(Project).where(Project.id == project_id)
+    if for_update:
+        query = query.with_for_update()
+    project = session.exec(query).first()
+    if project is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+    if project.owner_id != user.id:
+        raise HTTPException(
+            status_code=403, detail=f"Only the Project Owner can {action}"
+        )
+    return project
+
+
 @router.patch("/{project_id}")
 def update_project(
     project_id: uuid.UUID,
@@ -134,16 +164,62 @@ def update_project(
     user: CurrentUserDep,
 ) -> ProjectPublic:
     """Only the Project Owner can rename a Project or change its Project Context."""
-    project = session.get(Project, project_id)
-    if project is None:
-        raise HTTPException(status_code=404, detail="Project not found")
-    if project.owner_id != user.id:
-        raise HTTPException(
-            status_code=403, detail="Only the Project Owner can change this Project"
-        )
+    project = get_own_project(session, project_id, user, "change this Project")
     if body.name is not None:
         project.name = body.name
     if body.context is not None:
         project.context = body.context
     commit_or_409(session, project.name)
     return get_project_public(session, project_id, user)
+
+
+@router.get("/{project_id}/requirements")
+def list_project_requirements(
+    project_id: uuid.UUID, session: SessionDep, user: CurrentUserDep
+) -> RequirementList:
+    """Every Requirement in the Project, whoever its Point of Contact, most recently
+    updated first. Only the Project Owner can see them all.
+    """
+    project = get_own_project(
+        session,
+        project_id,
+        user,
+        "see every Requirement in this Project",
+        for_update=False,
+    )
+    query = (
+        select_with_progress()
+        .where(col(Requirement.project_id) == project.id)
+        .order_by(col(Requirement.updated_at).desc())
+    )
+    return RequirementList(
+        items=[requirement_public(*row) for row in session.exec(query)]
+    )
+
+
+@router.delete("/{project_id}", status_code=204)
+def delete_project(
+    project_id: uuid.UUID,
+    session: SessionDep,
+    user: CurrentUserDep,
+    with_requirements: Annotated[bool, Query()] = False,
+) -> None:
+    """Deletes the Project for good; only its Project Owner can. A Project with
+    Requirements is a 409 unless `with_requirements` is set, which deletes them too,
+    whoever their Point of Contact is.
+    """
+    project = get_own_project(session, project_id, user, "delete this Project")
+    requirement_ids = list(
+        session.exec(select(Requirement.id).where(Requirement.project_id == project.id))
+    )
+    if requirement_ids and not with_requirements:
+        count = len(requirement_ids)
+        raise HTTPException(
+            status_code=409,
+            detail=f"This Project has {count} "
+            f"{'Requirement' if count == 1 else 'Requirements'}; "
+            "pass with_requirements=true to delete them too",
+        )
+    delete_requirements(session, requirement_ids)
+    session.delete(project)
+    session.commit()

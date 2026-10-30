@@ -269,7 +269,13 @@ export interface paths {
         get: operations["get_project_api_projects__project_id__get"];
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Delete Project
+         * @description Deletes the Project for good; only its Project Owner can. A Project with
+         *     Requirements is a 409 unless `with_requirements` is set, which deletes them too,
+         *     whoever their Point of Contact is.
+         */
+        delete: operations["delete_project_api_projects__project_id__delete"];
         options?: never;
         head?: never;
         /**
@@ -277,6 +283,27 @@ export interface paths {
          * @description Only the Project Owner can rename a Project or change its Project Context.
          */
         patch: operations["update_project_api_projects__project_id__patch"];
+        trace?: never;
+    };
+    "/api/projects/{project_id}/requirements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Project Requirements
+         * @description Every Requirement in the Project, whoever its Point of Contact, most recently
+         *     updated first. Only the Project Owner can see them all.
+         */
+        get: operations["list_project_requirements_api_projects__project_id__requirements_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
 }
@@ -1042,6 +1069,37 @@ export interface operations {
             };
         };
     };
+    delete_project_api_projects__project_id__delete: {
+        parameters: {
+            query?: {
+                with_requirements?: boolean;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     update_project_api_projects__project_id__patch: {
         parameters: {
             query?: never;
@@ -1064,6 +1122,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProjectPublic"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_project_requirements_api_projects__project_id__requirements_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RequirementList"];
                 };
             };
             /** @description Validation Error */
