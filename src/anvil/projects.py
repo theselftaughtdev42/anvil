@@ -203,23 +203,26 @@ def delete_project(
     session: SessionDep,
     user: CurrentUserDep,
     with_requirements: Annotated[bool, Query()] = False,
+    requirement_count: Annotated[int | None, Query(ge=0)] = None,
 ) -> None:
     """Deletes the Project for good; only its Project Owner can. A Project with
     Requirements is a 409 unless `with_requirements` is set, which deletes them too,
-    whoever their Point of Contact is.
+    whoever their Point of Contact is. `requirement_count` is how many the caller
+    expects to delete; any other number is a 409, so nothing unseen goes.
     """
     project = get_own_project(session, project_id, user, "delete this Project")
     requirement_ids = list(
         session.exec(select(Requirement.id).where(Requirement.project_id == project.id))
     )
+    count = len(requirement_ids)
+    has = f"This Project has {count} {'Requirement' if count == 1 else 'Requirements'}"
     if requirement_ids and not with_requirements:
-        count = len(requirement_ids)
         raise HTTPException(
             status_code=409,
-            detail=f"This Project has {count} "
-            f"{'Requirement' if count == 1 else 'Requirements'}; "
-            "pass with_requirements=true to delete them too",
+            detail=f"{has}; pass with_requirements=true to delete them too",
         )
+    if requirement_count is not None and requirement_count != count:
+        raise HTTPException(status_code=409, detail=f"{has}, not {requirement_count}")
     delete_requirements(session, requirement_ids)
     session.delete(project)
     session.commit()

@@ -47,7 +47,7 @@ export function ProjectDangerZone({ project, onDeleted }: { project: Project; on
   const reload = () => void list.refetch()
 
   const { mutate, isPending, error, reset } = useMutation({
-    mutationFn: () => deleteProject(project.id, items.length > 0),
+    mutationFn: () => deleteProject(project.id, items.length),
     onSuccess: () => {
       setOpenedAt(null)
       onDeleted()
@@ -56,7 +56,7 @@ export function ProjectDangerZone({ project, onDeleted }: { project: Project; on
       void queryClient.invalidateQueries({ queryKey: requirementsKey })
     },
     onError: (failure) => {
-      // A Requirement was added since the dialog opened: show it before asking again.
+      // The Requirements changed since the dialog loaded: show them before asking again.
       if (failure instanceof ApiError && failure.status === 409) reload()
     },
   })

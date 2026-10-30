@@ -273,7 +273,8 @@ export interface paths {
          * Delete Project
          * @description Deletes the Project for good; only its Project Owner can. A Project with
          *     Requirements is a 409 unless `with_requirements` is set, which deletes them too,
-         *     whoever their Point of Contact is.
+         *     whoever their Point of Contact is. `requirement_count` is how many the caller
+         *     expects to delete; any other number is a 409, so nothing unseen goes.
          */
         delete: operations["delete_project_api_projects__project_id__delete"];
         options?: never;
@@ -1073,6 +1074,7 @@ export interface operations {
         parameters: {
             query?: {
                 with_requirements?: boolean;
+                requirement_count?: number | null;
             };
             header?: never;
             path: {

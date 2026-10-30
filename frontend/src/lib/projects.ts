@@ -44,8 +44,12 @@ export function updateProject(id: string, changes: { name: string; context: stri
 /**
  * DELETE /api/projects/:id, for the Project Owner only. Without
  * `withRequirements`, a Project that has Requirements is a 409; with it, they
- * go too, with their Questions and Reopen notes.
+ * go too, with their Questions and Reopen notes. Passes how many Requirements
+ * the caller showed, so the delete is a 409 if that's changed since.
  */
-export function deleteProject(id: string, withRequirements: boolean): Promise<void> {
-  return api<void>(`/projects/${id}?with_requirements=${withRequirements}`, { method: 'DELETE' })
+export function deleteProject(id: string, requirementCount: number): Promise<void> {
+  return api<void>(
+    `/projects/${id}?with_requirements=${requirementCount > 0}&requirement_count=${requirementCount}`,
+    { method: 'DELETE' },
+  )
 }

@@ -374,7 +374,7 @@ test('deleting goes to the Projects list, even with unsaved changes', async () =
   await expect.element(screen.getByText('Now at Projects')).toBeVisible()
   await expect.element(screen.getByRole('dialog')).not.toBeInTheDocument()
   expect(router.state.location.pathname).toBe('/projects')
-  expect(deletes(fetch)).toEqual(['/api/projects/p1?with_requirements=true'])
+  expect(deletes(fetch)).toEqual(['/api/projects/p1?with_requirements=true&requirement_count=2'])
 })
 
 test('an empty Project deletes without taking Requirements', async () => {
@@ -387,7 +387,39 @@ test('an empty Project deletes without taking Requirements', async () => {
   await dialog.getByRole('button', { name: 'Delete project' }).click()
 
   await expect.element(screen.getByText('Now at Projects')).toBeVisible()
-  expect(deletes(fetch)).toEqual(['/api/projects/p1?with_requirements=false'])
+  expect(deletes(fetch)).toEqual(['/api/projects/p1?with_requirements=false&requirement_count=0'])
+})
+
+test('a Requirement added while the dialog is open is shown before anything is deleted', async () => {
+  let everyRequirement = [requirement({})]
+  const fetch = serve({
+    remove: (url) =>
+      url.searchParams.get('requirement_count') === String(everyRequirement.length)
+        ? new Response(null, { status: 204 })
+        : Response.json({ detail: 'changed' }, { status: 409 }),
+  })
+  const base = fetch.getMockImplementation()!
+  fetch.mockImplementation(async (input, init) =>
+    String(input) === '/api/projects/p1/requirements' ? Response.json({ items: everyRequirement }) : base(input, init),
+  )
+  const { screen, router } = await renderProject()
+
+  const dialog = await openDelete(screen)
+  await expect.element(dialog).toMatchTextContent(/Its 1 Requirement,/)
+  everyRequirement = [...everyRequirement, requirement({ id: 'r9', title: 'Added meanwhile' })]
+  await dialog.getByLabelText('Type DELETE to confirm').fill('DELETE')
+  await dialog.getByRole('button', { name: 'Delete project' }).click()
+
+  await expect.element(dialog.getByText('Added meanwhile')).toBeVisible()
+  await expect.element(dialog).toMatchTextContent(/Its 2 Requirements,/)
+  expect(router.state.location.pathname).toBe('/projects/p1')
+
+  await dialog.getByRole('button', { name: 'Delete project' }).click()
+  await expect.element(screen.getByText('Now at Projects')).toBeVisible()
+  expect(deletes(fetch)).toEqual([
+    '/api/projects/p1?with_requirements=true&requirement_count=1',
+    '/api/projects/p1?with_requirements=true&requirement_count=2',
+  ])
 })
 
 test('a failed delete says so and stays on the Project', async () => {
