@@ -421,6 +421,35 @@ def test_with_the_flag_it_deletes_the_requirements_and_their_questions_and_notes
         assert session.get(Project, uuid.UUID(created["id"])) is None
 
 
+def test_a_requirement_count_that_does_not_match_is_409(
+    app_on_test_db: Engine,
+) -> None:
+    created = create("Parcels")
+    add_requirements(app_on_test_db, created["id"], 3)
+
+    response = client.delete(
+        f"/api/projects/{created['id']}",
+        params={"with_requirements": "true", "requirement_count": 2},
+    )
+
+    assert response.status_code == 409
+    assert response.json()["detail"] == "This Project has 3 Requirements, not 2"
+    assert client.get(f"/api/projects/{created['id']}").json()["requirement_count"] == 3
+
+
+def test_a_matching_requirement_count_deletes(app_on_test_db: Engine) -> None:
+    created = create("Parcels")
+    add_requirements(app_on_test_db, created["id"], 3)
+
+    response = client.delete(
+        f"/api/projects/{created['id']}",
+        params={"with_requirements": "true", "requirement_count": 3},
+    )
+
+    assert response.status_code == 204
+    assert client.get(f"/api/projects/{created['id']}").status_code == 404
+
+
 def test_only_the_owner_can_delete(
     app_on_test_db: Engine, someone_else: PointOfContact
 ) -> None:
