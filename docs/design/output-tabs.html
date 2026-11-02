@@ -1,0 +1,359 @@
+<!doctype html>
+<!--
+  Reference design for a Requirement's Output: the Refinement | Output tabs, in all five states.
+  Open it in a browser. It is the source for layout and copy, not code to copy: build the real page
+  from shadcn components and theme.css. The Requirement and its Gherkin here are made up.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Anvil: Output tabs design</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@900&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;600&display=swap">
+<style>
+  :root {
+    --iron: #16130f; --card: #1f1a15; --raised: #241f19; --sunk: #1a1612; --border: #2e2821; --border-strong: #4a4137;
+    --soot: #2b261f; --ash: #ede6da; --muted: #a39a8c; --faint: #6b6259;
+    --ember: #e8642c; --ember-wash: #2a1a10; --amber: #e9c27a; --amber-dot: #d9a441; --amber-bg: #2e2410; --amber-border: #5a4518;
+    --steel: #7fa7bf; --steel-bg: #172229; --steel-border: #2a4250; --steel-text: #a9c7d8;
+    --destructive: oklch(0.704 0.191 22.216);
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--iron); color: var(--ash); font: 400 14px/1.5 'Geist', ui-sans-serif, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  button:focus-visible { outline: 2px solid var(--ember); outline-offset: 2px; }
+  h1, h2, h3, p { margin: 0; }
+  .mono { font-family: 'Geist Mono', ui-monospace, Menlo, monospace; }
+  .eyebrow { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 400; }
+
+  header { border-bottom: 1px solid var(--border); }
+  .bar { max-width: 1120px; margin: 0 auto; padding: 0 24px; height: 56px; display: flex; align-items: center; gap: 16px; }
+  .brand { display: flex; align-items: center; gap: 8px; color: var(--ash); text-decoration: none; }
+  .wordmark { font: 900 18px/1 'Archivo', sans-serif; letter-spacing: .04em; }
+  .nav { display: flex; gap: 4px; }
+  .nav a { height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 8px; color: var(--muted); text-decoration: none; }
+  .nav a[aria-current] { background: var(--soot); color: var(--ash); }
+  .crumb { display: flex; flex: 1; min-width: 0; align-items: center; gap: 16px; }
+  .crumb h1 { flex: 1; min-width: 0; font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .meta { display: flex; align-items: center; gap: 12px; color: var(--muted); }
+  .avatar { width: 32px; height: 32px; border-radius: 999px; border: 0; background: var(--soot); font-size: 12px; font-weight: 500; }
+
+  .badge { display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 8px; border-radius: 6px; font-size: 12px; font-weight: 500; border: 1px solid; white-space: nowrap; }
+  .badge.complete { border-color: var(--steel-border); background: var(--steel-bg); color: var(--steel-text); }
+  .badge.in-progress, .badge.stale { border-color: var(--amber-border); background: var(--amber-bg); color: var(--amber); }
+  .dot { width: 6px; height: 6px; border-radius: 999px; display: inline-block; }
+
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 40px; padding: 0 14px; border-radius: 8px; font-weight: 500; white-space: nowrap; border: 1px solid transparent; }
+  .btn svg { width: 16px; height: 16px; flex: none; }
+  .btn.primary { background: var(--ember); color: var(--iron); padding: 0 18px; }
+  .btn.outline { background: rgba(46,40,33,.3); border-color: var(--border); }
+  .btn.icon { width: 40px; padding: 0; }
+  .btn[disabled] { opacity: .5; cursor: default; }
+  .spin { animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  main { max-width: 1120px; margin: 0 auto; padding: 32px 24px 72px; display: flex; flex-direction: column; gap: 56px; }
+  .state { display: flex; flex-direction: column; gap: 12px; }
+  .state > h2 { font-size: 13px; font-weight: 400; color: var(--muted); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .state > h2 b { color: var(--ash); font-weight: 600; }
+  .frame { display: flex; flex-direction: column; gap: 24px; border: 1px solid var(--border); border-radius: 12px; padding: 24px; }
+
+  .tabs { align-self: center; display: inline-flex; align-items: center; height: 36px; padding: 3px; border-radius: 10px; background: var(--soot); }
+  .tab { height: 100%; display: inline-flex; align-items: center; gap: 6px; padding: 0 12px; border-radius: 8px; border: 1px solid transparent; background: none; color: var(--muted); font-weight: 500; }
+  .tab[aria-selected="true"] { background: rgba(46,40,33,.6); border-color: var(--border-strong); color: var(--ash); }
+
+  .panel { display: flex; flex-wrap: wrap; gap: 32px; align-items: flex-start; }
+  .rail { flex: 1 1 200px; max-width: 240px; display: flex; flex-direction: column; gap: 10px; }
+  .fmt { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; width: 100%; text-align: left; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--ember); background: var(--ember-wash); font-weight: 500; line-height: 1.2; }
+  .fmt small { font-size: 12px; font-weight: 400; color: var(--muted); }
+  .fmt small.stale { color: var(--amber); }
+  .more { border: 1px dashed var(--border-strong); border-radius: 8px; padding: 10px 12px; font-size: 12px; color: var(--muted); }
+  .output { flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 16px; }
+  .output-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px; }
+  .output-head h3 { font-size: 22px; line-height: 1.35; font-weight: 600; letter-spacing: -.015em; }
+  .sub { font-size: 14px; color: var(--muted); }
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .empty { border: 1px dashed var(--border-strong); border-radius: 12px; padding: 40px 28px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px; }
+  .empty .sub { max-width: 380px; }
+  .alert { font-size: 15px; font-weight: 500; color: var(--destructive); }
+  .note { font-size: 13px; color: var(--amber); }
+
+  .code { background: var(--sunk); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .codebar { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--border); color: var(--muted); font-size: 13px; }
+  .codebar .ro { margin-left: auto; font-size: 12px; font-family: 'Geist', sans-serif; }
+  pre.gherkin { margin: 0; padding: 12px 0; font: 400 13px/21px 'Geist Mono', ui-monospace, Menlo, monospace; overflow-x: auto; counter-reset: line; }
+  pre.gherkin .ln { display: block; padding-right: 16px; }
+  pre.gherkin .ln::before { counter-increment: line; content: counter(line); display: inline-block; width: 44px; padding-right: 16px; text-align: right; color: var(--faint); user-select: none; }
+  .kw { color: var(--ember); font-weight: 600; } .ti { font-weight: 600; } .st { color: var(--amber); } .sr { color: var(--steel-text); }
+  .ph { color: #f5a77f; background: var(--ember-wash); border-radius: 3px; } .pp { color: var(--faint); } .tg { color: var(--steel); }
+  .cm { color: var(--muted); font-style: italic; } .ds { color: var(--muted); } .na { font-weight: 500; }
+  .skeleton { padding: 18px 20px; display: flex; flex-direction: column; gap: 12px; }
+  .sk { height: 10px; border-radius: 999px; background: var(--soot); animation: pulse 1.6s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: .45; } }
+  @media (prefers-reduced-motion: reduce) { .spin, .sk { animation: none; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <a class="brand" href="#">
+      <svg viewBox="2 28 94 44" width="36" aria-hidden="true"><path d="M4 34 C16 34 24 32 28 30 H94 V44 H78 Q68 46 66 58 H76 V70 H28 V58 H38 Q36 46 28 44 Q14 42 4 34 Z" fill="#EDE6DA"/></svg>
+      <span class="wordmark">ANVIL</span>
+    </a>
+    <nav class="nav" aria-label="Sections"><a href="#" aria-current="page">Requirements</a><a href="#">Projects</a></nav>
+    <div class="crumb">
+      <span aria-hidden="true" style="color: var(--border-strong)">/</span>
+      <h1>Delete a Project and its Requirements</h1>
+      <div class="meta">
+        <span>Anvil</span>
+        <span class="badge complete"><span class="dot" style="background: var(--steel)"></span>Complete</span>
+      </div>
+    </div>
+    <button class="avatar" aria-label="Account">TM</button>
+  </div>
+</header>
+
+<main>
+  <!-- 1 -->
+  <section class="state">
+    <h2><b>1 · Complete, no Output yet</b> Only a Complete Requirement can generate an Output.</h2>
+    <div class="frame">
+      <div class="tabs" role="tablist" aria-label="Requirement"><button class="tab" role="tab" aria-selected="false">Refinement</button><button class="tab" role="tab" aria-selected="true">Output</button></div>
+      <div class="panel">
+        <nav class="rail" aria-label="Output format">
+          <p class="eyebrow">Output format</p>
+          <button class="fmt" aria-current="true">Gherkin<small>Not generated yet</small></button>
+          <p class="more">More Output formats will be listed here.</p>
+        </nav>
+        <div class="output">
+          <div class="empty">
+            <h3 style="font-size: 18px; font-weight: 600">No Output yet</h3>
+            <p class="sub">Turn this Complete Requirement into a Gherkin Feature, with Scenarios drawn from its 9 Answers.</p>
+            <button class="btn primary">Generate Gherkin</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 -->
+  <section class="state">
+    <h2><b>2 · Generating</b> A model call that takes several seconds.</h2>
+    <div class="frame">
+      <div class="tabs" role="tablist" aria-label="Requirement"><button class="tab" role="tab" aria-selected="false">Refinement</button><button class="tab" role="tab" aria-selected="true">Output</button></div>
+      <div class="panel">
+        <nav class="rail" aria-label="Output format">
+          <p class="eyebrow">Output format</p>
+          <button class="fmt" aria-current="true">Gherkin<small>Generating…</small></button>
+          <p class="more">More Output formats will be listed here.</p>
+        </nav>
+        <div class="output" aria-busy="true">
+          <div class="output-head">
+            <div>
+              <h3>Gherkin</h3>
+              <p class="sub" role="status">Anvil is writing it from 9 Answers. This takes a few seconds.</p>
+            </div>
+            <button class="btn primary" aria-busy="true"><svg class="spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>Generate Gherkin</button>
+          </div>
+          <div class="code skeleton" aria-hidden="true">
+            <div class="sk" style="width: 46%"></div>
+            <div class="sk" style="width: 34%; margin-left: 16px"></div>
+            <div class="sk" style="width: 58%; margin-left: 16px"></div>
+            <div class="sk" style="width: 40%; margin-left: 16px"></div>
+            <div class="sk" style="width: 24%; margin-left: 16px; margin-top: 8px"></div>
+            <div class="sk" style="width: 52%; margin-left: 32px"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 -->
+  <section class="state">
+    <h2><b>3 · Generation failed</b> The same button retries. Completing a Requirement never depends on this.</h2>
+    <div class="frame">
+      <div class="tabs" role="tablist" aria-label="Requirement"><button class="tab" role="tab" aria-selected="false">Refinement</button><button class="tab" role="tab" aria-selected="true">Output</button></div>
+      <div class="panel">
+        <nav class="rail" aria-label="Output format">
+          <p class="eyebrow">Output format</p>
+          <button class="fmt" aria-current="true">Gherkin<small>Not generated yet</small></button>
+          <p class="more">More Output formats will be listed here.</p>
+        </nav>
+        <div class="output">
+          <div class="empty">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: var(--destructive)"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
+            <p class="alert" role="alert">Couldn't generate the Gherkin. Try again.</p>
+            <p class="sub">Anvil couldn't reach the model. Nothing about the Requirement changed.</p>
+            <button class="btn primary">Generate Gherkin</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 -->
+  <section class="state">
+    <h2><b>4 · Output present</b> Read-only. Download saves <span class="mono">&lt;requirement-title-slug&gt;.feature</span>.</h2>
+    <div class="frame">
+      <div class="tabs" role="tablist" aria-label="Requirement"><button class="tab" role="tab" aria-selected="false">Refinement</button><button class="tab" role="tab" aria-selected="true">Output<span class="dot" style="background: var(--steel)" aria-hidden="true"></span></button></div>
+      <div class="panel">
+        <nav class="rail" aria-label="Output format">
+          <p class="eyebrow">Output format</p>
+          <button class="fmt" aria-current="true">Gherkin<small>Generated 2 Nov, 14:32</small></button>
+          <p class="more">More Output formats will be listed here.</p>
+        </nav>
+        <div class="output">
+          <div class="output-head">
+            <div>
+              <h3>Gherkin</h3>
+              <p class="sub">Generated 2 Nov 2026 at 14:32 · from 9 Answers</p>
+            </div>
+            <div class="actions">
+              <button class="btn outline"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>Copy</button>
+              <button class="btn outline"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>Download</button>
+              <button class="btn outline"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>Regenerate</button>
+            </div>
+          </div>
+          <div class="code">
+            <div class="codebar mono"><span>delete-a-project-and-its-requirements.feature</span><span class="ro">Read-only</span></div>
+            <pre class="gherkin" aria-label="Gherkin" data-gherkin></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 -->
+  <section class="state">
+    <h2><b>5 · Reopened → Out of date</b> The header badge is now <span class="badge in-progress"><span class="dot" style="background: var(--amber-dot)"></span>In progress</span></h2>
+    <div class="frame">
+      <div class="tabs" role="tablist" aria-label="Requirement"><button class="tab" role="tab" aria-selected="false">Refinement</button><button class="tab" role="tab" aria-selected="true">Output<span class="dot" style="background: var(--amber-dot)" aria-hidden="true"></span></button></div>
+      <div class="panel">
+        <nav class="rail" aria-label="Output format">
+          <p class="eyebrow">Output format</p>
+          <button class="fmt" aria-current="true">Gherkin<small class="stale">Out of date</small></button>
+          <p class="more">More Output formats will be listed here.</p>
+        </nav>
+        <div class="output">
+          <div class="output-head">
+            <div>
+              <div style="display: flex; align-items: center; gap: 10px"><h3>Gherkin</h3><span class="badge stale">Out of date</span></div>
+              <p class="sub">Generated 2 Nov 2026 at 14:32, before it was reopened</p>
+            </div>
+            <div class="actions">
+              <button class="btn outline icon" aria-label="Copy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg></button>
+              <button class="btn outline icon" aria-label="Download"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg></button>
+              <button class="btn outline" disabled aria-describedby="stale-note">Regenerate</button>
+            </div>
+          </div>
+          <p class="note" id="stale-note">Confirm it Complete again to regenerate. Copy and Download still give this version.</p>
+          <div class="code">
+            <div class="codebar mono"><span>delete-a-project-and-its-requirements.feature</span><span class="ro">Read-only</span></div>
+            <pre class="gherkin" aria-label="Gherkin" data-gherkin data-lines="13"></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script type="text/plain" id="sample">
+# Generated by Anvil from the Requirement's 9 Answers
+@project-anvil
+Feature: Delete a Project and its Requirements
+  As a Project Owner
+  I want to delete a Project and all its Requirements from its danger zone
+  So that a Project I no longer need stops cluttering Anvil
+
+  Out of scope:
+    - Archiving or restoring a deleted Project
+    - Moving Requirements to another Project first
+
+  Background:
+    Given I am the Project Owner of "Billing revamp"
+    And "Billing revamp" has these Requirements:
+      | title                   | status      |
+      | Refund partial invoices | Complete    |
+      | Export VAT report       | In progress |
+      | Card retry schedule     | Draft       |
+
+  Rule: Deleting asks for confirmation first
+
+    Scenario: The dialog lists what will be deleted
+      When I choose "Delete" in the danger zone
+      Then a dialog lists the 3 Requirements that will be deleted
+      And it says their Questions and Answers go with them
+
+    Scenario: Nothing is deleted until I type DELETE
+      Given the delete dialog is open
+      When I type "delet"
+      Then the "Delete project" button stays disabled
+
+  Rule: Only the Requirements the dialog showed are deleted
+
+    Scenario: A Requirement added meanwhile stops the delete
+      Given the delete dialog is open
+      And "Dunning emails" is added to "Billing revamp" in another tab
+      When I type "DELETE" and confirm
+      Then nothing is deleted
+      And the dialog reloads to list 4 Requirements
+
+    Scenario Outline: Every status is deleted with its Project
+      Given a Requirement "<title>" that is <status>
+      When I delete its Project
+      Then "<title>" no longer appears in the Requirements list
+
+      Examples:
+        | title                   | status      |
+        | Refund partial invoices | Complete    |
+        | Export VAT report       | In progress |
+        | Card retry schedule     | Draft       |
+</script>
+<script>
+  // Highlights the sample Gherkin: keywords, steps, strings, <placeholders>, tables, tags and comments.
+  const lines = document.getElementById('sample').textContent.replace(/^\n|\n\s*$/g, '').split('\n')
+
+  const span = (text, cls) => {
+    const el = document.createElement('span')
+    if (cls) el.className = cls
+    el.textContent = text
+    return el
+  }
+
+  const inline = (text) =>
+    text.split(/("[^"]*")/).flatMap((part) => {
+      const quoted = part.startsWith('"')
+      return part.split(/(<[^>]+>)/).filter(Boolean).map((piece) =>
+        span(piece, piece.startsWith('<') ? 'ph' : quoted ? 'sr' : ''))
+    })
+
+  const highlight = (line) => {
+    let m
+    if (/^\s*#/.test(line)) return [span(line, 'cm')]
+    if (/^\s*@/.test(line)) return [span(line, 'tg')]
+    if (/^\s*\|/.test(line)) {
+      const cells = line.split('|')
+      return [span(cells[0]), ...cells.slice(1).flatMap((cell, i) =>
+        i < cells.length - 2 ? [span('|', 'pp'), ...inline(cell)] : [span('|', 'pp')])]
+    }
+    if ((m = line.match(/^(\s*)(Feature|Rule|Background|Scenario Outline|Scenario|Examples)(:)(.*)$/)))
+      return [span(m[1]), span(m[2] + m[3], 'kw'), span(m[4], 'ti')]
+    if ((m = line.match(/^(\s*)(Given|When|Then|And|But)(\s.*)$/)))
+      return [span(m[1]), span(m[2], 'st'), ...inline(m[3])]
+    if ((m = line.match(/^(\s*)(As an?|I want|So that|Out of scope:)(.*)$/)))
+      return [span(m[1]), span(m[2], 'na'), span(m[3], 'ds')]
+    return [span(line || ' ', 'ds')]
+  }
+
+  for (const pre of document.querySelectorAll('[data-gherkin]')) {
+    const shown = pre.dataset.lines ? lines.slice(0, Number(pre.dataset.lines)) : lines
+    for (const line of shown) {
+      const row = span('', 'ln')
+      row.append(...highlight(line))
+      pre.append(row)
+    }
+  }
+</script>
+</body>
+</html>
