@@ -1,5 +1,7 @@
 """Outputs: generating a Complete Requirement's write-up in an Output format."""
 
+from datetime import datetime
+
 from idea_refiner import RefinementAgent, render_gherkin
 from sqlmodel import Session, col, select
 
@@ -14,6 +16,11 @@ def outputs(session: Session, requirement: Requirement) -> list[Output]:
         .order_by(col(Output.format))
     )
     return list(session.exec(query))
+
+
+def is_out_of_date(output: Output, reopened_at: datetime | None) -> bool:
+    """Whether the Output was generated before the Requirement was last reopened."""
+    return reopened_at is not None and reopened_at > output.generated_at
 
 
 def generate_gherkin(

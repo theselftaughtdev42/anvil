@@ -18,11 +18,12 @@ const GHERKIN = [
 ].join('\n')
 
 /**
- * Stands in for the API: a Complete Requirement with no Output yet. Generating
- * answers with each of `replies` in turn, a status code or the Output, and
- * waits for `release` first when it's given.
+ * Stands in for the API: a Requirement with no Output yet, Complete unless
+ * `status` says otherwise. Generating answers with each of `replies` in turn, a
+ * status code or the Output, and waits for `release` first when it's given.
+ * Reopening puts the Output out of date.
  */
-async function serve(page: Page, replies: (number | 'ok')[], release?: Promise<void>) {
+async function serve(page: Page, replies: (number | 'ok')[], release?: Promise<void>, status = 'complete') {
   await page.route('**/api/projects', (route) => route.fulfill({ json: { items: [] } }))
   await page.route('**/api/requirements/r1', (route) =>
     route.fulfill({
@@ -31,7 +32,7 @@ async function serve(page: Page, replies: (number | 'ok')[], release?: Promise<v
         title: 'Rebook a missed delivery',
         idea: 'Customers rebook a missed delivery themselves.',
         project: { id: 'p1', name: 'Parcels' },
-        status: 'complete',
+        status,
         created_at: '2026-11-02T12:00:00Z',
         updated_at: '2026-11-02T12:00:00Z',
         progress: { answered: 2, total: 2 },
@@ -42,7 +43,7 @@ async function serve(page: Page, replies: (number | 'ok')[], release?: Promise<v
   await page.route('**/api/requirements/r1/questions', (route) =>
     route.fulfill({ json: { open: [], answered, exhausted: true, nothing_new_since_reopen: false } }),
   )
-  let output: unknown
+  let output: Record<string, unknown> | undefined
   await page.route('**/api/requirements/r1/outputs', (route) =>
     route.fulfill({ json: { items: output ? [output] : [] } }),
   )
@@ -53,8 +54,14 @@ async function serve(page: Page, replies: (number | 'ok')[], release?: Promise<v
       await route.fulfill({ status: reply, json: { detail: 'The refinement agent is unavailable. Try again.' } })
       return
     }
-    output = { format: 'gherkin', content: GHERKIN, generated_at: new Date().toISOString() }
+    output = { format: 'gherkin', content: GHERKIN, generated_at: new Date().toISOString(), out_of_date: false }
     await route.fulfill({ json: output })
+  })
+  await page.route('**/api/requirements/r1/reopen', (route) => {
+    status = 'in_progress'
+    if (output) output = { ...output, out_of_date: true }
+    const open = [{ id: 'q3', topic: 'Refunds', text: 'Question 3?', number: 3, why: null, suggestions: [] }]
+    return route.fulfill({ json: { open, answered, exhausted: false, nothing_new_since_reopen: false } })
   })
 }
 
@@ -173,3 +180,41 @@ test("Download saves the Gherkin as a .feature file named after the Requirement'
   expect(download.suggestedFilename()).toBe('rebook-a-missed-delivery.feature')
   expect(await readFile(await download.path(), 'utf8')).toBe(GHERKIN)
 })
+
+test('reopening marks the Output Out of date, and Copy and Download keep working', async ({ page, context }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+  await showOutput(page)
+
+  await page.getByRole('tab', { name: 'Refinement' }).click()
+  await page.getByRole('button', { name: 'Reopen' }).click()
+  await page.getByLabel("What's missing?").fill('Nothing about refunds')
+  await page.getByRole('button', { name: 'Reopen' }).click()
+  await expect(page.getByText('Question 3?')).toBeVisible()
+  await page.getByRole('tab', { name: 'Output' }).click()
+
+  await expect(page.getByRole('navigation', { name: 'Output format' })).toContainText('Out of date')
+  await expect(page.getByText(', before it was reopened')).toBeVisible()
+  const regenerate = page.getByRole('button', { name: 'Regenerate' })
+  await expect(regenerate).toBeDisabled()
+  await expect(regenerate).toHaveAccessibleDescription(/Confirm it Complete again to regenerate/)
+  await expect(page.getByLabel('Gherkin', { exact: true })).toHaveText(GHERKIN, { useInnerText: true })
+
+  await page.getByRole('button', { name: 'Copy', exact: true }).click()
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(GHERKIN)
+  const [download] = await Promise.all([
+    page.waitForEvent('download'),
+    page.getByRole('button', { name: 'Download' }).click(),
+  ])
+  expect(await readFile(await download.path(), 'utf8')).toBe(GHERKIN)
+})
+
+for (const status of ['draft', 'in_progress']) {
+  test(`a ${status} Requirement explains the Output opens up once it's Complete`, async ({ page }) => {
+    await serve(page, [], undefined, status)
+    await page.goto('/requirements/r1')
+    await page.getByRole('tab', { name: 'Output' }).click()
+
+    await expect(page.getByText(/The Output opens up once this Requirement is Complete/)).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Generate Gherkin' })).toBeDisabled()
+  })
+}
