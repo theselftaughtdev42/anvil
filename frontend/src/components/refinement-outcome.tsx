@@ -1,5 +1,6 @@
 import { LoaderCircle } from 'lucide-react'
-import { type FormEvent, type ReactNode, useId, useRef, useState } from 'react'
+import { type FormEvent, type ReactNode, type RefObject, useId, useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
 import { Button } from '@/components/ui/button'
 import type { AnsweredQuestion } from '@/lib/api-schema'
 import { REOPEN_NOTE_MAX_LENGTH } from '@/lib/requirements'
@@ -76,6 +77,7 @@ export function CompleteCard({
   onReopen: (note: string) => void
 }) {
   const [reopening, setReopening] = useState(false)
+  const note = useRef<HTMLTextAreaElement>(null)
   return (
     <OutcomeCard
       label="Complete"
@@ -83,25 +85,36 @@ export function CompleteCard({
       answered={answered}
       actions={
         reopening ? null : (
-          <Button variant="outline" size="lg" className="px-3.5" onClick={() => setReopening(true)}>
+          <Button
+            variant="outline"
+            size="lg"
+            className="px-3.5"
+            onClick={() => {
+              // Rendered now, so focus moves to the note as part of this click.
+              flushSync(() => setReopening(true))
+              note.current?.focus()
+            }}
+          >
             Reopen
           </Button>
         )
       }
     >
       {reopening && (
-        <ReopenForm busy={busy} error={error} onReopen={onReopen} onCancel={() => setReopening(false)} />
+        <ReopenForm field={note} busy={busy} error={error} onReopen={onReopen} onCancel={() => setReopening(false)} />
       )}
     </OutcomeCard>
   )
 }
 
 function ReopenForm({
+  field,
   busy,
   error,
   onReopen,
   onCancel,
 }: {
+  field: RefObject<HTMLTextAreaElement | null>
   busy: boolean
   error?: string
   onReopen: (note: string) => void
@@ -111,7 +124,6 @@ function ReopenForm({
   const messageId = useId()
   const [note, setNote] = useState('')
   const [empty, setEmpty] = useState(false)
-  const field = useRef<HTMLTextAreaElement>(null)
   const message = empty ? "Say what's missing to reopen it." : error
 
   const submit = (event: FormEvent) => {
@@ -131,8 +143,6 @@ function ReopenForm({
       <textarea
         ref={field}
         id={noteId}
-        // Opened by a click on Reopen, so moving there is expected.
-        autoFocus
         required
         value={note}
         onChange={(event) => {

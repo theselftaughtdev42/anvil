@@ -22,9 +22,9 @@ export function resolveColour(page: Page, colour: string): Promise<string> {
 export function measureText(locator: Locator): Promise<{ lines: number; cutAcross: boolean; cutDown: boolean }> {
   return locator.evaluate((el) => {
     const style = getComputedStyle(el)
-    const lineHeight = parseFloat(style.lineHeight)
+    const lineHeight = Number.parseFloat(style.lineHeight)
     if (Number.isNaN(lineHeight)) throw new Error('line-height has no length')
-    const height = el.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom)
+    const height = el.clientHeight - Number.parseFloat(style.paddingTop) - Number.parseFloat(style.paddingBottom)
     return {
       lines: Math.round(height / lineHeight),
       // 1px slack: on Linux, Chromium snaps glyph widths to whole pixels, so a
