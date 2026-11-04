@@ -1,7 +1,14 @@
 import time
 
 import pytest
-from idea_refiner import AskedQuestion, QuestionDraft, StubAgent, Subject
+from idea_refiner import (
+    AskedQuestion,
+    GherkinFeature,
+    QuestionDraft,
+    StubAgent,
+    Subject,
+    render_gherkin,
+)
 from idea_refiner.stub import QUESTIONS, follow_up
 
 
@@ -156,5 +163,25 @@ def test_questions_are_complete_and_distinct() -> None:
 def test_question_delay() -> None:
     start = time.monotonic()
     StubAgent(delay_ms=50).ask_questions(SUBJECT, [], None, [])
+
+    assert time.monotonic() - start >= 0.05
+
+
+def test_writes_a_fixed_feature_that_renders() -> None:
+    agent = StubAgent()
+
+    feature = agent.write_gherkin(SUBJECT, answer_all(list(QUESTIONS)), None, [])
+    other = agent.write_gherkin(
+        Subject(title="Dark mode", idea="Add a dark mode"), [], "Context", ["More"]
+    )
+
+    assert feature == other
+    assert GherkinFeature.model_validate(feature.model_dump()) == feature
+    assert render_gherkin(feature).startswith("Feature: ")
+
+
+def test_gherkin_delay() -> None:
+    start = time.monotonic()
+    StubAgent(delay_ms=50).write_gherkin(SUBJECT, [], None, [])
 
     assert time.monotonic() - start >= 0.05

@@ -1,4 +1,5 @@
-"""Refines an idea through Questions, until it's clear enough to act on.
+"""Refines an idea through Questions, until it's clear enough to act on, then writes
+it up, for example as a Gherkin Feature.
 
 Consumers depend on RefinementAgent and choose an implementation: StubAgent, or
 ModelAgent from idea_refiner.model, which needs a provider extra such as
@@ -12,13 +13,25 @@ from idea_refiner.base import (
     RefinementAgent,
     Subject,
 )
+from idea_refiner.gherkin import (
+    GherkinFeature,
+    GherkinScenario,
+    GherkinStep,
+    StepKeyword,
+    render_gherkin,
+)
 from idea_refiner.stub import StubAgent
 
 __all__ = [
     "AgentUnavailable",
     "AskedQuestion",
+    "GherkinFeature",
+    "GherkinScenario",
+    "GherkinStep",
     "QuestionDraft",
     "RefinementAgent",
+    "StepKeyword",
     "StubAgent",
     "Subject",
+    "render_gherkin",
 ]

@@ -12,6 +12,8 @@ from anvil.agent import AgentDep
 from anvil.auth import CurrentUserDep
 from anvil.db import SessionDep
 from anvil.models import (
+    Output,
+    OutputFormat,
     PointOfContact,
     Project,
     Question,
@@ -20,6 +22,7 @@ from anvil.models import (
     Requirement,
     RequirementStatus,
 )
+from anvil.outputs import generate_gherkin, outputs
 from anvil.refinement import (
     answered_questions,
     bottom_position,
@@ -139,6 +142,18 @@ class ReopenCreate(BaseModel, use_attribute_docstrings=True):
     """The Point of Contact's Reopen note: what the Complete Requirement is missing."""
 
 
+class OutputPublic(BaseModel, use_attribute_docstrings=True):
+    format: OutputFormat
+    content: str
+    """The rendered text, for Gherkin a `.feature` file."""
+    generated_at: datetime
+
+
+class OutputList(BaseModel, use_attribute_docstrings=True):
+    items: list[OutputPublic]
+    """At most one per format, in format order. Empty until one is generated."""
+
+
 class AnswerCreate(BaseModel):
     answer: Annotated[
         str,
@@ -209,8 +224,10 @@ def get_project_or_422(session: Session, project_id: uuid.UUID) -> Project:
 
 
 def delete_requirements(session: Session, requirement_ids: list[uuid.UUID]) -> None:
-    """Deletes the Requirements with their Questions and Reopen notes. Doesn't commit."""
-    for child in (Question, ReopenNote):
+    """Deletes the Requirements with their Questions, Reopen notes and Outputs. Doesn't
+    commit.
+    """
+    for child in (Question, ReopenNote, Output):
         session.exec(
             delete(child).where(col(child.requirement_id).in_(requirement_ids))
         )
@@ -466,3 +483,37 @@ def reopen_requirement(
     reopen(session, requirement, body.note, agent)
     session.commit()
     return question_stack(session, requirement)
+
+
+@router.get("/{requirement_id}/outputs")
+def get_outputs(
+    requirement_id: uuid.UUID, session: SessionDep, user: CurrentUserDep
+) -> OutputList:
+    """Only reads: never asks the agent."""
+    requirement = get_own_requirement(session, requirement_id, user)
+    return OutputList(
+        items=[
+            OutputPublic.model_validate(output, from_attributes=True)
+            for output in outputs(session, requirement)
+        ]
+    )
+
+
+@router.post("/{requirement_id}/outputs/gherkin")
+def generate_gherkin_output(
+    requirement_id: uuid.UUID,
+    session: SessionDep,
+    user: CurrentUserDep,
+    agent: AgentDep,
+) -> OutputPublic:
+    """Generates the Gherkin Output, replacing any there was. 409 unless the
+    Requirement is Complete.
+    """
+    requirement = get_own_requirement(session, requirement_id, user, for_update=True)
+    if requirement.status != RequirementStatus.COMPLETE:
+        raise HTTPException(
+            status_code=409, detail="Only a Complete Requirement has an Output"
+        )
+    output = generate_gherkin(session, requirement, agent)
+    session.commit()
+    return OutputPublic.model_validate(output, from_attributes=True)

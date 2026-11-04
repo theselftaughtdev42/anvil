@@ -3,6 +3,8 @@ from typing import Annotated, Protocol
 
 from pydantic import BaseModel, Field
 
+from idea_refiner.gherkin import GherkinFeature
+
 
 class Subject(BaseModel, frozen=True):
     """What's being refined."""
@@ -44,7 +46,7 @@ class AgentUnavailable(Exception):
 
 
 class RefinementAgent(Protocol):
-    """Refines an idea through Questions.
+    """Refines an idea through Questions, and writes it up once it's clear.
 
     AgentUnavailable is the one error a method raises when it can't produce a
     result.
@@ -75,5 +77,17 @@ class RefinementAgent(Protocol):
         were asked, so the agent never asks one twice. `feedback` is what the
         Subject's author said was still missing each time they disagreed with that
         verdict, oldest first.
+        """
+        ...
+
+    def write_gherkin(
+        self,
+        subject: Subject,
+        asked: Sequence[AskedQuestion],
+        context: str | None,
+        feedback: Sequence[str],
+    ) -> GherkinFeature:
+        """The Subject as a Gherkin Feature, drawn from its Questions and their
+        answers. Takes the same inputs as ask_questions.
         """
         ...

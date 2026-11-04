@@ -12,6 +12,7 @@ from pydantic_ai.exceptions import AgentRunError
 from pydantic_ai.models import Model, infer_model
 
 from idea_refiner.base import AgentUnavailable, AskedQuestion, QuestionDraft, Subject
+from idea_refiner.gherkin import GherkinFeature
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +44,29 @@ For each Question give:
 - text: the Question itself
 - why: why you're asking, in one sentence
 - suggestions: at most three short suggested answers\
+"""
+
+GHERKIN_INSTRUCTIONS = """\
+You write up a Subject that its author has made clear enough to act on, as a \
+Gherkin Feature.
+
+You're given the Subject (its title and the idea as its author wrote it), \
+sometimes context about where the idea comes from, every Question asked about \
+it with its answer, and feedback: what the author said was missing each time \
+they disagreed that it was clear enough.
+
+Write one Feature:
+- name: a short name for the behaviour, usually close to the Subject's title
+- description: free text for readers, usually "As a ... I want ... So that ...", \
+one clause per line
+- scenarios: one per distinct behaviour the answers describe, each with a \
+unique name and steps in order: optional Given steps for the starting state, \
+then When steps for what someone does, then Then steps for the outcome. Use And \
+or But to continue the step before. Every Scenario ends with a Then.
+
+Write each step as one line of plain language, without its keyword. Draw only \
+on the Subject, the context, the answers and the feedback: don't invent \
+behaviour nobody described. Leave out unanswered Questions.\
 """
 
 
@@ -79,6 +103,13 @@ class ModelAgent:
             instructions=ASK_INSTRUCTIONS,
             retries={"output": self.OUTPUT_RETRIES},
         )
+        self._writer = Agent(
+            self.model,
+            name="write_gherkin",
+            output_type=GherkinFeature,
+            instructions=GHERKIN_INSTRUCTIONS,
+            retries={"output": self.OUTPUT_RETRIES},
+        )
 
     def name_idea(self, idea: str, context: str | None) -> str:
         prompt = section("Idea", idea)
@@ -93,19 +124,20 @@ class ModelAgent:
         context: str | None,
         feedback: Sequence[str],
     ) -> list[QuestionDraft]:
-        prompt = section("Subject", f"Title: {subject.title}\n\nIdea:\n{subject.idea}")
-        if context:
-            prompt += section("Context", context)
-        prompt += section(
-            "Questions asked so far",
-            "\n\n".join(describe(question) for question in asked)
-            or "No Questions yet.",
+        return self._run(
+            self._asker, describe_subject(subject, asked, context, feedback)
         )
-        if feedback:
-            prompt += section(
-                "Feedback, oldest first", "\n".join(f"- {note}" for note in feedback)
-            )
-        return self._run(self._asker, prompt)
+
+    def write_gherkin(
+        self,
+        subject: Subject,
+        asked: Sequence[AskedQuestion],
+        context: str | None,
+        feedback: Sequence[str],
+    ) -> GherkinFeature:
+        return self._run(
+            self._writer, describe_subject(subject, asked, context, feedback)
+        )
 
     def _run[T](self, agent: Agent[None, T], prompt: str) -> T:
         start = time.perf_counter()
@@ -129,6 +161,26 @@ class ModelAgent:
             usage.output_tokens,
         )
         return result.output
+
+
+def describe_subject(
+    subject: Subject,
+    asked: Sequence[AskedQuestion],
+    context: str | None,
+    feedback: Sequence[str],
+) -> str:
+    prompt = section("Subject", f"Title: {subject.title}\n\nIdea:\n{subject.idea}")
+    if context:
+        prompt += section("Context", context)
+    prompt += section(
+        "Questions asked so far",
+        "\n\n".join(describe(question) for question in asked) or "No Questions yet.",
+    )
+    if feedback:
+        prompt += section(
+            "Feedback, oldest first", "\n".join(f"- {note}" for note in feedback)
+        )
+    return prompt
 
 
 def section(heading: str, body: str) -> str:

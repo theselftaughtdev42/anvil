@@ -2,6 +2,7 @@
 confirming or reopening the Requirement.
 """
 
+from dataclasses import dataclass
 from datetime import datetime
 
 from idea_refiner import AskedQuestion, RefinementAgent, Subject
@@ -20,6 +21,38 @@ from anvil.models import (
 def project_context(project: Project) -> str | None:
     """The Project Context for the agent: the Project's, or None when it's blank."""
     return project.context if project.context.strip() else None
+
+
+@dataclass(frozen=True)
+class AgentInputs:
+    """What the agent knows about a Requirement, as the agent's own types."""
+
+    subject: Subject
+    asked: list[AskedQuestion]
+    """Every Question, in the order they were asked, with any Answer."""
+    context: str | None
+    feedback: list[str]
+    """The Reopen notes, oldest first."""
+
+
+def agent_inputs(session: Session, requirement: Requirement) -> AgentInputs:
+    """The Requirement's Subject, Questions, Project Context and Reopen notes, as they
+    are now.
+    """
+    project = session.get_one(Project, requirement.project_id, populate_existing=True)
+    asked = session.exec(
+        select(Question)
+        .where(Question.requirement_id == requirement.id)
+        .order_by(col(Question.number))
+    ).all()
+    return AgentInputs(
+        subject=Subject(title=requirement.title, idea=requirement.idea),
+        asked=[
+            AskedQuestion(topic=q.topic, text=q.text, answer=q.answer) for q in asked
+        ],
+        context=project_context(project),
+        feedback=[note.note for note in reopen_notes(session, requirement)],
+    )
 
 
 def deal_questions(
@@ -42,24 +75,16 @@ def deal_questions(
     if requirement.questions_exhausted_at is not None:
         return
 
-    project = session.get_one(Project, requirement.project_id, populate_existing=True)
-    asked = session.exec(
-        select(Question)
-        .where(Question.requirement_id == requirement.id)
-        .order_by(col(Question.number))
-    ).all()
+    inputs = agent_inputs(session, requirement)
     drafts = agent.ask_questions(
-        Subject(title=requirement.title, idea=requirement.idea),
-        [AskedQuestion(topic=q.topic, text=q.text, answer=q.answer) for q in asked],
-        project_context(project),
-        [note.note for note in reopen_notes(session, requirement)],
+        inputs.subject, inputs.asked, inputs.context, inputs.feedback
     )
     if not drafts:
         requirement.questions_exhausted_at = database_now(session)
         return
 
     position = bottom_position(session, requirement)
-    number = len(asked) + 1
+    number = len(inputs.asked) + 1
     for offset, draft in enumerate(drafts):
         session.add(
             Question(
