@@ -67,7 +67,7 @@ test('an idea can be started with the keyboard alone', async ({ page }) => {
 test('the prompt shows a ring while its textarea has focus', async ({ page }) => {
   const prompt = page.locator('form')
   await page.getByRole('textbox', { name: 'Your idea' }).focus()
-  await expect.poll(() => prompt.evaluate((el) => getComputedStyle(el).boxShadow)).not.toBe('none')
+  await expect(prompt).not.toHaveCSS('box-shadow', 'none')
 })
 
 test.describe('at phone width', () => {
