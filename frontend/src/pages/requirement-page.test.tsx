@@ -433,8 +433,10 @@ test('after the first Answer the Project is locked, and says why', async () => {
   await expect.element(page.screen.getByRole('combobox', { name: 'Project' })).not.toBeInTheDocument()
   await expect.element(banner.getByText('In progress')).toBeVisible()
 
-  // Focusable, so the keyboard gets the reason too.
-  project.element().closest<HTMLElement>('[tabindex]')!.focus()
+  // A disabled button in the picker's place, so the keyboard gets the reason too.
+  const locked = banner.getByRole('button', { name: 'Project: Driver app (locked)' })
+  await expect.element(locked).toHaveAttribute('aria-disabled', 'true')
+  locked.element().focus()
   await expect
     .element(page.screen.getByRole('tooltip'))
     .toHaveTextContent('The Project is locked once a Question is answered.')

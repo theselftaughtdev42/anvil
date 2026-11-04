@@ -55,10 +55,11 @@ export function RequirementProject({ requirement }: { requirement: Requirement }
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            {/* Focusable, so the reason is there for the keyboard too */}
-            <span
-              tabIndex={0}
-              className="flex min-w-0 items-center gap-1.5 rounded-sm text-body-sm text-muted-foreground outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 sm:max-w-72"
+            {/* The picker's place, kept in the tab order so the keyboard gets the reason too */}
+            <button
+              type="button"
+              aria-disabled="true"
+              className="flex min-w-0 cursor-default items-center gap-1.5 rounded-sm text-left text-body-sm text-muted-foreground outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 sm:max-w-72"
             >
               <Lock className="size-3.5 shrink-0" aria-hidden="true" />
               <span className="truncate">
@@ -66,7 +67,7 @@ export function RequirementProject({ requirement }: { requirement: Requirement }
                 {requirement.project.name}
                 <span className="sr-only"> (locked)</span>
               </span>
-            </span>
+            </button>
           </TooltipTrigger>
           <TooltipContent className="text-caption">{LOCKED}</TooltipContent>
         </Tooltip>
