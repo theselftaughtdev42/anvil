@@ -17,7 +17,7 @@ export type GherkinKind =
 
 export type GherkinToken = { text: string; kind?: GherkinKind }
 
-const HEADER = /^(\s*)(Feature|Background|Rule|Scenario Outline|Scenario|Examples)(:)(\s*)(.*)$/
+const HEADER = /^(\s*)(Feature|Background|Rule|Scenario Outline|Scenario|Examples)(:)(.*)$/
 const STEP = /^(\s*)(Given|When|Then|And|But)(\s.*)$/
 const NARRATIVE = /^(\s*)((?:As an?|I want|So that)\b|Out of scope:)(.*)$/
 
@@ -36,7 +36,9 @@ function tokenizeLine(line: string): GherkinToken[] {
   if (/^\s*#/.test(line)) return [{ text: line, kind: 'comment' }]
   if (/^\s*\|/.test(line)) return tokenizeRow(line)
   if ((match = HEADER.exec(line))) {
-    const [, indent, keyword, colon, space, title] = match
+    const [, indent, keyword, colon, rest] = match
+    const title = rest.trimStart()
+    const space = rest.slice(0, rest.length - title.length)
     return plain(indent, { text: keyword + colon, kind: 'keyword' }, space, { text: title, kind: 'title' })
   }
   if ((match = STEP.exec(line))) {
@@ -55,8 +57,10 @@ function tokenizeRow(line: string): GherkinToken[] {
   const tokens: GherkinToken[] = []
   let cell = ''
   const flush = () => {
-    const [, lead, text, trail] = /^(\s*)(.*?)(\s*)$/.exec(cell)!
-    tokens.push(...plain(lead), ...inline(text, 'cell'), ...plain(trail))
+    // Slicing by trimmed lengths, not a regex, which backtracks on long runs of spaces
+    const start = cell.length - cell.trimStart().length
+    const end = Math.max(start, cell.trimEnd().length)
+    tokens.push(...plain(cell.slice(0, start)), ...inline(cell.slice(start, end), 'cell'), ...plain(cell.slice(end)))
     cell = ''
   }
   for (let i = 0; i < line.length; i++) {
@@ -102,6 +106,8 @@ export function featureFilename(title: string): string {
     .toLowerCase()
     .replace(/[^\p{Letter}\p{Number}]+/gu, '-')
     .slice(0, 80)
-    .replace(/^-+|-+$/g, '')
+    .split('-')
+    .filter(Boolean)
+    .join('-')
   return `${slug || 'requirement'}.feature`
 }
