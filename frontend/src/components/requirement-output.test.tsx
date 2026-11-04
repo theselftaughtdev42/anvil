@@ -68,7 +68,7 @@ test('an Out of date Output still copies and downloads, but only regenerates onc
 test('an Out of date Output of a Complete Requirement can regenerate', async () => {
   const { state } = show({ output: { ...OUTPUT, out_of_date: true } })
 
-  await expect.element(page.getByText(/Regenerate it to draw on the Answers since it was reopened/)).toBeVisible()
+  await expect.element(page.getByText(/Regenerate it to bring it up to date/)).toBeVisible()
   await page.getByRole('button', { name: 'Regenerate' }).click()
   expect(state.onGenerate).toHaveBeenCalledOnce()
 })

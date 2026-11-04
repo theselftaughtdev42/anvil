@@ -1,5 +1,5 @@
 import { Check, CircleAlert, Copy, Download, LoaderCircle, RefreshCw } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -77,6 +77,7 @@ function GherkinPanel({
   answered: number
   gherkin: GherkinState
 }) {
+  const noteId = useId()
   const complete = requirement.status === 'complete'
   const answers = `${answered} ${answered === 1 ? 'Answer' : 'Answers'}`
 
@@ -133,9 +134,9 @@ function GherkinPanel({
   }
 
   const staleNote = output.out_of_date && (
-    <p id="out-of-date-note" className="text-body-sm text-status-in-progress-foreground">
+    <p id={noteId} className="text-body-sm text-status-in-progress-foreground">
       {complete
-        ? 'Regenerate it to draw on the Answers since it was reopened. Copy and Download give this version until then.'
+        ? 'Regenerate it to bring it up to date. Copy and Download give this version until then.'
         : 'Confirm it Complete again to regenerate. Copy and Download still give this version.'}
     </p>
   )
@@ -151,7 +152,7 @@ function GherkinPanel({
         variant="outline"
         size="lg"
         disabled={!complete}
-        aria-describedby={output.out_of_date ? 'out-of-date-note' : undefined}
+        aria-describedby={output.out_of_date ? noteId : undefined}
         onClick={onGenerate}
       >
         <RefreshCw aria-hidden="true" />
