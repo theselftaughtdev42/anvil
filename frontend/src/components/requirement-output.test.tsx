@@ -1,4 +1,4 @@
-import { expect, test, vi } from 'vitest'
+import { afterEach, expect, test, vi } from 'vitest'
 import { page } from 'vitest/browser'
 import { render } from 'vitest-browser-react'
 import { type GherkinState, RequirementOutput } from '@/components/requirement-output'
@@ -21,6 +21,11 @@ const OUTPUT: Output = {
   content: 'Feature: Rebook a missed delivery\n\n  Scenario: Another day\n    Then it moves\n',
   generated_at: '2026-11-02T14:32:00Z',
 }
+
+afterEach(() => {
+  vi.restoreAllMocks()
+  vi.useRealTimers()
+})
 
 function show(gherkin: Partial<GherkinState>, requirement: Partial<Requirement> = {}) {
   const state: GherkinState = { output: undefined, generating: false, failed: false, onGenerate: vi.fn(), ...gherkin }
@@ -122,11 +127,10 @@ test('Copy puts the Gherkin on the clipboard and says so', async () => {
   expect(writeText).toHaveBeenCalledWith(OUTPUT.content)
   await expect.element(page.getByRole('button', { name: 'Copied', exact: true })).toBeVisible()
   await expect.element(page.getByRole('status')).toHaveTextContent('Copied the Gherkin')
-  writeText.mockRestore()
 })
 
 test('Copy says when the clipboard refuses', async () => {
-  const writeText = vi.spyOn(navigator.clipboard, 'writeText').mockRejectedValue(new Error('denied'))
+  vi.spyOn(navigator.clipboard, 'writeText').mockRejectedValue(new Error('denied'))
   show({ output: OUTPUT })
 
   await page.getByRole('button', { name: 'Copy' }).click()
@@ -135,5 +139,30 @@ test('Copy says when the clipboard refuses', async () => {
     "Couldn't copy the Gherkin. Select it and copy it yourself, or Download it.",
   )
   await expect.element(page.getByRole('button', { name: 'Copy', exact: true })).toBeVisible()
-  writeText.mockRestore()
+})
+
+test('Copy says so when there is no clipboard, as over plain http', async () => {
+  vi.spyOn(navigator, 'clipboard', 'get').mockReturnValue(undefined as unknown as Clipboard)
+  show({ output: OUTPUT })
+
+  await page.getByRole('button', { name: 'Copy' }).click()
+
+  await expect.element(page.getByRole('alert')).toHaveTextContent(
+    "Couldn't copy the Gherkin. Select it and copy it yourself, or Download it.",
+  )
+})
+
+test('Copied goes back to Copy after two seconds', async () => {
+  vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue()
+  show({ output: OUTPUT })
+  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+
+  await page.getByRole('button', { name: 'Copy' }).click()
+  await vi.waitFor(() => page.getByRole('button', { name: 'Copied', exact: true }).element())
+  await vi.advanceTimersByTimeAsync(1999)
+  expect(page.getByRole('button', { name: 'Copied', exact: true }).query()).not.toBeNull()
+  await vi.advanceTimersByTimeAsync(1)
+
+  await vi.waitFor(() => page.getByRole('button', { name: 'Copy', exact: true }).element())
+  expect(page.getByRole('status').element().textContent).toBe('')
 })

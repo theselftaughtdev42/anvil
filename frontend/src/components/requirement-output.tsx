@@ -150,10 +150,13 @@ function GherkinOutput({
     return () => clearTimeout(timer)
   }, [copied])
   const copy = () =>
-    navigator.clipboard.writeText(output.content).then(
-      () => setCopied('copied'),
-      () => setCopied('failed'),
-    )
+    // Inside then() so a missing clipboard (an insecure context) fails like a refused one
+    Promise.resolve()
+      .then(() => navigator.clipboard.writeText(output.content))
+      .then(
+        () => setCopied('copied'),
+        () => setCopied('failed'),
+      )
   return (
     <>
       <PanelHead

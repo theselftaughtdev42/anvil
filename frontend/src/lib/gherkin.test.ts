@@ -45,6 +45,16 @@ test('a step picks out strings and placeholders, inside strings too', () => {
   ])
 })
 
+test('a placeholder can have spaces in it, as an Examples column can', () => {
+  expect(kinds(line('    Given <due date> is set'))).toEqual([
+    ['    ', null],
+    ['Given', 'step'],
+    [' ', null],
+    ['<due date>', 'placeholder'],
+    [' is set', null],
+  ])
+})
+
 test('a step keyword only counts as a whole word at the start', () => {
   expect(kinds(line('  Andrew rebooks it'))).toEqual([['  Andrew rebooks it', 'description']])
 })

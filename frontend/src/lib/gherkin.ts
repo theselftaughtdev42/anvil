@@ -78,7 +78,7 @@ function inline(text: string, kind?: GherkinKind): GherkinToken[] {
   return text.split(/("[^"]*")/).flatMap((part) => {
     const partKind = part.startsWith('"') ? 'string' : kind
     return plain(
-      ...part.split(/(<[^<>\s]+>)/).map((piece): GherkinToken | string => {
+      ...part.split(/(<[^<>]+>)/).map((piece): GherkinToken | string => {
         if (piece.startsWith('<')) return { text: piece, kind: 'placeholder' }
         return partKind ? { text: piece, kind: partKind } : piece
       }),
