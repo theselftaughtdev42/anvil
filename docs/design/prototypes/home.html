@@ -1,0 +1,342 @@
+<!doctype html>
+<!--
+  Reference design for the home page as first designed (October 2026), kept for history.
+  The status tabs filter, and submitting an idea shows the submitted state; switch screens with the
+  Prototype bar. The header still has the original three-spark mark, since replaced by the cold anvil.
+  The Requirements here are made up.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Anvil: Home page design</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@900&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  body { margin: 0; background: #16130f; color-scheme: dark; }
+  a { color: #ede6da; } a:hover { color: #c9c0b2; }
+  textarea::placeholder, input::placeholder { color: #6b6259; }
+  [hidden] { display: none !important; }
+  .proto-nav { position: fixed; right: 12px; bottom: 12px; z-index: 50; display: flex; gap: 4px; padding: 4px; border-radius: 10px;
+    background: #0c0a08; border: 1px dashed #4a4137; font: 500 12px 'Geist', system-ui, sans-serif; }
+  .proto-nav span { padding: 6px 8px; color: #6b6259; }
+  .proto-nav a { padding: 6px 10px; border-radius: 6px; text-decoration: none; color: #a39a8c; }
+  .proto-nav a[aria-current] { background: #2b261f; color: #ede6da; }
+</style>
+</head>
+<body>
+<section id="requirements" data-screen hidden>
+<div style="min-height: 900px; background: #16130F; color: #EDE6DA; font-family: 'Geist', ui-sans-serif, system-ui, sans-serif; font-size: 14px">
+  <header style="border-bottom: 1px solid #2E2821">
+    <div style="max-width: 1120px; margin: 0 auto; padding: 0 24px; height: 56px; display: flex; align-items: center; justify-content: space-between; gap: 16px">
+      <a href="#" style="display: flex; align-items: center; gap: 10px; text-decoration: none">
+        <svg width="38" height="28" viewBox="0 -2 100 74" aria-hidden="true"><path d="M4 34 C16 34 24 32 28 30 H94 V44 H78 Q68 46 66 58 H76 V70 H28 V58 H38 Q36 46 28 44 Q14 42 4 34 Z" fill="#EDE6DA"></path><path d="M0 -8 L4 0 L0 8 L-4 0 Z" fill="#E8642C" transform="translate(58 12) scale(1.15)"></path><path d="M0 -8 L4 0 L0 8 L-4 0 Z" fill="#E8642C" opacity="0.55" transform="translate(48 6) scale(0.6)"></path><path d="M0 -8 L4 0 L0 8 L-4 0 Z" fill="#E8642C" opacity="0.3" transform="translate(69 3) scale(0.45)"></path></svg>
+        <span style="font-family: 'Archivo', sans-serif; font-weight: 900; font-size: 18px; letter-spacing: 0.04em">ANVIL</span>
+      </a>
+      <button type="button" aria-label="Account menu" style="width: 32px; height: 32px; border-radius: 16px; border: 1px solid #2E2821; background: #2E2821; font: 500 12px 'Geist', sans-serif; color: #C9C0B2; cursor: pointer">TM</button>
+    </div>
+  </header>
+
+  <main style="max-width: 1120px; margin: 0 auto; padding: 56px 24px 64px; display: flex; flex-direction: column; gap: 48px">
+    <section style="max-width: 720px; width: 100%; margin: 0 auto; display: flex; flex-direction: column; gap: 16px">
+      <div style="display: flex; flex-direction: column; gap: 6px; text-align: center">
+        <h1 style="margin: 0; font-size: 30px; font-weight: 600; letter-spacing: -0.025em; text-wrap: balance">What's your idea?</h1>
+        <p style="margin: 0; font-size: 15px; color: #A39A8C">Describe it in your own words. Anvil will ask questions until it's clear.</p>
+      </div>
+      <form style="border: 1px solid #2E2821; border-radius: 12px; background: #1F1A15; display: flex; flex-direction: column">
+        <label for="idea" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Your idea</label>
+        <textarea id="idea" rows="3" placeholder="Drivers should see route changes on their phone without calling the depot" style="border: 0; resize: none; padding: 16px 16px 8px; font: 400 15px/1.5 'Geist', sans-serif; color: #EDE6DA; background: transparent; outline: none"></textarea>
+        <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 8px 8px 16px">
+          <span style="font-size: 12px; color: #A39A8C">Enter to start · Shift + Enter for a new line</span>
+          <button type="submit" style="height: 36px; padding: 0 14px; border: 0; border-radius: 8px; background: #E8642C; color: #16130F; font: 500 14px 'Geist', sans-serif; display: inline-flex; align-items: center; gap: 8px; cursor: pointer">Start refining
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <section style="display: flex; flex-direction: column; gap: 16px">
+      <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px">
+        <h2 style="margin: 0; font-size: 18px; font-weight: 600; letter-spacing: -0.01em">Your requirements</h2>
+        <div role="tablist" aria-label="Filter by status" style="display: inline-flex; gap: 2px; padding: 3px; border-radius: 10px; background: #2E2821">
+
+            <button type="button" role="tab" aria-selected="true" data-tab="All" style="height:30px;padding:0 12px;border:0;border-radius:7px;cursor:pointer;font:500 13px 'Geist',sans-serif;color:#EDE6DA;background:#16130F">All <span style="color: #A39A8C; font-size: 12px">6</span></button>
+
+            <button type="button" role="tab" aria-selected="false" data-tab="Draft" style="height:30px;padding:0 12px;border:0;border-radius:7px;cursor:pointer;font:500 13px 'Geist',sans-serif;color:#A39A8C;background:transparent">Draft <span style="color: #A39A8C; font-size: 12px">2</span></button>
+
+            <button type="button" role="tab" aria-selected="false" data-tab="In progress" style="height:30px;padding:0 12px;border:0;border-radius:7px;cursor:pointer;font:500 13px 'Geist',sans-serif;color:#A39A8C;background:transparent">In progress <span style="color: #A39A8C; font-size: 12px">2</span></button>
+
+            <button type="button" role="tab" aria-selected="false" data-tab="Complete" style="height:30px;padding:0 12px;border:0;border-radius:7px;cursor:pointer;font:500 13px 'Geist',sans-serif;color:#A39A8C;background:transparent">Complete <span style="color: #A39A8C; font-size: 12px">2</span></button>
+
+        </div>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px">
+
+          <a href="#" data-status="In progress" style="text-decoration: none; color: #EDE6DA; border: 1px solid #2E2821; border-radius: 12px; background: #1F1A15; padding: 18px; display: flex; flex-direction: column; gap: 14px">
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px">
+              <span style="display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:6px;font-size:12px;font-weight:500;background:#2E2410;color:#E9C27A;border:1px solid #5A4518"><span style="width:6px;height:6px;border-radius:3px;background:#D9A441"></span>In progress</span>
+              <span style="font-size: 12px; color: #A39A8C">2h ago</span>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 6px">
+              <span style="font-size: 15px; font-weight: 600; letter-spacing: -0.01em">Route change alerts</span>
+              <span style="font-size: 13px; line-height: 1.5; color: #A39A8C; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden">Drivers should see route changes on their phone without calling the depot.</span>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 6px; margin-top: auto">
+              <div style="height: 6px; border-radius: 3px; background: #2E2821; overflow: hidden"><div style="width:57%;height:6px;border-radius:3px;background:#D9A441"></div></div>
+              <span style="font-size: 12px; color: #A39A8C">4 of 7 questions answered</span>
+            </div>
+          </a>
+
+          <a href="#" data-status="Complete" style="text-decoration: none; color: #EDE6DA; border: 1px solid #2E2821; border-radius: 12px; background: #1F1A15; padding: 18px; display: flex; flex-direction: column; gap: 14px">
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px">
+              <span style="display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:6px;font-size:12px;font-weight:500;background:#172229;color:#A9C7D8;border:1px solid #2A4250"><span style="width:6px;height:6px;border-radius:3px;background:#7FA7BF"></span>Complete</span>
+              <span style="font-size: 12px; color: #A39A8C">Yesterday</span>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 6px">
+              <span style="font-size: 15px; font-weight: 600; letter-spacing: -0.01em">Offline sync for drivers</span>
+              <span style="font-size: 13px; line-height: 1.5; color: #A39A8C; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden">The app keeps working in dead zones and syncs once signal comes back.</span>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 6px; margin-top: auto">
+              <div style="height: 6px; border-radius: 3px; background: #2E2821; overflow: hidden"><div style="width:100%;height:6px;border-radius:3px;background:#7FA7BF"></div></div>
+              <span style="font-size: 12px; color: #A39A8C">8 of 8 questions answered</span>
+            </div>
+          </a>
+
+          <a href="#" data-status="In progress" style="text-decoration: none; color: #EDE6DA; border: 1px solid #2E2821; border-radius: 12px; background: #1F1A15; padding: 18px; display: flex; flex-direction: column; gap: 14px">
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px">
+              <span style="display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:6px;font-size:12px;font-weight:500;background:#2E2410;color:#E9C27A;border:1px solid #5A4518"><span style="width:6px;height:6px;border-radius:3px;background:#D9A441"></span>In progress</span>
+              <span style="font-size: 12px; color: #A39A8C">3d ago</span>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 6px">
+              <span style="font-size: 15px; font-weight: 600; letter-spacing: -0.01em">Shift handover notes</span>
+              <span style="font-size: 13px; line-height: 1.5; color: #A39A8C; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden">Outgoing drivers leave a short note for whoever picks up the van next.</span>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 6px; margin-top: auto">
+              <div style="height: 6px; border-radius: 3px; background: #2E2821; overflow: hidden"><div style="width:33%;height:6px;border-radius:3px;background:#D9A441"></div></div>
+              <span style="font-size: 12px; color: #A39A8C">2 of 6 questions answered</span>
+            </div>
+          </a>
+
+          <a href="#" data-status="Draft" style="text-decoration: none; color: #EDE6DA; border: 1px solid #2E2821; border-radius: 12px; background: #1F1A15; padding: 18px; display: flex; flex-direction: column; gap: 14px">
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px">
+              <span style="display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:6px;font-size:12px;font-weight:500;background:transparent;color:#C9C0B2;border:1px solid #4A4137"><span style="width:6px;height:6px;border-radius:3px;background:#6B6259"></span>Draft</span>
+              <span style="font-size: 12px; color: #A39A8C">1w ago</span>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 6px">
+              <span style="font-size: 15px; font-weight: 600; letter-spacing: -0.01em">Bulk import depots</span>
+              <span style="font-size: 13px; line-height: 1.5; color: #A39A8C; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden">Admins upload a spreadsheet of depots instead of adding them one at a time.</span>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 6px; margin-top: auto">
+              <div style="height: 6px; border-radius: 3px; background: #2E2821; overflow: hidden"><div style="width:0%;height:6px;border-radius:3px;background:#6B6259"></div></div>
+              <span style="font-size: 12px; color: #A39A8C">Not started</span>
+            </div>
+          </a>
+
+          <a href="#" data-status="Complete" style="text-decoration: none; color: #EDE6DA; border: 1px solid #2E2821; border-radius: 12px; background: #1F1A15; padding: 18px; display: flex; flex-direction: column; gap: 14px">
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px">
+              <span style="display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:6px;font-size:12px;font-weight:500;background:#172229;color:#A9C7D8;border:1px solid #2A4250"><span style="width:6px;height:6px;border-radius:3px;background:#7FA7BF"></span>Complete</span>
+              <span style="font-size: 12px; color: #A39A8C">2w ago</span>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 6px">
+              <span style="font-size: 15px; font-weight: 600; letter-spacing: -0.01em">Export spec as Markdown</span>
+              <span style="font-size: 13px; line-height: 1.5; color: #A39A8C; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden">Finished requirements can be downloaded as a Markdown file for the backlog.</span>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 6px; margin-top: auto">
+              <div style="height: 6px; border-radius: 3px; background: #2E2821; overflow: hidden"><div style="width:100%;height:6px;border-radius:3px;background:#7FA7BF"></div></div>
+              <span style="font-size: 12px; color: #A39A8C">5 of 5 questions answered</span>
+            </div>
+          </a>
+
+          <a href="#" data-status="Draft" style="text-decoration: none; color: #EDE6DA; border: 1px solid #2E2821; border-radius: 12px; background: #1F1A15; padding: 18px; display: flex; flex-direction: column; gap: 14px">
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px">
+              <span style="display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:6px;font-size:12px;font-weight:500;background:transparent;color:#C9C0B2;border:1px solid #4A4137"><span style="width:6px;height:6px;border-radius:3px;background:#6B6259"></span>Draft</span>
+              <span style="font-size: 12px; color: #A39A8C">3w ago</span>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 6px">
+              <span style="font-size: 15px; font-weight: 600; letter-spacing: -0.01em">Fuel receipt capture</span>
+              <span style="font-size: 13px; line-height: 1.5; color: #A39A8C; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden">Drivers photograph fuel receipts and the totals are read automatically.</span>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 6px; margin-top: auto">
+              <div style="height: 6px; border-radius: 3px; background: #2E2821; overflow: hidden"><div style="width:0%;height:6px;border-radius:3px;background:#6B6259"></div></div>
+              <span style="font-size: 12px; color: #A39A8C">Not started</span>
+            </div>
+          </a>
+
+      </div>
+    </section>
+  </main>
+</div>
+</section>
+<section id="first-visit" data-screen hidden>
+<div style="min-height: 900px; background: #16130F; color: #EDE6DA; font-family: 'Geist', ui-sans-serif, system-ui, sans-serif; font-size: 14px">
+  <header style="border-bottom: 1px solid #2E2821">
+    <div style="max-width: 1120px; margin: 0 auto; padding: 0 24px; height: 56px; display: flex; align-items: center; justify-content: space-between; gap: 16px">
+      <a href="#" style="display: flex; align-items: center; gap: 10px; text-decoration: none">
+        <svg width="38" height="28" viewBox="0 -2 100 74" aria-hidden="true"><path d="M4 34 C16 34 24 32 28 30 H94 V44 H78 Q68 46 66 58 H76 V70 H28 V58 H38 Q36 46 28 44 Q14 42 4 34 Z" fill="#EDE6DA"></path><path d="M0 -8 L4 0 L0 8 L-4 0 Z" fill="#E8642C" transform="translate(58 12) scale(1.15)"></path><path d="M0 -8 L4 0 L0 8 L-4 0 Z" fill="#E8642C" opacity="0.55" transform="translate(48 6) scale(0.6)"></path><path d="M0 -8 L4 0 L0 8 L-4 0 Z" fill="#E8642C" opacity="0.3" transform="translate(69 3) scale(0.45)"></path></svg>
+        <span style="font-family: 'Archivo', sans-serif; font-weight: 900; font-size: 18px; letter-spacing: 0.04em">ANVIL</span>
+      </a>
+      <button type="button" aria-label="Account menu" style="width: 32px; height: 32px; border-radius: 16px; border: 1px solid #2E2821; background: #2E2821; font: 500 12px 'Geist', sans-serif; color: #C9C0B2; cursor: pointer">TM</button>
+    </div>
+  </header>
+
+  <main style="max-width: 1120px; margin: 0 auto; padding: 120px 24px 64px; display: flex; flex-direction: column; gap: 40px">
+    <section style="max-width: 720px; width: 100%; margin: 0 auto; display: flex; flex-direction: column; gap: 16px">
+      <div style="display: flex; flex-direction: column; gap: 6px; text-align: center">
+        <h1 style="margin: 0; font-size: 30px; font-weight: 600; letter-spacing: -0.025em; text-wrap: balance">What's your idea?</h1>
+        <p style="margin: 0; font-size: 15px; color: #A39A8C">Describe it in your own words. Anvil will ask questions until it's clear.</p>
+      </div>
+      <form style="border: 1px solid #2E2821; border-radius: 12px; background: #1F1A15; display: flex; flex-direction: column">
+        <label for="idea2" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Your idea</label>
+        <textarea id="idea2" rows="3" placeholder="Drivers should see route changes on their phone without calling the depot" style="border: 0; resize: none; padding: 16px 16px 8px; font: 400 15px/1.5 'Geist', sans-serif; color: #EDE6DA; background: transparent; outline: none"></textarea>
+        <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 8px 8px 16px">
+          <span style="font-size: 12px; color: #A39A8C">Enter to start · Shift + Enter for a new line</span>
+          <button type="submit" style="height: 36px; padding: 0 14px; border: 0; border-radius: 8px; background: #E8642C; color: #16130F; font: 500 14px 'Geist', sans-serif; display: inline-flex; align-items: center; gap: 8px; cursor: pointer">Start refining
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
+          </button>
+        </div>
+      </form>
+      <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 8px">
+        <span style="font-size: 12px; color: #A39A8C; align-self: center">Try one:</span>
+        <button type="button" style="height: 30px; padding: 0 12px; border: 1px solid #2E2821; border-radius: 999px; background: transparent; font: 400 13px 'Geist', sans-serif; color: #C9C0B2; cursor: pointer">Let customers reschedule deliveries</button>
+        <button type="button" style="height: 30px; padding: 0 12px; border: 1px solid #2E2821; border-radius: 999px; background: transparent; font: 400 13px 'Geist', sans-serif; color: #C9C0B2; cursor: pointer">A dashboard of late orders</button>
+        <button type="button" style="height: 30px; padding: 0 12px; border: 1px solid #2E2821; border-radius: 999px; background: transparent; font: 400 13px 'Geist', sans-serif; color: #C9C0B2; cursor: pointer">Single sign-on for staff</button>
+      </div>
+    </section>
+
+    <section style="max-width: 720px; width: 100%; margin: 0 auto; border: 1px dashed #4A4137; border-radius: 12px; padding: 32px 24px; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center">
+      <div style="display: flex; gap: 24px; flex-wrap: wrap; justify-content: center; font-size: 13px; color: #A39A8C">
+        <span><strong style="font-weight: 600; color: #EDE6DA">1.</strong> Describe your idea</span>
+        <span><strong style="font-weight: 600; color: #EDE6DA">2.</strong> Answer Anvil's questions</span>
+        <span><strong style="font-weight: 600; color: #EDE6DA">3.</strong> Get a clear requirement</span>
+      </div>
+      <p style="margin: 0; font-size: 13px; color: #A39A8C">Your requirements will appear here.</p>
+    </section>
+  </main>
+</div>
+</section>
+<section id="submitted" data-screen hidden>
+<div style="min-height: 900px; background: #16130F; color: #EDE6DA; font-family: 'Geist', ui-sans-serif, system-ui, sans-serif; font-size: 14px">
+  <header style="border-bottom: 1px solid #2E2821">
+    <div style="max-width: 1120px; margin: 0 auto; padding: 0 24px; height: 56px; display: flex; align-items: center; justify-content: space-between; gap: 16px">
+      <a href="#" style="display: flex; align-items: center; gap: 10px; text-decoration: none">
+        <svg width="38" height="28" viewBox="0 -2 100 74" aria-hidden="true"><path d="M4 34 C16 34 24 32 28 30 H94 V44 H78 Q68 46 66 58 H76 V70 H28 V58 H38 Q36 46 28 44 Q14 42 4 34 Z" fill="#EDE6DA"></path><path d="M0 -8 L4 0 L0 8 L-4 0 Z" fill="#E8642C" transform="translate(58 12) scale(1.15)"></path><path d="M0 -8 L4 0 L0 8 L-4 0 Z" fill="#E8642C" opacity="0.55" transform="translate(48 6) scale(0.6)"></path><path d="M0 -8 L4 0 L0 8 L-4 0 Z" fill="#E8642C" opacity="0.3" transform="translate(69 3) scale(0.45)"></path></svg>
+        <span style="font-family: 'Archivo', sans-serif; font-weight: 900; font-size: 18px; letter-spacing: 0.04em">ANVIL</span>
+      </a>
+      <button type="button" aria-label="Account menu" style="width: 32px; height: 32px; border-radius: 16px; border: 1px solid #2E2821; background: #2E2821; font: 500 12px 'Geist', sans-serif; color: #C9C0B2; cursor: pointer">TM</button>
+    </div>
+  </header>
+
+  <main style="max-width: 1120px; margin: 0 auto; padding: 56px 24px 64px; display: flex; flex-direction: column; gap: 48px">
+    <section style="max-width: 720px; width: 100%; margin: 0 auto; display: flex; flex-direction: column; gap: 16px">
+      <div style="display: flex; flex-direction: column; gap: 6px; text-align: center">
+        <h1 style="margin: 0; font-size: 30px; font-weight: 600; letter-spacing: -0.025em; text-wrap: balance">What's your idea?</h1>
+        <p style="margin: 0; font-size: 15px; color: #A39A8C">Describe it in your own words. Anvil will ask questions until it's clear.</p>
+      </div>
+      <form style="border: 1px solid #4A4137; border-radius: 12px; background: #1F1A15; display: flex; flex-direction: column">
+        <label for="idea3" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Your idea</label>
+        <textarea id="idea3" rows="3" readonly="readonly" style="border: 0; resize: none; padding: 16px 16px 8px; font: 400 15px/1.5 'Geist', sans-serif; color: #A39A8C; background: transparent; outline: none">Customers should be able to rebook a missed delivery from the text message we send them</textarea>
+        <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 8px 8px 16px">
+          <span style="font-size: 12px; color: #A39A8C">Opening your requirement…</span>
+          <button type="button" aria-busy="true" style="height: 36px; padding: 0 14px; border: 0; border-radius: 8px; background: #A39A8C; color: #16130F; font: 500 14px 'Geist', sans-serif; display: inline-flex; align-items: center; gap: 8px">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.2-8.56"></path></svg>Starting
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <section style="display: flex; flex-direction: column; gap: 16px">
+      <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px">
+        <h2 style="margin: 0; font-size: 18px; font-weight: 600; letter-spacing: -0.01em">Your requirements</h2>
+        <div style="display: inline-flex; gap: 2px; padding: 3px; border-radius: 10px; background: #2E2821; font-size: 13px; font-weight: 500">
+          <span style="height: 30px; padding: 0 12px; border-radius: 7px; background: #16130F; display: inline-flex; align-items: center; gap: 4px">All <span style="color: #A39A8C; font-size: 12px">7</span></span>
+          <span style="height: 30px; padding: 0 12px; color: #A39A8C; display: inline-flex; align-items: center; gap: 4px">Draft <span style="font-size: 12px">3</span></span>
+          <span style="height: 30px; padding: 0 12px; color: #A39A8C; display: inline-flex; align-items: center; gap: 4px">In progress <span style="font-size: 12px">2</span></span>
+          <span style="height: 30px; padding: 0 12px; color: #A39A8C; display: inline-flex; align-items: center; gap: 4px">Complete <span style="font-size: 12px">2</span></span>
+        </div>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px">
+        <div aria-busy="true" style="border: 1px solid #4A4137; border-radius: 12px; background: #1F1A15; padding: 18px; display: flex; flex-direction: column; gap: 14px">
+          <div style="display: flex; justify-content: space-between; align-items: center">
+            <span style="display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 8px; border-radius: 6px; font-size: 12px; font-weight: 500; border: 1px solid #4A4137; color: #C9C0B2"><span style="width: 6px; height: 6px; border-radius: 3px; background: #6B6259"></span>Draft</span>
+            <span style="font-size: 12px; color: #A39A8C">Just now</span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 8px">
+            <div style="height: 16px; width: 70%; border-radius: 6px; background: #3A332A"></div>
+            <div style="height: 12px; width: 95%; border-radius: 6px; background: #2E2821"></div>
+            <div style="height: 12px; width: 60%; border-radius: 6px; background: #2E2821"></div>
+          </div>
+          <span style="font-size: 12px; color: #A39A8C">Naming your requirement…</span>
+        </div>
+        <div style="border: 1px solid #2E2821; border-radius: 12px; background: #1F1A15; padding: 18px; display: flex; flex-direction: column; gap: 14px">
+          <div style="display: flex; justify-content: space-between; align-items: center">
+            <span style="display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 8px; border-radius: 6px; font-size: 12px; font-weight: 500; background: #2E2410; border: 1px solid #5A4518; color: #E9C27A"><span style="width: 6px; height: 6px; border-radius: 3px; background: #D9A441"></span>In progress</span>
+            <span style="font-size: 12px; color: #A39A8C">2h ago</span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <span style="font-size: 15px; font-weight: 600">Route change alerts</span>
+            <span style="font-size: 13px; line-height: 1.5; color: #A39A8C">Drivers should see route changes on their phone without calling the depot.</span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <div style="height: 6px; border-radius: 3px; background: #2E2821"><div style="width: 57%; height: 6px; border-radius: 3px; background: #D9A441"></div></div>
+            <span style="font-size: 12px; color: #A39A8C">4 of 7 questions answered</span>
+          </div>
+        </div>
+        <div style="border: 1px solid #2E2821; border-radius: 12px; background: #1F1A15; padding: 18px; display: flex; flex-direction: column; gap: 14px">
+          <div style="display: flex; justify-content: space-between; align-items: center">
+            <span style="display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 8px; border-radius: 6px; font-size: 12px; font-weight: 500; background: #172229; border: 1px solid #2A4250; color: #A9C7D8"><span style="width: 6px; height: 6px; border-radius: 3px; background: #7FA7BF"></span>Complete</span>
+            <span style="font-size: 12px; color: #A39A8C">Yesterday</span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <span style="font-size: 15px; font-weight: 600">Offline sync for drivers</span>
+            <span style="font-size: 13px; line-height: 1.5; color: #A39A8C">The app keeps working in dead zones and syncs once signal comes back.</span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <div style="height: 6px; border-radius: 3px; background: #2E2821"><div style="width: 100%; height: 6px; border-radius: 3px; background: #7FA7BF"></div></div>
+            <span style="font-size: 12px; color: #A39A8C">8 of 8 questions answered</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+</section>
+<nav class="proto-nav" aria-label="Prototype screens"><span>Prototype</span><a href="#requirements" data-screen-link="requirements">Your requirements</a><a href="#first-visit" data-screen-link="first-visit">First visit</a><a href="#submitted" data-screen-link="submitted">Idea submitted</a></nav>
+<script>
+const screens = [...document.querySelectorAll('[data-screen]')];
+function show() {
+  const id = location.hash.slice(1);
+  const target = screens.find((s) => s.id === id) || screens[0];
+  screens.forEach((s) => (s.hidden = s !== target));
+  document.querySelectorAll('[data-screen-link]').forEach((a) => a.toggleAttribute('aria-current', a.dataset.screenLink === target.id));
+  window.scrollTo(0, 0);
+}
+addEventListener('hashchange', show);
+show();
+
+// Status tabs filter the cards.
+document.querySelectorAll('#requirements [data-tab]').forEach((tab) => {
+  tab.addEventListener('click', () => {
+    const want = tab.dataset.tab;
+    document.querySelectorAll('#requirements [data-tab]').forEach((t) => {
+      const on = t === tab;
+      t.setAttribute('aria-selected', on);
+      t.style.background = on ? '#16130F' : 'transparent';
+      t.style.color = on ? '#EDE6DA' : '#A39A8C';
+    });
+    document.querySelectorAll('#requirements [data-status]').forEach((c) => (c.hidden = want !== 'All' && c.dataset.status !== want));
+  });
+});
+// Submitting an idea shows the submitted state; Enter submits, Shift + Enter adds a line.
+document.querySelectorAll('#requirements form, #first-visit form').forEach((form) => {
+  form.addEventListener('submit', (e) => { e.preventDefault(); location.hash = 'submitted'; });
+  form.querySelector('textarea').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); form.requestSubmit(); }
+  });
+});
+// The example ideas fill the prompt.
+document.querySelectorAll('#first-visit form ~ div button').forEach((b) => {
+  b.addEventListener('click', () => { const t = document.querySelector('#first-visit textarea'); t.value = b.textContent; t.focus(); });
+});
+
+</script>
+</body>
+</html>

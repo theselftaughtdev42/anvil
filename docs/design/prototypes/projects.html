@@ -1,0 +1,247 @@
+<!doctype html>
+<!--
+  Reference design for Projects, slice 1 (October 2026): a Project with a Project Context its Project
+  Owner writes, and a Project picked on the idea prompt. Kept for history. Links between screens work,
+  as does the picker; switch screens with the Prototype bar. The Projects here are made up.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Anvil: Projects design</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@900&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  body { margin: 0; background: #16130f; color-scheme: dark; }
+  a { color: #ede6da; } a:hover { color: #c9c0b2; }
+  textarea::placeholder, input::placeholder { color: #6b6259; }
+  [hidden] { display: none !important; }
+  .proto-nav { position: fixed; right: 12px; bottom: 12px; z-index: 50; display: flex; gap: 4px; padding: 4px; border-radius: 10px;
+    background: #0c0a08; border: 1px dashed #4a4137; font: 500 12px 'Geist', system-ui, sans-serif; }
+  .proto-nav span { padding: 6px 8px; color: #6b6259; }
+  .proto-nav a { padding: 6px 10px; border-radius: 6px; text-decoration: none; color: #a39a8c; }
+  .proto-nav a[aria-current] { background: #2b261f; color: #ede6da; }
+</style>
+</head>
+<body>
+<section id="projects" data-screen hidden>
+<div style="min-height: 900px; background: #16130F; color: #EDE6DA; font-family: 'Geist', ui-sans-serif, system-ui, sans-serif; font-size: 14px">
+  <header style="border-bottom: 1px solid #2E2821">
+    <div style="max-width: 1120px; margin: 0 auto; padding: 0 24px; height: 56px; display: flex; align-items: center; gap: 24px">
+      <a href="#requirements" style="display: flex; align-items: center; gap: 10px; text-decoration: none">
+        <svg width="38" height="28" viewBox="0 -2 100 74" aria-hidden="true"><path d="M4 34 C16 34 24 32 28 30 H94 V44 H78 Q68 46 66 58 H76 V70 H28 V58 H38 Q36 46 28 44 Q14 42 4 34 Z" fill="#EDE6DA"></path></svg>
+        <span style="font-family: 'Archivo', sans-serif; font-weight: 900; font-size: 18px; letter-spacing: 0.04em">ANVIL</span>
+      </a>
+      <nav aria-label="Main" style="display: flex; gap: 4px; flex-grow: 1">
+        <a href="#home" style="padding: 6px 10px; border-radius: 8px; text-decoration: none; color: #A39A8C">Requirements</a>
+        <a href="#projects" aria-current="page" style="padding: 6px 10px; border-radius: 8px; text-decoration: none; background: #2B261F">Projects</a>
+      </nav>
+      <button type="button" aria-label="Account menu" style="width: 32px; height: 32px; border-radius: 16px; border: 1px solid #2E2821; background: #2B261F; font: 500 12px 'Geist', sans-serif; color: #C9C0B2">TM</button>
+    </div>
+  </header>
+
+  <main style="max-width: 1120px; margin: 0 auto; padding: 48px 24px 64px; display: flex; flex-direction: column; gap: 28px">
+    <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px">
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <h1 style="margin: 0; font-size: 30px; font-weight: 600; letter-spacing: -0.025em">Projects</h1>
+        <p style="margin: 0; font-size: 15px; color: #A39A8C">Each Project gives Anvil the background it needs to ask better Questions.</p>
+      </div>
+      <button type="button" style="height: 38px; padding: 0 16px; border: 0; border-radius: 8px; background: #E8642C; color: #16130F; font: 500 14px 'Geist', sans-serif">New project</button>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px">
+      <a href="#project" style="text-decoration: none; color: #EDE6DA; border: 1px solid #2E2821; border-radius: 12px; background: #1F1A15; padding: 20px; display: flex; flex-direction: column; gap: 12px">
+        <span style="font-size: 17px; font-weight: 600">Parcel delivery platform</span>
+        <span style="font-size: 13px; line-height: 1.5; color: #A39A8C; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden">Booking, tracking and rebooking for home deliveries. Two delivery attempts, then the parcel waits 7 days at one of 14 depots. Customers get a text after each failed attempt.</span>
+        <span style="font-size: 12px; color: #A39A8C; border-top: 1px solid #2E2821; padding-top: 12px; margin-top: auto">6 Requirements</span>
+      </a>
+      <a href="#" style="text-decoration: none; color: #EDE6DA; border: 1px solid #2E2821; border-radius: 12px; background: #1F1A15; padding: 20px; display: flex; flex-direction: column; gap: 12px">
+        <span style="font-size: 17px; font-weight: 600">Driver app</span>
+        <span style="font-size: 13px; line-height: 1.5; color: #A39A8C; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden">The phone app drivers use for routes, proof of delivery and shift handover. Drivers often have poor signal and one free hand.</span>
+        <span style="font-size: 12px; color: #A39A8C; border-top: 1px solid #2E2821; padding-top: 12px; margin-top: auto">3 Requirements</span>
+      </a>
+      <a href="#" style="text-decoration: none; color: #EDE6DA; border: 1px dashed #4A4137; border-radius: 12px; background: transparent; padding: 20px; display: flex; flex-direction: column; gap: 12px">
+        <span style="font-size: 17px; font-weight: 600">Customer support portal</span>
+        <span style="font-size: 13px; line-height: 1.5; color: #A39A8C">No Project Context yet. Without it, Anvil asks more general Questions.</span>
+        <span style="font-size: 12px; color: #A39A8C; border-top: 1px solid #2E2821; padding-top: 12px; margin-top: auto">0 Requirements</span>
+      </a>
+    </div>
+  </main>
+</div>
+</section>
+<section id="project" data-screen hidden>
+<div style="min-height: 900px; background: #16130F; color: #EDE6DA; font-family: 'Geist', ui-sans-serif, system-ui, sans-serif; font-size: 14px">
+  <header style="border-bottom: 1px solid #2E2821">
+    <div style="max-width: 1120px; margin: 0 auto; padding: 0 24px; height: 56px; display: flex; align-items: center; gap: 24px">
+      <a href="#requirements" style="display: flex; align-items: center; gap: 10px; text-decoration: none">
+        <svg width="38" height="28" viewBox="0 -2 100 74" aria-hidden="true"><path d="M4 34 C16 34 24 32 28 30 H94 V44 H78 Q68 46 66 58 H76 V70 H28 V58 H38 Q36 46 28 44 Q14 42 4 34 Z" fill="#EDE6DA"></path></svg>
+        <span style="font-family: 'Archivo', sans-serif; font-weight: 900; font-size: 18px; letter-spacing: 0.04em">ANVIL</span>
+      </a>
+      <nav aria-label="Main" style="display: flex; gap: 4px; flex-grow: 1">
+        <a href="#home" style="padding: 6px 10px; border-radius: 8px; text-decoration: none; color: #A39A8C">Requirements</a>
+        <a href="#projects" aria-current="page" style="padding: 6px 10px; border-radius: 8px; text-decoration: none; background: #2B261F">Projects</a>
+      </nav>
+      <button type="button" aria-label="Account menu" style="width: 32px; height: 32px; border-radius: 16px; border: 1px solid #2E2821; background: #2B261F; font: 500 12px 'Geist', sans-serif; color: #C9C0B2">TM</button>
+    </div>
+  </header>
+
+  <main style="max-width: 1120px; margin: 0 auto; padding: 36px 24px 64px; display: flex; flex-direction: column; gap: 24px">
+    <a href="#projects" style="font-size: 13px; color: #A39A8C; text-decoration: none">← Projects</a>
+
+    <form style="display: flex; flex-wrap: wrap; gap: 32px; align-items: flex-start">
+      <div style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 20px">
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <label for="pname" style="font-size: 13px; color: #A39A8C">Name</label>
+          <input id="pname" value="Parcel delivery platform" style="height: 48px; border: 1px solid transparent; border-radius: 8px; padding: 0 10px; margin-left: -10px; font: 600 28px 'Geist', sans-serif; letter-spacing: -0.02em; color: #EDE6DA; background: transparent; outline: none">
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 8px">
+          <label for="pctx" style="font-size: 18px; font-weight: 600">Project Context</label>
+          <span style="color: #A39A8C; line-height: 1.5">Anvil reads this whenever it refines one of this Project's Requirements. Write what you'd tell a new colleague: who it's for, how things work today, the rules, and the words you use.</span>
+          <textarea id="pctx" rows="16" style="border: 1px solid #2E2821; border-radius: 12px; resize: vertical; padding: 16px 18px; font: 400 15px/1.65 'Geist', sans-serif; color: #EDE6DA; background: #1F1A15; outline: none">Booking, tracking and rebooking for home deliveries, used by customers and the 14 depots that serve them.
+
+How deliveries work today
+- Two delivery attempts, then the parcel waits 7 days at the depot.
+- Customers get a text after each failed attempt.
+- Deliveries run Monday to Saturday. Depots open 8am to 6pm on weekdays, until 1pm on Saturdays.
+- Collections need photo ID.
+
+Rules
+- Payments only through the existing billing service.
+
+Words we use
+- Staff-facing text says "Consignment", not "parcel".</textarea>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px">
+          <span style="font-size: 13px; color: #A39A8C">Saved 3 days ago</span>
+          <button type="submit" style="height: 38px; padding: 0 18px; border: 0; border-radius: 8px; background: #E8642C; color: #16130F; font: 500 14px 'Geist', sans-serif">Save</button>
+        </div>
+      </div>
+
+      <aside style="flex: 1 1 280px; min-width: 0; display: flex; flex-direction: column; gap: 12px; padding-top: 6px">
+        <h2 style="margin: 0; font-size: 14px; font-weight: 600">Requirements in this Project</h2>
+        <span style="font-size: 13px; color: #A39A8C; line-height: 1.5">Changes apply to their next Questions.</span>
+        <div style="display: flex; flex-direction: column; border-top: 1px solid #2E2821">
+          <a href="#" style="display: flex; justify-content: space-between; gap: 8px; padding: 10px 0; border-bottom: 1px solid #2E2821; text-decoration: none"><span>Rebook a missed delivery</span><span style="font-size: 12px; color: #E9C27A">In progress</span></a>
+          <a href="#" style="display: flex; justify-content: space-between; gap: 8px; padding: 10px 0; border-bottom: 1px solid #2E2821; text-decoration: none"><span>Offline sync for drivers</span><span style="font-size: 12px; color: #A9C7D8">Complete</span></a>
+          <a href="#" style="display: flex; justify-content: space-between; gap: 8px; padding: 10px 0; border-bottom: 1px solid #2E2821; text-decoration: none"><span>Bulk import depots</span><span style="font-size: 12px; color: #C9C0B2">Draft</span></a>
+          <span style="padding: 10px 0; font-size: 13px; color: #A39A8C">and 3 more</span>
+        </div>
+      </aside>
+    </form>
+  </main>
+</div>
+</section>
+<section id="home" data-screen hidden>
+<div style="min-height: 900px; background: #16130F; color: #EDE6DA; font-family: 'Geist', ui-sans-serif, system-ui, sans-serif; font-size: 14px">
+  <header style="border-bottom: 1px solid #2E2821">
+    <div style="max-width: 1120px; margin: 0 auto; padding: 0 24px; height: 56px; display: flex; align-items: center; gap: 24px">
+      <a href="#requirements" style="display: flex; align-items: center; gap: 10px; text-decoration: none">
+        <svg width="38" height="28" viewBox="0 -2 100 74" aria-hidden="true"><path d="M4 34 C16 34 24 32 28 30 H94 V44 H78 Q68 46 66 58 H76 V70 H28 V58 H38 Q36 46 28 44 Q14 42 4 34 Z" fill="#EDE6DA"></path></svg>
+        <span style="font-family: 'Archivo', sans-serif; font-weight: 900; font-size: 18px; letter-spacing: 0.04em">ANVIL</span>
+      </a>
+      <nav aria-label="Main" style="display: flex; gap: 4px; flex-grow: 1">
+        <a href="#requirements" aria-current="page" style="padding: 6px 10px; border-radius: 8px; text-decoration: none; background: #2B261F">Requirements</a>
+        <a href="#projects" style="padding: 6px 10px; border-radius: 8px; text-decoration: none; color: #A39A8C">Projects</a>
+      </nav>
+      <button type="button" aria-label="Account menu" style="width: 32px; height: 32px; border-radius: 16px; border: 1px solid #2E2821; background: #2B261F; font: 500 12px 'Geist', sans-serif; color: #C9C0B2">TM</button>
+    </div>
+  </header>
+
+  <main style="max-width: 1120px; margin: 0 auto; padding: 56px 24px 64px; display: flex; flex-direction: column; gap: 48px">
+    <section style="max-width: 720px; width: 100%; margin: 0 auto; display: flex; flex-direction: column; gap: 16px">
+      <div style="display: flex; flex-direction: column; gap: 6px; text-align: center">
+        <h1 style="margin: 0; font-size: 30px; font-weight: 600; letter-spacing: -0.025em">What's your idea?</h1>
+        <p style="margin: 0; font-size: 15px; color: #A39A8C">Describe it in your own words. Anvil will ask questions until it's clear.</p>
+      </div>
+      <form style="position: relative; border: 1px solid #2E2821; border-radius: 12px; background: #1F1A15; display: flex; flex-direction: column">
+        <label for="idea" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Your idea</label>
+        <textarea id="idea" rows="3" style="border: 0; resize: none; padding: 16px 16px 8px; font: 400 15px/1.5 'Geist', sans-serif; color: #EDE6DA; background: transparent; outline: none">Customers should be able to rebook a missed delivery from the text message we send them</textarea>
+        <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 8px 8px 10px">
+          <button type="button" aria-haspopup="listbox" aria-expanded="true" style="height: 32px; padding: 0 10px; border: 1px solid #4A4137; border-radius: 8px; background: #2B261F; font: 400 13px 'Geist', sans-serif; color: #EDE6DA; display: inline-flex; align-items: center; gap: 8px">
+            <span style="color: #A39A8C">Project</span><span style="font-weight: 500">Parcel delivery platform</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
+          </button>
+          <button type="submit" style="height: 36px; padding: 0 14px; border: 0; border-radius: 8px; background: #E8642C; color: #16130F; font: 500 14px 'Geist', sans-serif">Start refining</button>
+        </div>
+
+        <div role="listbox" aria-label="Project" style="position: absolute; left: 10px; top: 128px; z-index: 5; width: 340px; background: #241F19; border: 1px solid #4A4137; border-radius: 10px; padding: 6px; display: flex; flex-direction: column; gap: 2px; box-shadow: 0 16px 36px rgba(0,0,0,0.5)">
+          <div role="option" aria-selected="true" style="padding: 8px 10px; border-radius: 6px; background: #2A1A10; display: flex; flex-direction: column; gap: 2px">
+            <span style="font-weight: 500">Parcel delivery platform</span>
+            <span style="font-size: 12px; color: #A39A8C">6 Requirements</span>
+          </div>
+          <div role="option" aria-selected="false" style="padding: 8px 10px; border-radius: 6px; display: flex; flex-direction: column; gap: 2px">
+            <span style="font-weight: 500">Driver app</span>
+            <span style="font-size: 12px; color: #A39A8C">3 Requirements</span>
+          </div>
+          <div role="option" aria-selected="false" style="padding: 8px 10px; border-radius: 6px; display: flex; flex-direction: column; gap: 2px">
+            <span style="font-weight: 500">Customer support portal</span>
+            <span style="font-size: 12px; color: #A39A8C">No Project Context yet, so Anvil asks more general Questions</span>
+          </div>
+          <div style="border-top: 1px solid #2E2821; margin-top: 4px; padding: 8px 10px 4px; font-size: 12px; color: #A39A8C; line-height: 1.5">You can change the Project until the first Question is answered.</div>
+        </div>
+      </form>
+    </section>
+
+    <section style="display: flex; flex-direction: column; gap: 16px; margin-top: 150px">
+      <h2 style="margin: 0; font-size: 18px; font-weight: 600">Your requirements</h2>
+      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px">
+        <div style="border: 1px solid #2E2821; border-radius: 12px; background: #1F1A15; padding: 18px; display: flex; flex-direction: column; gap: 12px">
+          <div style="display: flex; justify-content: space-between; align-items: center">
+            <span style="display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 8px; border-radius: 6px; font-size: 12px; font-weight: 500; background: #2E2410; border: 1px solid #5A4518; color: #E9C27A"><span style="width: 6px; height: 6px; border-radius: 3px; background: #D9A441"></span>In progress</span>
+            <span style="font-size: 12px; color: #A39A8C">2h ago</span>
+          </div>
+          <span style="font-size: 15px; font-weight: 600">Route change alerts</span>
+          <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #A39A8C">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>Driver app
+          </span>
+        </div>
+        <div style="border: 1px solid #2E2821; border-radius: 12px; background: #1F1A15; padding: 18px; display: flex; flex-direction: column; gap: 12px">
+          <div style="display: flex; justify-content: space-between; align-items: center">
+            <span style="display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 8px; border-radius: 6px; font-size: 12px; font-weight: 500; border: 1px solid #4A4137; color: #C9C0B2"><span style="width: 6px; height: 6px; border-radius: 3px; background: #6B6259"></span>Draft</span>
+            <span style="font-size: 12px; color: #A39A8C">1w ago</span>
+          </div>
+          <span style="font-size: 15px; font-weight: 600">Bulk import depots</span>
+          <span style="font-size: 12px; color: #A39A8C">Parcel delivery platform</span>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+</section>
+<nav class="proto-nav" aria-label="Prototype screens"><span>Prototype</span><a href="#projects" data-screen-link="projects">Projects list</a><a href="#project" data-screen-link="project">Project page</a><a href="#home" data-screen-link="home">Project picker</a></nav>
+<script>
+const screens = [...document.querySelectorAll('[data-screen]')];
+function show() {
+  const id = location.hash.slice(1);
+  const target = screens.find((s) => s.id === id) || screens[0];
+  screens.forEach((s) => (s.hidden = s !== target));
+  document.querySelectorAll('[data-screen-link]').forEach((a) => a.toggleAttribute('aria-current', a.dataset.screenLink === target.id));
+  window.scrollTo(0, 0);
+}
+addEventListener('hashchange', show);
+show();
+
+// The Project picker on the idea prompt opens and closes.
+const pickerButton = document.querySelector('#home [aria-haspopup="listbox"]');
+const listbox = document.querySelector('#home [role="listbox"]');
+pickerButton.addEventListener('click', () => {
+  const open = pickerButton.getAttribute('aria-expanded') !== 'true';
+  pickerButton.setAttribute('aria-expanded', open);
+  listbox.hidden = !open;
+});
+listbox.querySelectorAll('[role="option"]').forEach((option) => {
+  option.style.cursor = 'pointer';
+  option.addEventListener('click', () => {
+    listbox.querySelectorAll('[role="option"]').forEach((o) => {
+      o.setAttribute('aria-selected', o === option); o.style.background = o === option ? '#2A1A10' : 'transparent';
+    });
+    pickerButton.querySelectorAll('span')[1].textContent = option.querySelector('span').textContent;
+    pickerButton.setAttribute('aria-expanded', 'false'); listbox.hidden = true;
+  });
+});
+document.querySelectorAll('form').forEach((f) => f.addEventListener('submit', (e) => e.preventDefault()));
+
+</script>
+</body>
+</html>

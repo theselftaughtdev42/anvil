@@ -1,0 +1,121 @@
+<!doctype html>
+<!--
+  The Forge brand direction and the evolution of the mark (October 2026), kept for history. The current
+  values live in frontend/src/theme.css and frontend/src/assets; this file isn't a source for them.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Anvil: Brand design</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@900&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  body { margin: 0; background: #16130f; color-scheme: dark; }
+  a { color: #ede6da; } a:hover { color: #c9c0b2; }
+  textarea::placeholder, input::placeholder { color: #6b6259; }
+  [hidden] { display: none !important; }
+  .proto-nav { position: fixed; right: 12px; bottom: 12px; z-index: 50; display: flex; gap: 4px; padding: 4px; border-radius: 10px;
+    background: #0c0a08; border: 1px dashed #4a4137; font: 500 12px 'Geist', system-ui, sans-serif; }
+  .proto-nav span { padding: 6px 8px; color: #6b6259; }
+  .proto-nav a { padding: 6px 10px; border-radius: 6px; text-decoration: none; color: #a39a8c; }
+  .proto-nav a[aria-current] { background: #2b261f; color: #ede6da; }
+</style>
+</head>
+<body>
+<section id="forge" data-screen hidden><div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0c0a08;padding:24px;box-sizing:border-box;overflow-x:auto">
+<div style="width: 1200px; height: 760px; box-sizing: border-box; padding: 56px 64px; background: #16130F; color: #EDE6DA; font-family: 'Archivo', sans-serif; display: grid; grid-template-columns: 1.25fr 1fr; gap: 56px">
+  <div style="display: flex; flex-direction: column; justify-content: space-between">
+    <div style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; letter-spacing: 0.14em; color: #A39A8C">01 — FORGE · heat, weight, craft</div>
+    <div style="display: flex; flex-direction: column; gap: 28px">
+      <div style="display: flex; align-items: center; gap: 28px">
+        <svg width="148" height="104" viewBox="0 0 100 70" fill="none" aria-hidden="true">
+          <path d="M50 2 L54 9 L50 16 L46 9 Z" fill="#E8642C"></path>
+          <path d="M60 6 L62 10 L60 14 L58 10 Z" fill="#E8642C" opacity="0.6"></path>
+          <path d="M4 24 C16 24 24 22 28 20 H94 V34 H78 Q68 36 66 48 H76 V60 H28 V48 H38 Q36 36 28 34 Q14 32 4 24 Z" fill="#EDE6DA"></path>
+        </svg>
+        <div style="font-size: 112px; font-weight: 900; letter-spacing: 0.04em; line-height: 0.9">ANVIL</div>
+      </div>
+      <div style="font-size: 26px; font-weight: 400; color: #C9C0B2">where requirements <span style="color: #E8642C; font-weight: 600">take shape</span></div>
+    </div>
+    <div style="display: flex; gap: 16px; align-items: center">
+      <div style="width: 64px; height: 64px; border-radius: 14px; background: #E8642C; display: flex; align-items: center; justify-content: center">
+        <svg width="40" height="28" viewBox="0 0 100 70" aria-hidden="true"><path d="M4 24 C16 24 24 22 28 20 H94 V34 H78 Q68 36 66 48 H76 V60 H28 V48 H38 Q36 36 28 34 Q14 32 4 24 Z" fill="#16130F"></path></svg>
+      </div>
+      <div style="width: 64px; height: 64px; border-radius: 14px; background: #241F19; border: 1px solid #3A332A; display: flex; align-items: center; justify-content: center">
+        <svg width="40" height="28" viewBox="0 0 100 70" aria-hidden="true"><path d="M4 24 C16 24 24 22 28 20 H94 V34 H78 Q68 36 66 48 H76 V60 H28 V48 H38 Q36 36 28 34 Q14 32 4 24 Z" fill="#EDE6DA"></path></svg>
+      </div>
+      <div style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #A39A8C">app icons</div>
+    </div>
+  </div>
+  <div style="display: flex; flex-direction: column; gap: 28px; justify-content: center">
+    <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; font-family: 'IBM Plex Mono', monospace; font-size: 12px">
+      <div style="display: flex; flex-direction: column; gap: 6px"><div style="height: 72px; border-radius: 10px; background: #16130F; border: 1px solid #3A332A"></div>Iron<br>#16130F</div>
+      <div style="display: flex; flex-direction: column; gap: 6px"><div style="height: 72px; border-radius: 10px; background: #2B261F"></div>Soot<br>#2B261F</div>
+      <div style="display: flex; flex-direction: column; gap: 6px"><div style="height: 72px; border-radius: 10px; background: #EDE6DA"></div>Ash<br>#EDE6DA</div>
+      <div style="display: flex; flex-direction: column; gap: 6px"><div style="height: 72px; border-radius: 10px; background: #E8642C"></div>Ember<br>#E8642C</div>
+    </div>
+    <div style="border-top: 1px solid #3A332A; padding-top: 20px; display: flex; flex-direction: column; gap: 6px">
+      <div style="font-size: 40px; font-weight: 800">Archivo Black</div>
+      <div style="font-family: 'IBM Plex Mono', monospace; font-size: 15px; color: #C9C0B2">IBM Plex Mono — IDs, metadata, specs</div>
+    </div>
+    <div style="background: #241F19; border: 1px solid #3A332A; border-radius: 12px; padding: 18px 20px; display: flex; flex-direction: column; gap: 10px">
+      <div style="display: flex; justify-content: space-between; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #A39A8C"><span>REQ-142</span><span style="color: #E8642C">● TEMPERING</span></div>
+      <div style="font-size: 18px; font-weight: 600">Users can export a refined spec as Markdown</div>
+      <div style="height: 6px; border-radius: 3px; background: #3A332A"><div style="width: 62%; height: 6px; border-radius: 3px; background: #E8642C"></div></div>
+    </div>
+  </div>
+</div>
+</div></section>
+<section id="mark" data-screen hidden><div style="min-height:100vh;box-sizing:border-box;background:#16130F;color:#EDE6DA;font-family:'Geist',sans-serif;padding:48px 24px">
+<div style="max-width:1120px;margin:0 auto;display:flex;flex-direction:column;gap:24px">
+  <div style="font:500 13px 'IBM Plex Mono',monospace;letter-spacing:.14em;color:#A39A8C">THE MARK · HOW IT GOT HERE</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px">
+    <div style="background:#1F1A15;border:1px solid #2E2821;border-radius:14px;padding:22px;display:flex;flex-direction:column;gap:18px">
+  <span style="font:500 12px 'IBM Plex Mono',monospace;color:#A39A8C;letter-spacing:.06em">C1 · CHOSEN, OCT 2026</span>
+  <div style="height:150px;display:flex;align-items:center;justify-content:center"><svg width="190" height="141" viewBox="0 -2 100 74" aria-hidden="true"><path d="M4 34 C16 34 24 32 28 30 H94 V44 H78 Q68 46 66 58 H76 V70 H28 V58 H38 Q36 46 28 44 Q14 42 4 34 Z" fill="#EDE6DA"/><path d="M0 -8 L4 0 L0 8 L-4 0 Z" fill="#E8642C" transform="translate(58 12) scale(1.15)"/><path d="M0 -8 L4 0 L0 8 L-4 0 Z" fill="#E8642C" opacity="0.55" transform="translate(48 6) scale(0.6)"/><path d="M0 -8 L4 0 L0 8 L-4 0 Z" fill="#E8642C" opacity="0.3" transform="translate(69 3) scale(0.45)"/></svg></div>
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    <span style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;background:#16130F;border:1px solid #2E2821"><svg width="38" height="28" viewBox="0 -2 100 74" aria-hidden="true"><path d="M4 34 C16 34 24 32 28 30 H94 V44 H78 Q68 46 66 58 H76 V70 H28 V58 H38 Q36 46 28 44 Q14 42 4 34 Z" fill="#EDE6DA"/><path d="M0 -8 L4 0 L0 8 L-4 0 Z" fill="#E8642C" transform="translate(58 12) scale(1.15)"/><path d="M0 -8 L4 0 L0 8 L-4 0 Z" fill="#E8642C" opacity="0.55" transform="translate(48 6) scale(0.6)"/><path d="M0 -8 L4 0 L0 8 L-4 0 Z" fill="#E8642C" opacity="0.3" transform="translate(69 3) scale(0.45)"/></svg><span style="font:900 18px 'Archivo',sans-serif;letter-spacing:.04em;color:#EDE6DA">ANVIL</span></span>
+    <span style="width:48px;height:48px;border-radius:11px;background:#2B261F;display:flex;align-items:center;justify-content:center"><svg width="36" height="27" viewBox="0 -2 100 74" aria-hidden="true"><path d="M4 34 C16 34 24 32 28 30 H94 V44 H78 Q68 46 66 58 H76 V70 H28 V58 H38 Q36 46 28 44 Q14 42 4 34 Z" fill="#EDE6DA"/><path d="M0 -8 L4 0 L0 8 L-4 0 Z" fill="#E8642C" transform="translate(58 12) scale(1.15)"/><path d="M0 -8 L4 0 L0 8 L-4 0 Z" fill="#E8642C" opacity="0.55" transform="translate(48 6) scale(0.6)"/><path d="M0 -8 L4 0 L0 8 L-4 0 Z" fill="#E8642C" opacity="0.3" transform="translate(69 3) scale(0.45)"/></svg></span>
+    <span style="width:16px;height:16px;border-radius:3px;background:#2B261F;display:flex;align-items:center;justify-content:center"><svg width="14" height="10" viewBox="0 -2 100 74" aria-hidden="true"><path d="M4 34 C16 34 24 32 28 30 H94 V44 H78 Q68 46 66 58 H76 V70 H28 V58 H38 Q36 46 28 44 Q14 42 4 34 Z" fill="#EDE6DA"/><path d="M0 -8 L4 0 L0 8 L-4 0 Z" fill="#E8642C" transform="translate(58 12) scale(1.15)"/><path d="M0 -8 L4 0 L0 8 L-4 0 Z" fill="#E8642C" opacity="0.55" transform="translate(48 6) scale(0.6)"/><path d="M0 -8 L4 0 L0 8 L-4 0 Z" fill="#E8642C" opacity="0.3" transform="translate(69 3) scale(0.45)"/></svg></span>
+  </div>
+  <span style="font:400 13px/1.5 'Geist',sans-serif;color:#C9C0B2">Three upright diamonds, scattered and fading: one hot spark and two cooler ones thrown off. The main mark at first.</span>
+</div>
+    <div style="background:#1F1A15;border:1px solid #2E2821;border-radius:14px;padding:22px;display:flex;flex-direction:column;gap:18px">
+  <span style="font:500 12px 'IBM Plex Mono',monospace;color:#A39A8C;letter-spacing:.06em">LONE SPARK · FAVICON</span>
+  <div style="height:150px;display:flex;align-items:center;justify-content:center"><svg width="190" height="141" viewBox="0 -2 100 74" aria-hidden="true"><path d="M4 34 C16 34 24 32 28 30 H94 V44 H78 Q68 46 66 58 H76 V70 H28 V58 H38 Q36 46 28 44 Q14 42 4 34 Z" fill="#EDE6DA"/><path d="M0 -8 L4 0 L0 8 L-4 0 Z" fill="#E8642C" transform="translate(60 13) scale(1.35)"/></svg></div>
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    <span style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;background:#16130F;border:1px solid #2E2821"><svg width="38" height="28" viewBox="0 -2 100 74" aria-hidden="true"><path d="M4 34 C16 34 24 32 28 30 H94 V44 H78 Q68 46 66 58 H76 V70 H28 V58 H38 Q36 46 28 44 Q14 42 4 34 Z" fill="#EDE6DA"/><path d="M0 -8 L4 0 L0 8 L-4 0 Z" fill="#E8642C" transform="translate(60 13) scale(1.35)"/></svg><span style="font:900 18px 'Archivo',sans-serif;letter-spacing:.04em;color:#EDE6DA">ANVIL</span></span>
+    <span style="width:48px;height:48px;border-radius:11px;background:#2B261F;display:flex;align-items:center;justify-content:center"><svg width="36" height="27" viewBox="0 -2 100 74" aria-hidden="true"><path d="M4 34 C16 34 24 32 28 30 H94 V44 H78 Q68 46 66 58 H76 V70 H28 V58 H38 Q36 46 28 44 Q14 42 4 34 Z" fill="#EDE6DA"/><path d="M0 -8 L4 0 L0 8 L-4 0 Z" fill="#E8642C" transform="translate(60 13) scale(1.35)"/></svg></span>
+    <span style="width:16px;height:16px;border-radius:3px;background:#2B261F;display:flex;align-items:center;justify-content:center"><svg width="14" height="10" viewBox="0 -2 100 74" aria-hidden="true"><path d="M4 34 C16 34 24 32 28 30 H94 V44 H78 Q68 46 66 58 H76 V70 H28 V58 H38 Q36 46 28 44 Q14 42 4 34 Z" fill="#EDE6DA"/><path d="M0 -8 L4 0 L0 8 L-4 0 Z" fill="#E8642C" transform="translate(60 13) scale(1.35)"/></svg></span>
+  </div>
+  <span style="font:400 13px/1.5 'Geist',sans-serif;color:#C9C0B2">The same anvil with one bold spark, chosen for the browser tab because it stays clear at 16px.</span>
+</div>
+    <div style="background:#1F1A15;border:1px solid #2E2821;border-radius:14px;padding:22px;display:flex;flex-direction:column;gap:18px">
+  <span style="font:500 12px 'IBM Plex Mono',monospace;color:#A39A8C;letter-spacing:.06em">COLD ANVIL · TODAY</span>
+  <div style="height:150px;display:flex;align-items:center;justify-content:center"><svg width="190" height="141" viewBox="0 -2 100 74" aria-hidden="true"><path d="M4 34 C16 34 24 32 28 30 H94 V44 H78 Q68 46 66 58 H76 V70 H28 V58 H38 Q36 46 28 44 Q14 42 4 34 Z" fill="#EDE6DA"/></svg></div>
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    <span style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;background:#16130F;border:1px solid #2E2821"><svg width="38" height="28" viewBox="0 -2 100 74" aria-hidden="true"><path d="M4 34 C16 34 24 32 28 30 H94 V44 H78 Q68 46 66 58 H76 V70 H28 V58 H38 Q36 46 28 44 Q14 42 4 34 Z" fill="#EDE6DA"/></svg><span style="font:900 18px 'Archivo',sans-serif;letter-spacing:.04em;color:#EDE6DA">ANVIL</span></span>
+    <span style="width:48px;height:48px;border-radius:11px;background:#2B261F;display:flex;align-items:center;justify-content:center"><svg width="36" height="27" viewBox="0 -2 100 74" aria-hidden="true"><path d="M4 34 C16 34 24 32 28 30 H94 V44 H78 Q68 46 66 58 H76 V70 H28 V58 H38 Q36 46 28 44 Q14 42 4 34 Z" fill="#EDE6DA"/></svg></span>
+    <span style="width:16px;height:16px;border-radius:3px;background:#2B261F;display:flex;align-items:center;justify-content:center"><svg width="14" height="10" viewBox="0 -2 100 74" aria-hidden="true"><path d="M4 34 C16 34 24 32 28 30 H94 V44 H78 Q68 46 66 58 H76 V70 H28 V58 H38 Q36 46 28 44 Q14 42 4 34 Z" fill="#EDE6DA"/></svg></span>
+  </div>
+  <span style="font:400 13px/1.5 'Geist',sans-serif;color:#C9C0B2">Later the sparks moved to the Refinement page's anvil only, where they fly off the billet being forged, and the mark went cold.</span>
+</div>
+  </div>
+</div>
+</div></section>
+<nav class="proto-nav" aria-label="Prototype screens"><span>Prototype</span><a href="#forge" data-screen-link="forge">Forge</a><a href="#mark" data-screen-link="mark">The mark</a></nav>
+<script>
+const screens = [...document.querySelectorAll('[data-screen]')];
+function show() {
+  const id = location.hash.slice(1);
+  const target = screens.find((s) => s.id === id) || screens[0];
+  screens.forEach((s) => (s.hidden = s !== target));
+  document.querySelectorAll('[data-screen-link]').forEach((a) => a.toggleAttribute('aria-current', a.dataset.screenLink === target.id));
+  window.scrollTo(0, 0);
+}
+addEventListener('hashchange', show);
+show();
+
+</script>
+</body>
+</html>
