@@ -69,3 +69,17 @@ _Avoid_: Admin
 **Project Context**:
 Background about a Project, written by its Project Owner, that Anvil takes into account whenever it refines one of the Project's Requirements.
 _Avoid_: Context file, background, system prompt
+
+### Output
+
+**Output**:
+A Complete Requirement written up in one Output format, for the people who will act on it. Anvil generates it on request, and generating again replaces it. A Requirement has at most one Output per Output format.
+_Avoid_: Export, artifact, deliverable, document
+
+**Output format**:
+A kind of Output Anvil can generate, such as Gherkin. Each has its own structure, which Anvil renders to text.
+_Avoid_: Template, type
+
+**Out of date**:
+An Output generated before its Requirement was last reopened, so it may no longer match the Answers.
+_Avoid_: Stale, outdated, invalid

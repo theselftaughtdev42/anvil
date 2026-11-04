@@ -4,7 +4,17 @@ from collections.abc import Iterator, Sequence
 import pytest
 from fastapi.testclient import TestClient
 from httpx2 import Response
-from idea_refiner import AgentUnavailable, AskedQuestion, QuestionDraft, Subject
+from idea_refiner import (
+    AgentUnavailable,
+    AskedQuestion,
+    GherkinFeature,
+    GherkinScenario,
+    GherkinStep,
+    QuestionDraft,
+    StepKeyword,
+    Subject,
+    render_gherkin,
+)
 from sqlalchemy import Engine, event
 from sqlmodel import Session, select
 
@@ -13,6 +23,7 @@ from anvil.auth import get_current_user
 from anvil.db import get_session
 from anvil.main import app
 from anvil.models import (
+    Output,
     PointOfContact,
     Project,
     Question,
@@ -29,8 +40,10 @@ client = TestClient(app)
 class FakeAgent:
     """Titles every idea "Title for: <idea>", asks the Questions queued in
     `batches` one batch per call (nothing once they run out), and records what
-    it was asked. `feedback` holds the feedback each ask got. The methods named
-    in `unavailable` raise AgentUnavailable instead."""
+    it was asked. `feedback` holds the feedback each ask got. Writes `feature`,
+    named after the Subject's title, and records what each write got in
+    `writes`. The methods named in `unavailable` raise AgentUnavailable
+    instead."""
 
     def __init__(self) -> None:
         self.unavailable: set[str] = set()
@@ -38,6 +51,10 @@ class FakeAgent:
         self.batches: list[list[QuestionDraft]] = []
         self.asks: list[tuple[Subject, list[AskedQuestion], str | None]] = []
         self.feedback: list[list[str]] = []
+        self.feature = feature("Rebook")
+        self.writes: list[
+            tuple[Subject, list[AskedQuestion], str | None, list[str]]
+        ] = []
 
     def name_idea(self, idea: str, context: str | None) -> str:
         if "name_idea" in self.unavailable:
@@ -58,6 +75,30 @@ class FakeAgent:
         self.feedback.append(list(feedback))
         return self.batches.pop(0) if self.batches else []
 
+    def write_gherkin(
+        self,
+        subject: Subject,
+        asked: Sequence[AskedQuestion],
+        context: str | None,
+        feedback: Sequence[str],
+    ) -> GherkinFeature:
+        if "write_gherkin" in self.unavailable:
+            raise AgentUnavailable
+        self.writes.append((subject, list(asked), context, list(feedback)))
+        return self.feature
+
+
+def feature(scenario: str) -> GherkinFeature:
+    return GherkinFeature(
+        name="Rebook a missed delivery",
+        scenarios=(
+            GherkinScenario(
+                name=scenario,
+                steps=(GherkinStep(keyword=StepKeyword.THEN, text="it's rebooked"),),
+            ),
+        ),
+    )
+
 
 class FailingAgent:
     """Fails any test that asks it anything."""
@@ -73,6 +114,15 @@ class FailingAgent:
         feedback: Sequence[str],
     ) -> list[QuestionDraft]:
         raise AssertionError("ask_questions was called")
+
+    def write_gherkin(
+        self,
+        subject: Subject,
+        asked: Sequence[AskedQuestion],
+        context: str | None,
+        feedback: Sequence[str],
+    ) -> GherkinFeature:
+        raise AssertionError("write_gherkin was called")
 
 
 @pytest.fixture
@@ -1353,6 +1403,176 @@ def test_deleting_someone_elses_requirement_is_404(
         assert session.get(Requirement, theirs) is not None
 
 
+def test_deleting_removes_its_outputs(agent: FakeAgent, app_on_test_db: Engine) -> None:
+    id = completed(agent)
+    assert generate(id).status_code == 200
+
+    assert delete(id).status_code == 204
+
+    with Session(app_on_test_db) as session:
+        assert session.exec(select(Output)).all() == []
+
+
+def test_deleting_its_project_removes_its_outputs(
+    agent: FakeAgent, app_on_test_db: Engine
+) -> None:
+    id = completed(agent)
+    assert generate(id).status_code == 200
+
+    response = client.delete(
+        f"/api/projects/{parcels()['id']}", params={"with_requirements": True}
+    )
+
+    assert response.status_code == 204, response.text
+    with Session(app_on_test_db) as session:
+        assert session.exec(select(Output)).all() == []
+
+
+# --- Outputs ----------------------------------------------------------------
+
+
+def generate(id: str) -> Response:
+    return client.post(f"/api/requirements/{id}/outputs/gherkin")
+
+
+def outputs(id: str) -> list[dict]:
+    response = client.get(f"/api/requirements/{id}/outputs")
+    assert response.status_code == 200, response.text
+    return response.json()["items"]
+
+
+def test_a_requirement_has_no_outputs_to_start_with(agent: FakeAgent) -> None:
+    assert outputs(completed(agent)) == []
+
+
+def test_generating_stores_and_returns_the_rendered_gherkin(
+    agent: FakeAgent,
+) -> None:
+    id = completed(agent)
+
+    response = generate(id)
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body == {
+        "format": "gherkin",
+        "content": render_gherkin(agent.feature),
+        "generated_at": body["generated_at"],
+    }
+    assert outputs(id) == [body]
+
+
+def test_regenerating_replaces_the_output(agent: FakeAgent) -> None:
+    id = completed(agent)
+    first = generate(id).json()
+    agent.feature = feature("Rebook again")
+
+    second = generate(id).json()
+
+    assert second["content"] == render_gherkin(feature("Rebook again"))
+    assert second["generated_at"] > first["generated_at"]
+    assert outputs(id) == [second]
+
+
+def test_the_agent_gets_everything_refinement_does(agent: FakeAgent) -> None:
+    agent.batches = [[draft("Who")], [], [draft("Refunds"), draft("Cut-off")]]
+    created = create("Rebook a missed delivery")
+    id = created["id"]
+    answer(id, questions(id)["open"][0], "Drivers")
+    assert confirm(id).status_code == 200
+    assert reopen(id, "Nothing about refunds").status_code == 200
+    answer(id, questions(id)["open"][0], "Never")
+    answer(id, questions(id)["open"][0], "Sometimes")
+    assert confirm(id).status_code == 200
+
+    assert generate(id).status_code == 200
+
+    subject, asked, context, feedback = agent.writes[-1]
+    assert subject == Subject(title=created["title"], idea=created["idea"])
+    assert asked == [
+        AskedQuestion(topic="Who", text="About Who?", answer="Drivers"),
+        AskedQuestion(topic="Refunds", text="About Refunds?", answer="Never"),
+        AskedQuestion(topic="Cut-off", text="About Cut-off?", answer="Sometimes"),
+    ]
+    assert context == "We deliver parcels."
+    assert feedback == ["Nothing about refunds"]
+
+
+@pytest.mark.parametrize(
+    "status", [RequirementStatus.DRAFT, RequirementStatus.IN_PROGRESS]
+)
+def test_generating_unless_complete_is_409(
+    agent: FakeAgent, app_on_test_db: Engine, status: RequirementStatus
+) -> None:
+    created = create("Rebook a missed delivery")
+    set_status(app_on_test_db, created["id"], status)
+
+    response = generate(created["id"])
+
+    assert response.status_code == 409
+    assert agent.writes == []
+    assert outputs(created["id"]) == []
+
+
+def test_generating_for_an_unknown_requirement_is_404() -> None:
+    assert generate(str(uuid.uuid4())).status_code == 404
+    assert client.get(f"/api/requirements/{uuid.uuid4()}/outputs").status_code == 404
+
+
+def test_someone_elses_outputs_are_404(
+    agent: FakeAgent, app_on_test_db: Engine, someone_else: PointOfContact
+) -> None:
+    theirs = add_requirement(app_on_test_db, someone_else, RequirementStatus.COMPLETE)
+
+    assert generate(str(theirs)).status_code == 404
+    assert client.get(f"/api/requirements/{theirs}/outputs").status_code == 404
+    assert agent.writes == []
+
+
+def test_generating_while_the_agent_is_unavailable_keeps_the_output(
+    agent: FakeAgent,
+) -> None:
+    id = completed(agent)
+    before = generate(id).json()
+    agent.unavailable = {"write_gherkin"}
+    agent.feature = feature("Rebook again")
+
+    response = generate(id)
+
+    assert response.status_code == 503
+    assert response.json() == UNAVAILABLE
+    assert outputs(id) == [before]
+
+
+def test_generating_first_while_the_agent_is_unavailable_saves_nothing(
+    agent: FakeAgent,
+) -> None:
+    id = completed(agent)
+    agent.unavailable = {"write_gherkin"}
+
+    assert generate(id).status_code == 503
+    assert outputs(id) == []
+
+
+def test_generating_locks_the_requirement(
+    agent: FakeAgent, app_on_test_db: Engine
+) -> None:
+    id = completed(agent)
+    statements: list[str] = []
+
+    def record(conn, cursor, statement: str, *args) -> None:
+        statements.append(statement)
+
+    event.listen(app_on_test_db, "before_cursor_execute", record)
+    try:
+        assert generate(id).status_code == 200
+    finally:
+        event.remove(app_on_test_db, "before_cursor_execute", record)
+
+    first = next(s for s in statements if "FROM requirement" in s)
+    assert "FOR UPDATE" in first
+
+
 # --- OpenAPI ----------------------------------------------------------------
 
 
@@ -1384,3 +1604,8 @@ def test_endpoints_are_documented_with_their_response_models() -> None:
         ("/api/requirements/{requirement_id}/reopen", "post"),
     ]:
         assert response_schema(path, method, "200").endswith("/QuestionStack")
+    outputs = "/api/requirements/{requirement_id}/outputs"
+    assert response_schema(outputs, "get", "200").endswith("/OutputList")
+    assert response_schema(outputs + "/gherkin", "post", "200").endswith(
+        "/OutputPublic"
+    )

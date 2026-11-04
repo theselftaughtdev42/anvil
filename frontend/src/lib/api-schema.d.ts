@@ -237,6 +237,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/requirements/{requirement_id}/outputs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Outputs
+         * @description Only reads: never asks the agent.
+         */
+        get: operations["get_outputs_api_requirements__requirement_id__outputs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/requirements/{requirement_id}/outputs/gherkin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Generate Gherkin Output
+         * @description Generates the Gherkin Output, replacing any there was. 409 unless the
+         *     Requirement is Complete.
+         */
+        post: operations["generate_gherkin_output_api_requirements__requirement_id__outputs_gherkin_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects": {
         parameters: {
             query?: never;
@@ -362,6 +403,33 @@ export interface components {
              * @description The "#3" on the card: its order of creation within the Requirement.
              */
             number: number;
+        };
+        /**
+         * OutputFormat
+         * @enum {string}
+         */
+        OutputFormat: "gherkin";
+        /** OutputList */
+        OutputList: {
+            /**
+             * Items
+             * @description At most one per format, in format order. Empty until one is generated.
+             */
+            items: components["schemas"]["OutputPublic"][];
+        };
+        /** OutputPublic */
+        OutputPublic: {
+            format: components["schemas"]["OutputFormat"];
+            /**
+             * Content
+             * @description The rendered text, for Gherkin a `.feature` file.
+             */
+            content: string;
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
         };
         /**
          * PointOfContact
@@ -561,6 +629,9 @@ export type AnsweredQuestion = components['schemas']['AnsweredQuestion'];
 export type Config = components['schemas']['Config'];
 export type HttpValidationError = components['schemas']['HTTPValidationError'];
 export type OpenQuestion = components['schemas']['OpenQuestion'];
+export type OutputFormat = components['schemas']['OutputFormat'];
+export type OutputList = components['schemas']['OutputList'];
+export type OutputPublic = components['schemas']['OutputPublic'];
 export type PointOfContact = components['schemas']['PointOfContact'];
 export type Progress = components['schemas']['Progress'];
 export type ProjectCreate = components['schemas']['ProjectCreate'];
@@ -973,6 +1044,68 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["QuestionStack"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_outputs_api_requirements__requirement_id__outputs_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                requirement_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OutputList"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    generate_gherkin_output_api_requirements__requirement_id__outputs_gherkin_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                requirement_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OutputPublic"];
                 };
             };
             /** @description Validation Error */

@@ -2,6 +2,12 @@ import time
 from collections.abc import Sequence
 
 from idea_refiner.base import AskedQuestion, QuestionDraft, Subject
+from idea_refiner.gherkin import (
+    GherkinFeature,
+    GherkinScenario,
+    GherkinStep,
+    StepKeyword,
+)
 
 TITLE_MAX_WORDS = 6
 ELLIPSIS = "…"
@@ -65,6 +71,43 @@ QUESTIONS = (
     ),
 )
 
+FEATURE = GherkinFeature(
+    name="Rebook a missed delivery",
+    description=(
+        "As a customer who missed a delivery\n"
+        "I want to rebook it from the text message\n"
+        "So that I don't have to call the depot"
+    ),
+    scenarios=(
+        GherkinScenario(
+            name="Rebook for another day",
+            steps=(
+                GherkinStep(keyword=StepKeyword.GIVEN, text="I missed a delivery"),
+                GherkinStep(keyword=StepKeyword.AND, text="I have the text about it"),
+                GherkinStep(
+                    keyword=StepKeyword.WHEN, text="I pick another day from the text"
+                ),
+                GherkinStep(
+                    keyword=StepKeyword.THEN, text="the delivery moves to that day"
+                ),
+                GherkinStep(keyword=StepKeyword.AND, text="I get a text confirming it"),
+            ),
+        ),
+        GherkinScenario(
+            name="No days are free",
+            steps=(
+                GherkinStep(keyword=StepKeyword.GIVEN, text="I missed a delivery"),
+                GherkinStep(
+                    keyword=StepKeyword.WHEN, text="I open the link in the text"
+                ),
+                GherkinStep(keyword=StepKeyword.THEN, text="I'm told no days are free"),
+                GherkinStep(keyword=StepKeyword.BUT, text="I can still call the depot"),
+            ),
+        ),
+    ),
+)
+"""The Feature every Subject gets, whatever it's about."""
+
 
 class StubAgent:
     """A deterministic, offline RefinementAgent, so its consumer runs with no model.
@@ -103,6 +146,17 @@ class StubAgent:
         candidates = [*QUESTIONS, *(follow_up(note) for note in feedback)]
         unasked = [q for q in candidates if q.text not in asked_texts]
         return unasked[:QUESTIONS_PER_BATCH]
+
+    def write_gherkin(
+        self,
+        subject: Subject,
+        asked: Sequence[AskedQuestion],
+        context: str | None,
+        feedback: Sequence[str],
+    ) -> GherkinFeature:
+        """FEATURE, whatever it's given."""
+        time.sleep(self.delay_ms / 1000)
+        return FEATURE
 
 
 def follow_up(feedback: str) -> QuestionDraft:
