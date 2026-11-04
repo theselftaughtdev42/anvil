@@ -1,8 +1,10 @@
-import { CircleAlert, LoaderCircle, RefreshCw } from 'lucide-react'
+import { Check, CircleAlert, Copy, Download, LoaderCircle, RefreshCw } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { featureFilename, type GherkinKind, tokenizeGherkin } from '@/lib/gherkin'
 import type { Requirement } from '@/lib/requirements'
-import { generatedAt, type Output } from '@/lib/outputs'
+import { generatedAt, generatedAtInFull, type Output } from '@/lib/outputs'
 import { cn } from '@/lib/utils'
 
 /** The state of the one Output format there is, Gherkin. */
@@ -116,22 +118,138 @@ function GherkinPanel({
   }
 
   return (
+    <GherkinOutput output={output} filename={featureFilename(requirement.title)} answers={answers} alert={alert}>
+      <Button variant="outline" size="lg" disabled={!complete} onClick={onGenerate}>
+        <RefreshCw aria-hidden="true" />
+        Regenerate
+      </Button>
+    </GherkinOutput>
+  )
+}
+
+/** On a phone, Copy and Download show only their icons so the actions fit on one row. */
+const PHONE_ICON_ONLY = 'max-sm:size-10 max-sm:has-[>svg]:px-0'
+
+function GherkinOutput({
+  output,
+  filename,
+  answers,
+  alert,
+  children,
+}: {
+  output: Output
+  filename: string
+  answers: string
+  alert: React.ReactNode
+  children: React.ReactNode
+}) {
+  const [copied, setCopied] = useState<'copied' | 'failed'>()
+  useEffect(() => {
+    if (copied !== 'copied') return
+    const timer = setTimeout(() => setCopied(undefined), 2000)
+    return () => clearTimeout(timer)
+  }, [copied])
+  const copy = () =>
+    navigator.clipboard.writeText(output.content).then(
+      () => setCopied('copied'),
+      () => setCopied('failed'),
+    )
+  return (
     <>
-      <PanelHead sub={`Generated ${generatedAt(output)}`}>
-        <Button variant="outline" size="lg" disabled={!complete} onClick={onGenerate}>
-          <RefreshCw aria-hidden="true" />
-          Regenerate
+      <PanelHead
+        sub={
+          <>
+            Generated <time dateTime={output.generated_at}>{generatedAtInFull(output)}</time> · from {answers}
+          </>
+        }
+      >
+        <Button variant="outline" size="lg" className={PHONE_ICON_ONLY} onClick={copy}>
+          {copied === 'copied' ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
+          {/* Both labels share one grid cell, so the button keeps the wider one's width */}
+          <span className="grid max-sm:sr-only">
+            <span aria-hidden={copied === 'copied'} className={cn('col-start-1 row-start-1', copied === 'copied' && 'invisible')}>
+              Copy
+            </span>
+            <span aria-hidden={copied !== 'copied'} className={cn('col-start-1 row-start-1', copied !== 'copied' && 'invisible')}>
+              Copied
+            </span>
+          </span>
         </Button>
+        <Button
+          variant="outline"
+          size="lg"
+          className={PHONE_ICON_ONLY}
+          onClick={() => download(filename, output.content)}
+        >
+          <Download aria-hidden="true" />
+          <span className="max-sm:sr-only">Download</span>
+        </Button>
+        {children}
+        <span role="status" className="sr-only">
+          {copied === 'copied' ? 'Copied the Gherkin' : ''}
+        </span>
       </PanelHead>
       {alert}
-      <pre
-        aria-label="Gherkin"
-        className="overflow-x-auto rounded-xl border bg-card-sunk px-4 py-3 font-mono text-[0.8125rem] leading-5.25"
-      >
-        {output.content}
-      </pre>
+      {copied === 'failed' && (
+        <p role="alert" className="text-body font-medium text-destructive">
+          Couldn't copy the Gherkin. Select it and copy it yourself, or Download it.
+        </p>
+      )}
+      <div className="overflow-hidden rounded-xl border bg-card-sunk">
+        <div className="flex items-center gap-2 border-b px-3.5 py-2.5 text-[0.8125rem] text-muted-foreground">
+          <span className="min-w-0 truncate font-mono">{filename}</span>
+          <span className="ml-auto shrink-0 text-caption font-normal">Read-only</span>
+        </div>
+        <GherkinCode content={output.content} />
+      </div>
     </>
   )
+}
+
+const KIND_CLASSES: Record<GherkinKind, string> = {
+  keyword: 'font-semibold text-gherkin-keyword',
+  title: 'font-semibold',
+  step: 'text-gherkin-step',
+  string: 'text-gherkin-string',
+  placeholder: 'rounded-[3px] bg-gherkin-placeholder-background text-gherkin-placeholder',
+  pipe: 'text-gherkin-punctuation',
+  cell: 'text-gherkin-string',
+  comment: 'text-gherkin-comment italic',
+  narrative: 'font-medium',
+  description: 'text-gherkin-comment',
+}
+
+/** The Gherkin, highlighted and with line numbers that copying leaves out. */
+function GherkinCode({ content }: { content: string }) {
+  const lines = tokenizeGherkin(content)
+  return (
+    <pre
+      aria-label="Gherkin"
+      className="overflow-x-auto py-3 pr-4 font-mono text-[0.8125rem] leading-5.25 [counter-reset:line]"
+    >
+      {lines.map((tokens, line) => (
+        <span
+          key={line}
+          className="before:inline-block before:w-11 before:pr-4 before:text-right before:text-gherkin-punctuation before:content-[counter(line)] before:select-none before:[counter-increment:line]"
+        >
+          {tokens.map(({ text, kind }, i) => (
+            <span key={i} className={kind && KIND_CLASSES[kind]} data-kind={kind}>
+              {text}
+            </span>
+          ))}
+          {line < lines.length - 1 || content.endsWith('\n') ? '\n' : null}
+        </span>
+      ))}
+    </pre>
+  )
+}
+
+function download(filename: string, content: string) {
+  const url = URL.createObjectURL(new Blob([content], { type: 'text/plain' }))
+  const link = Object.assign(document.createElement('a'), { href: url, download: filename })
+  link.click()
+  // Revoked on the next task, once the click has started the download
+  setTimeout(() => URL.revokeObjectURL(url))
 }
 
 function PanelHead({ sub, children }: { sub: React.ReactNode; children: React.ReactNode }) {

@@ -41,3 +41,11 @@ export function generatedAt(output: Output): string {
     minute: '2-digit',
   })
 }
+
+/** When an Output was generated, as "2 Nov 2026 at 14:32". */
+export function generatedAtInFull(output: Output): string {
+  const at = new Date(output.generated_at)
+  const date = at.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+  const time = at.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+  return `${date} at ${time}`
+}

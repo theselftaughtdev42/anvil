@@ -1,6 +1,21 @@
+import { readFile } from 'node:fs/promises'
 import { expect, type Page, test } from '@playwright/test'
+import { resolveColour } from './helpers.ts'
 
-const GHERKIN = 'Feature: Rebook a missed delivery\n\n  Scenario: Another day\n    Then it moves to that day\n'
+const GHERKIN = [
+  '# Written by Anvil',
+  'Feature: Rebook a missed delivery',
+  '',
+  '  Scenario Outline: Another day',
+  '    Given a missed delivery to "<address>"',
+  '    When I pick a day that is a long way off so this step runs well past the edge of a phone screen',
+  '    Then it moves to that day',
+  '',
+  '      Examples:',
+  '        | address     |',
+  '        | 1 High \\| St |',
+  '',
+].join('\n')
 
 /**
  * Stands in for the API: a Complete Requirement with no Output yet. Generating
@@ -83,15 +98,78 @@ test('generating carries on while the Refinement tab is open', async ({ page }) 
   await expect(page.getByLabel('Gherkin', { exact: true })).toContainText('Feature: Rebook a missed delivery')
 })
 
-test('on a phone the Output fits the width', async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 })
+async function showOutput(page: Page) {
   await serve(page, ['ok'])
   await page.goto('/requirements/r1')
   await page.getByRole('tab', { name: 'Output' }).click()
   await page.getByRole('button', { name: 'Generate Gherkin' }).click()
   await expect(page.getByLabel('Gherkin', { exact: true })).toBeVisible()
+}
+
+test('on a phone the Output fits the width, and long steps scroll inside the code', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await showOutput(page)
 
   expect(
     await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth),
   ).toBe(true)
+  const gherkin = page.getByLabel('Gherkin', { exact: true })
+  expect(await gherkin.evaluate((el) => el.scrollWidth > el.clientWidth)).toBe(true)
+  const tops = new Set<number>()
+  for (const name of ['Copy', 'Download', 'Regenerate']) {
+    const button = page.getByRole('button', { name, exact: true })
+    await expect(button).toBeInViewport({ ratio: 1 })
+    tops.add((await button.boundingBox())!.y)
+  }
+  // One row, with Copy and Download as square icon buttons
+  expect(tops.size).toBe(1)
+  for (const name of ['Copy', 'Download']) {
+    const box = (await page.getByRole('button', { name, exact: true }).boundingBox())!
+    expect(box.width).toBe(box.height)
+  }
+  for (const name of ['Refinement', 'Output']) {
+    await expect(page.getByRole('tab', { name })).toBeInViewport({ ratio: 1 })
+  }
+})
+
+test('the Gherkin is highlighted with the theme colours', async ({ page }) => {
+  await showOutput(page)
+  const gherkin = page.getByLabel('Gherkin', { exact: true })
+  const colours = {
+    'Feature:': 'var(--gherkin-keyword)',
+    Given: 'var(--gherkin-step)',
+    '<address>': 'var(--gherkin-placeholder)',
+    '|': 'var(--gherkin-punctuation)',
+    '1 High \\| St': 'var(--gherkin-string)',
+    '# Written by Anvil': 'var(--gherkin-comment)',
+  }
+  for (const [text, colour] of Object.entries(colours)) {
+    await expect(gherkin.getByText(text, { exact: true }).first()).toHaveCSS('color', await resolveColour(page, colour))
+  }
+})
+
+test('Copy puts the exact Gherkin on the clipboard', async ({ page, context }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+  await showOutput(page)
+
+  const copy = page.getByRole('button', { name: 'Copy', exact: true })
+  const width = (await copy.boundingBox())!.width
+  await copy.click()
+
+  const copied = page.getByRole('button', { name: 'Copied', exact: true })
+  await expect(copied).toBeVisible()
+  expect((await copied.boundingBox())!.width).toBe(width)
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(GHERKIN)
+})
+
+test("Download saves the Gherkin as a .feature file named after the Requirement's title", async ({ page }) => {
+  await showOutput(page)
+
+  const [download] = await Promise.all([
+    page.waitForEvent('download'),
+    page.getByRole('button', { name: 'Download' }).click(),
+  ])
+
+  expect(download.suggestedFilename()).toBe('rebook-a-missed-delivery.feature')
+  expect(await readFile(await download.path(), 'utf8')).toBe(GHERKIN)
 })

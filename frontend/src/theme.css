@@ -85,4 +85,13 @@
   --status-complete-background: #172229;
   --status-complete-border: #2a4250;
   --status-complete-foreground: #a9c7d8;
+
+  /* Gherkin Outputs, highlighted */
+  --gherkin-keyword: var(--primary); /* Feature:, Scenario:, Examples: ... */
+  --gherkin-step: #e9c27a; /* Given, When, Then, And, But */
+  --gherkin-string: #a9c7d8; /* "Quoted text" and table cells */
+  --gherkin-placeholder: #f5a77f; /* <placeholders> */
+  --gherkin-placeholder-background: var(--primary-wash);
+  --gherkin-punctuation: var(--faint); /* Table pipes and line numbers */
+  --gherkin-comment: var(--muted-foreground); /* Comments and descriptions */
 }
