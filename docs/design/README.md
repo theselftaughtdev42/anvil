@@ -56,7 +56,7 @@ The exact keyframes, durations and easing are in [`prototypes/refinement.html`](
 
 ## Refinement page
 
-The card stack: one Question per card, answered one at a time. Open [`prototypes/refinement.html`](prototypes/refinement.html) in a browser to click through it, including the keyboard shortcuts. Like the screenshots below, it uses made-up Questions and Answers, and both go once the page has shipped.
+The card stack: one Question per card, answered one at a time. Open [`prototypes/refinement.html`](prototypes/refinement.html) in a browser to click through it, including the keyboard shortcuts. Like the screenshots below, it uses made-up Questions and Answers. The screenshots go once the page has shipped; the prototype stays, as part of the design history below.
 
 | State | Screenshot |
 |---|---|
@@ -73,3 +73,15 @@ Slice 1: each Project has a name and a Project Context the Project Owner writes;
 | The Projects list, with a **Projects** link in the header | ![Projects list](wireframes/projects-list.png) |
 | A Project: its name, its Project Context, and the Requirements in it | ![Project page](wireframes/project-page.png) |
 | Choosing a Project on the idea prompt, with the Project on each card (locked once Refinement starts) | ![Project picker](wireframes/home-project-picker.png) |
+
+## Design history
+
+Working prototypes of the designs that were chosen, kept as a record of how Anvil got here. Open any of them in a browser; most have a **Prototype** bar in the corner to switch between screens. They use made-up data and aren't a source for current values: those live in `theme.css` and `frontend/src/assets`.
+
+| Prototype | What was chosen |
+|---|---|
+| [`prototypes/brand.html`](prototypes/brand.html) | The Forge brand direction, and the mark from three sparks, to a lone-spark favicon, to today's cold anvil |
+| [`prototypes/home.html`](prototypes/home.html) | The first home page: the idea prompt, requirement cards with status tabs, first visit, and an idea just submitted |
+| [`prototypes/refinement.html`](prototypes/refinement.html) | The Refinement page's card stack and its anvil |
+| [`prototypes/projects.html`](prototypes/projects.html) | Projects, slice 1: the list, a Project page and the Project picker on the idea prompt |
+| [`prototypes/output-tabs.html`](prototypes/output-tabs.html) | A Requirement's Output tabs |
