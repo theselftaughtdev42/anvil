@@ -3,7 +3,9 @@ from collections.abc import Sequence
 
 from idea_refiner.base import AskedQuestion, QuestionDraft, Subject
 from idea_refiner.gherkin import (
+    GherkinExamples,
     GherkinFeature,
+    GherkinRule,
     GherkinScenario,
     GherkinStep,
     StepKeyword,
@@ -71,6 +73,8 @@ QUESTIONS = (
     ),
 )
 
+G, W, T, A, B = StepKeyword
+
 FEATURE = GherkinFeature(
     name="Rebook a missed delivery",
     description=(
@@ -78,30 +82,51 @@ FEATURE = GherkinFeature(
         "I want to rebook it from the text message\n"
         "So that I don't have to call the depot"
     ),
+    background=(
+        GherkinStep(keyword=G, text="I missed a delivery"),
+        GherkinStep(keyword=A, text="I have the text about it"),
+    ),
     scenarios=(
         GherkinScenario(
             name="Rebook for another day",
             steps=(
-                GherkinStep(keyword=StepKeyword.GIVEN, text="I missed a delivery"),
-                GherkinStep(keyword=StepKeyword.AND, text="I have the text about it"),
-                GherkinStep(
-                    keyword=StepKeyword.WHEN, text="I pick another day from the text"
-                ),
-                GherkinStep(
-                    keyword=StepKeyword.THEN, text="the delivery moves to that day"
-                ),
-                GherkinStep(keyword=StepKeyword.AND, text="I get a text confirming it"),
+                GherkinStep(keyword=W, text="I pick another day from the text"),
+                GherkinStep(keyword=T, text="the delivery moves to that day"),
+                GherkinStep(keyword=A, text="I get a text confirming it"),
             ),
         ),
-        GherkinScenario(
-            name="No days are free",
-            steps=(
-                GherkinStep(keyword=StepKeyword.GIVEN, text="I missed a delivery"),
-                GherkinStep(
-                    keyword=StepKeyword.WHEN, text="I open the link in the text"
+    ),
+    rules=(
+        GherkinRule(
+            name="Only days with a free slot can be picked",
+            description="The depot sets how many deliveries fit in a day.",
+            scenarios=(
+                GherkinScenario(
+                    name="Days offered depend on free slots",
+                    steps=(
+                        GherkinStep(
+                            keyword=G, text="<day> has <slots> free delivery slots"
+                        ),
+                        GherkinStep(keyword=W, text="I open the link in the text"),
+                        GherkinStep(keyword=T, text="<day> is <shown>"),
+                    ),
+                    examples=GherkinExamples(
+                        header=("day", "slots", "shown"),
+                        rows=(
+                            ("Tuesday", "3", "offered"),
+                            ("Wednesday", "0", "not offered"),
+                        ),
+                    ),
                 ),
-                GherkinStep(keyword=StepKeyword.THEN, text="I'm told no days are free"),
-                GherkinStep(keyword=StepKeyword.BUT, text="I can still call the depot"),
+                GherkinScenario(
+                    name="No days are free",
+                    steps=(
+                        GherkinStep(keyword=G, text="no day has a free slot"),
+                        GherkinStep(keyword=W, text="I open the link in the text"),
+                        GherkinStep(keyword=T, text="I'm told no days are free"),
+                        GherkinStep(keyword=B, text="I can still call the depot"),
+                    ),
+                ),
             ),
         ),
     ),
