@@ -1,0 +1,85 @@
+import { expect, test, vi } from 'vitest'
+import { page } from 'vitest/browser'
+import { render } from 'vitest-browser-react'
+import { type GherkinState, RequirementOutput } from '@/components/requirement-output'
+import type { Output } from '@/lib/outputs'
+import type { Requirement } from '@/lib/requirements'
+
+const REQUIREMENT: Requirement = {
+  id: 'r1',
+  title: 'Rebook a missed delivery',
+  idea: 'Customers rebook a missed delivery.',
+  project: { id: 'p1', name: 'Parcels' },
+  status: 'complete',
+  created_at: '2026-11-02T14:00:00Z',
+  updated_at: '2026-11-02T14:00:00Z',
+  progress: { answered: 9, total: 9 },
+}
+
+const OUTPUT: Output = {
+  format: 'gherkin',
+  content: 'Feature: Rebook a missed delivery\n\n  Scenario: Another day\n    Then it moves\n',
+  generated_at: '2026-11-02T14:32:00Z',
+}
+
+function show(gherkin: Partial<GherkinState>, requirement: Partial<Requirement> = {}) {
+  const state: GherkinState = { output: undefined, generating: false, failed: false, onGenerate: vi.fn(), ...gherkin }
+  return {
+    state,
+    screen: render(<RequirementOutput requirement={{ ...REQUIREMENT, ...requirement }} answered={9} gherkin={state} />),
+  }
+}
+
+test('with no Output yet it offers to generate one', async () => {
+  const { state } = show({})
+
+  await expect.element(page.getByRole('heading', { name: 'No Output yet' })).toBeVisible()
+  await expect.element(page.getByText('Not generated yet')).toBeVisible()
+  await expect.element(page.getByText(/drawn from its 9 Answers/)).toBeVisible()
+  await page.getByRole('button', { name: 'Generate Gherkin' }).click()
+  expect(state.onGenerate).toHaveBeenCalledOnce()
+})
+
+test('only a Complete Requirement can generate', async () => {
+  show({}, { status: 'in_progress' })
+
+  await expect.element(page.getByRole('button', { name: 'Generate Gherkin' })).toBeDisabled()
+  await expect.element(page.getByText(/Confirm it Complete first/)).toBeVisible()
+})
+
+test('while generating the button is disabled and says so', async () => {
+  show({ generating: true })
+
+  await expect.element(page.getByRole('button', { name: 'Generate Gherkin' })).toBeDisabled()
+  await expect.element(page.getByRole('status')).toHaveTextContent('Anvil is writing it from 9 Answers. This takes a few seconds.')
+  await expect.element(page.getByText('Generating…')).toBeVisible()
+})
+
+test('a failure says so and the button retries', async () => {
+  const { state } = show({ failed: true })
+
+  await expect.element(page.getByRole('alert')).toHaveTextContent("Couldn't generate the Gherkin. Try again.")
+  await page.getByRole('button', { name: 'Generate Gherkin' }).click()
+  expect(state.onGenerate).toHaveBeenCalledOnce()
+})
+
+test('a failure keeps the previous Output', async () => {
+  show({ output: OUTPUT, failed: true })
+
+  await expect.element(page.getByRole('alert')).toHaveTextContent("Couldn't generate the Gherkin. Try again.")
+  await expect.element(page.getByLabelText('Gherkin', { exact: true })).toBeVisible()
+  expect(page.getByLabelText('Gherkin', { exact: true }).element().textContent).toBe(OUTPUT.content)
+})
+
+test('an Output shows in monospace, with Regenerate', async () => {
+  const { state } = show({ output: OUTPUT })
+
+  const gherkin = page.getByLabelText('Gherkin', { exact: true })
+  await expect.element(gherkin).toBeVisible()
+  expect(gherkin.element().textContent).toBe(OUTPUT.content)
+  expect(getComputedStyle(gherkin.element()).whiteSpace).toBe('pre')
+  expect(getComputedStyle(gherkin.element()).fontFamily).toMatch(/mono/i)
+  await expect.element(page.getByText(/^Generated \d+ Nov, \d\d:\d\d$/).first()).toBeVisible()
+  await page.getByRole('button', { name: 'Regenerate' }).click()
+  expect(state.onGenerate).toHaveBeenCalledOnce()
+})
