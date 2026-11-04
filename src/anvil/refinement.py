@@ -163,16 +163,20 @@ def reopen_notes(session: Session, requirement: Requirement) -> list[ReopenNote]
     return list(session.exec(query))
 
 
+def last_reopened_at(session: Session, requirement: Requirement) -> datetime | None:
+    return session.exec(
+        select(func.max(ReopenNote.created_at)).where(
+            ReopenNote.requirement_id == requirement.id
+        )
+    ).one()
+
+
 def nothing_new_since_reopen(session: Session, requirement: Requirement) -> bool:
     """Whether the Requirement was reopened and Anvil asked no Questions after.
 
     A Question dealt in the same transaction as the note has the same created_at.
     """
-    latest_note = session.exec(
-        select(func.max(ReopenNote.created_at)).where(
-            ReopenNote.requirement_id == requirement.id
-        )
-    ).one()
+    latest_note = last_reopened_at(session, requirement)
     if latest_note is None:
         return False
     latest_question = session.exec(

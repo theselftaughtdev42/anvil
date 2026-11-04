@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ApiError } from '@/lib/api'
 import type { QuestionStack } from '@/lib/api-schema'
-import { generateGherkin, generateKey, outputsQuery } from '@/lib/outputs'
+import { generateGherkin, generateKey, outputsKey, outputsQuery } from '@/lib/outputs'
 import { answerQuestion, putOffQuestion, questionsKey, questionsQuery } from '@/lib/questions'
 import {
   changeProjectKey,
@@ -28,6 +28,8 @@ import {
   requirementQuery,
   requirementsKey,
 } from '@/lib/requirements'
+import { statusStyles } from '@/lib/status-styles'
+import { cn } from '@/lib/utils'
 import { NotFoundPage } from '@/pages/not-found-page'
 
 /** How many cards peek out under the top one. */
@@ -190,7 +192,15 @@ function RequirementTabs({ requirement, stack }: { requirement: Requirement; sta
         </TabsTrigger>
         <TabsTrigger value="output" className={TAB_CLASS}>
           Output
-          {gherkin && <span aria-hidden="true" className="size-1.5 rounded-full bg-status-complete" />}
+          {gherkin && (
+            <span
+              aria-hidden="true"
+              className={cn(
+                'size-1.5 rounded-full',
+                statusStyles[gherkin.out_of_date ? 'in_progress' : 'complete'].dot,
+              )}
+            />
+          )}
         </TabsTrigger>
       </TabsList>
       <TabsContent value="refinement">
@@ -290,6 +300,8 @@ function Refinement({ requirement, stack }: { requirement: Requirement; stack: Q
         r ? { ...r, status: 'in_progress' as const } : r,
       )
       onStatus()
+      // Reopening puts any Output out of date.
+      void queryClient.invalidateQueries({ queryKey: outputsKey(requirementId) })
     },
     onError: onStatusError,
   })

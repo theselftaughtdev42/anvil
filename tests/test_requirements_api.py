@@ -1458,6 +1458,7 @@ def test_generating_stores_and_returns_the_rendered_gherkin(
         "format": "gherkin",
         "content": render_gherkin(agent.feature),
         "generated_at": body["generated_at"],
+        "out_of_date": False,
     }
     assert outputs(id) == [body]
 
@@ -1472,6 +1473,24 @@ def test_regenerating_replaces_the_output(agent: FakeAgent) -> None:
     assert second["content"] == render_gherkin(feature("Rebook again"))
     assert second["generated_at"] > first["generated_at"]
     assert outputs(id) == [second]
+
+
+def test_reopening_leaves_the_output_out_of_date_until_regenerated(
+    agent: FakeAgent,
+) -> None:
+    id = completed(agent)
+    generated = generate(id).json()
+
+    assert reopen(id).status_code == 200
+    [reopened] = outputs(id)
+    assert reopened == {**generated, "out_of_date": True}
+
+    assert confirm(id).status_code == 200
+    assert outputs(id) == [reopened]
+
+    regenerated = generate(id).json()
+    assert regenerated["out_of_date"] is False
+    assert outputs(id) == [regenerated]
 
 
 def test_the_agent_gets_everything_refinement_does(agent: FakeAgent) -> None:

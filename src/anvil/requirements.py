@@ -22,11 +22,12 @@ from anvil.models import (
     Requirement,
     RequirementStatus,
 )
-from anvil.outputs import generate_gherkin, outputs
+from anvil.outputs import generate_gherkin, is_out_of_date, outputs
 from anvil.refinement import (
     answered_questions,
     bottom_position,
     deal_questions,
+    last_reopened_at,
     nothing_new_since_reopen,
     open_questions,
     project_context,
@@ -147,6 +148,19 @@ class OutputPublic(BaseModel, use_attribute_docstrings=True):
     content: str
     """The rendered text, for Gherkin a `.feature` file."""
     generated_at: datetime
+    out_of_date: bool
+    """Generated before the Requirement was last reopened. Only regenerating clears
+    it, not confirming the Requirement Complete again.
+    """
+
+    @classmethod
+    def of(cls, output: Output, reopened_at: datetime | None) -> "OutputPublic":
+        return cls(
+            format=output.format,
+            content=output.content,
+            generated_at=output.generated_at,
+            out_of_date=is_out_of_date(output, reopened_at),
+        )
 
 
 class OutputList(BaseModel, use_attribute_docstrings=True):
@@ -491,9 +505,10 @@ def get_outputs(
 ) -> OutputList:
     """Only reads: never asks the agent."""
     requirement = get_own_requirement(session, requirement_id, user)
+    reopened_at = last_reopened_at(session, requirement)
     return OutputList(
         items=[
-            OutputPublic.model_validate(output, from_attributes=True)
+            OutputPublic.of(output, reopened_at)
             for output in outputs(session, requirement)
         ]
     )
@@ -516,4 +531,4 @@ def generate_gherkin_output(
         )
     output = generate_gherkin(session, requirement, agent)
     session.commit()
-    return OutputPublic.model_validate(output, from_attributes=True)
+    return OutputPublic.of(output, last_reopened_at(session, requirement))

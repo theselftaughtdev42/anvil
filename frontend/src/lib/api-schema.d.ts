@@ -430,6 +430,12 @@ export interface components {
              * Format: date-time
              */
             generated_at: string;
+            /**
+             * Out Of Date
+             * @description Generated before the Requirement was last reopened. Only regenerating clears
+             *     it, not confirming the Requirement Complete again.
+             */
+            out_of_date: boolean;
         };
         /**
          * PointOfContact

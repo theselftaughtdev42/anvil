@@ -1,10 +1,12 @@
 import { Check, CircleAlert, Copy, Download, LoaderCircle, RefreshCw } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { featureFilename, type GherkinKind, tokenizeGherkin } from '@/lib/gherkin'
 import type { Requirement } from '@/lib/requirements'
 import { generatedAt, generatedAtInFull, type Output } from '@/lib/outputs'
+import { statusStyles } from '@/lib/status-styles'
 import { cn } from '@/lib/utils'
 
 /** The state of the one Output format there is, Gherkin. */
@@ -29,7 +31,13 @@ export function RequirementOutput({
   gherkin: GherkinState
 }) {
   const { output, generating } = gherkin
-  const summary = generating ? 'Generating…' : output ? `Generated ${generatedAt(output)}` : 'Not generated yet'
+  const summary = generating
+    ? 'Generating…'
+    : output?.out_of_date
+      ? 'Out of date'
+      : output
+        ? `Generated ${generatedAt(output)}`
+        : 'Not generated yet'
   return (
     <div className="flex flex-wrap items-start gap-8 pt-9 pb-14">
       <nav aria-label="Output format" className="flex max-w-60 flex-[1_1_12.5rem] flex-col gap-2.5">
@@ -40,7 +48,14 @@ export function RequirementOutput({
           className="flex w-full flex-col items-start gap-1 rounded-lg border border-primary bg-primary-wash px-3 py-2.5 text-left font-medium leading-tight"
         >
           Gherkin
-          <small className="text-caption font-normal text-muted-foreground">{summary}</small>
+          <small
+            className={cn(
+              'text-caption font-normal text-muted-foreground',
+              output?.out_of_date && !generating && 'text-status-in-progress-foreground',
+            )}
+          >
+            {summary}
+          </small>
         </button>
         <p className="rounded-lg border border-dashed border-border-strong px-3 py-2.5 text-caption font-normal text-muted-foreground">
           More Output formats will be listed here.
@@ -106,7 +121,7 @@ function GherkinPanel({
             <p className="max-w-95 text-body-sm text-muted-foreground">
               {complete
                 ? `Turn this Complete Requirement into a Gherkin Feature, with Scenarios drawn from its ${answers}.`
-                : 'Only a Complete Requirement can generate an Output. Confirm it Complete first.'}
+                : 'The Output opens up once this Requirement is Complete. Answer its Questions, then confirm it Complete.'}
             </p>
           </>
         )}
@@ -117,9 +132,28 @@ function GherkinPanel({
     )
   }
 
+  const staleNote = output.out_of_date && (
+    <p id="out-of-date-note" className="text-body-sm text-status-in-progress-foreground">
+      {complete
+        ? 'Regenerate it to draw on the Answers since it was reopened. Copy and Download give this version until then.'
+        : 'Confirm it Complete again to regenerate. Copy and Download still give this version.'}
+    </p>
+  )
   return (
-    <GherkinOutput output={output} filename={featureFilename(requirement.title)} answers={answers} alert={alert}>
-      <Button variant="outline" size="lg" disabled={!complete} onClick={onGenerate}>
+    <GherkinOutput
+      output={output}
+      filename={featureFilename(requirement.title)}
+      answers={answers}
+      alert={alert}
+      note={staleNote}
+    >
+      <Button
+        variant="outline"
+        size="lg"
+        disabled={!complete}
+        aria-describedby={output.out_of_date ? 'out-of-date-note' : undefined}
+        onClick={onGenerate}
+      >
         <RefreshCw aria-hidden="true" />
         Regenerate
       </Button>
@@ -135,12 +169,14 @@ function GherkinOutput({
   filename,
   answers,
   alert,
+  note,
   children,
 }: {
   output: Output
   filename: string
   answers: string
   alert: React.ReactNode
+  note: React.ReactNode
   children: React.ReactNode
 }) {
   const [copied, setCopied] = useState<'copied' | 'failed'>()
@@ -160,9 +196,17 @@ function GherkinOutput({
   return (
     <>
       <PanelHead
+        badge={
+          output.out_of_date && (
+            <Badge variant="outline" className={cn('h-5.5 rounded-badge px-2 text-caption', statusStyles.in_progress.badge)}>
+              Out of date
+            </Badge>
+          )
+        }
         sub={
           <>
-            Generated <time dateTime={output.generated_at}>{generatedAtInFull(output)}</time> · from {answers}
+            Generated <time dateTime={output.generated_at}>{generatedAtInFull(output)}</time>
+            {output.out_of_date ? ', before it was reopened' : ` · from ${answers}`}
           </>
         }
       >
@@ -192,6 +236,7 @@ function GherkinOutput({
           {copied === 'copied' ? 'Copied the Gherkin' : ''}
         </span>
       </PanelHead>
+      {note}
       {alert}
       {copied === 'failed' && (
         <p role="alert" className="text-body font-medium text-destructive">
@@ -255,11 +300,22 @@ function download(filename: string, content: string) {
   setTimeout(() => URL.revokeObjectURL(url))
 }
 
-function PanelHead({ sub, children }: { sub: React.ReactNode; children: React.ReactNode }) {
+function PanelHead({
+  badge,
+  sub,
+  children,
+}: {
+  badge?: React.ReactNode
+  sub: React.ReactNode
+  children: React.ReactNode
+}) {
   return (
     <div className="flex flex-wrap items-end justify-between gap-4">
       <div>
-        <h3 className="text-[1.375rem] leading-snug font-semibold tracking-tight">Gherkin</h3>
+        <div className="flex items-center gap-2.5">
+          <h3 className="text-[1.375rem] leading-snug font-semibold tracking-tight">Gherkin</h3>
+          {badge}
+        </div>
         <p className="text-body-sm text-muted-foreground">{sub}</p>
       </div>
       <div className="flex flex-wrap gap-2">{children}</div>

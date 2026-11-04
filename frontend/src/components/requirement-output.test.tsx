@@ -20,6 +20,7 @@ const OUTPUT: Output = {
   format: 'gherkin',
   content: 'Feature: Rebook a missed delivery\n\n  Scenario: Another day\n    Then it moves\n',
   generated_at: '2026-11-02T14:32:00Z',
+  out_of_date: false,
 }
 
 afterEach(() => {
@@ -45,11 +46,31 @@ test('with no Output yet it offers to generate one', async () => {
   expect(state.onGenerate).toHaveBeenCalledOnce()
 })
 
-test('only a Complete Requirement can generate', async () => {
-  show({}, { status: 'in_progress' })
+test.each(['draft', 'in_progress'] as const)('a %s Requirement explains the Output opens up once Complete', async (status) => {
+  show({}, { status })
 
   await expect.element(page.getByRole('button', { name: 'Generate Gherkin' })).toBeDisabled()
-  await expect.element(page.getByText(/Confirm it Complete first/)).toBeVisible()
+  await expect.element(page.getByText(/opens up once this Requirement is Complete/)).toBeVisible()
+})
+
+test('an Out of date Output still copies and downloads, but only regenerates once Complete', async () => {
+  show({ output: { ...OUTPUT, out_of_date: true } }, { status: 'in_progress' })
+
+  await expect.element(page.getByText('Out of date', { exact: true }).first()).toBeVisible()
+  await expect.element(page.getByText(/, before it was reopened/)).toBeVisible()
+  await expect.element(page.getByRole('button', { name: 'Copy', exact: true })).toBeEnabled()
+  await expect.element(page.getByRole('button', { name: 'Download' })).toBeEnabled()
+  const regenerate = page.getByRole('button', { name: 'Regenerate' })
+  await expect.element(regenerate).toBeDisabled()
+  await expect.element(regenerate).toHaveAccessibleDescription(/Confirm it Complete again to regenerate/)
+})
+
+test('an Out of date Output of a Complete Requirement can regenerate', async () => {
+  const { state } = show({ output: { ...OUTPUT, out_of_date: true } })
+
+  await expect.element(page.getByText(/Regenerate it to draw on the Answers since it was reopened/)).toBeVisible()
+  await page.getByRole('button', { name: 'Regenerate' }).click()
+  expect(state.onGenerate).toHaveBeenCalledOnce()
 })
 
 test('while generating the button is disabled and says so', async () => {
