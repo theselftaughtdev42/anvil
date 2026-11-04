@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from './test.ts'
 
 // The e2e tests run without an API, so these stand in for it.
 test.beforeEach(async ({ page }) => {
