@@ -50,6 +50,7 @@ options = "format REVISION_SCRIPT_FILENAME"
 [dependency-groups]
 dev = [
     "actionlint-py>=1.7.12.25",
+    "gherkin-official>=42.0.1",
     "httpx2>=2.16.0",
     "pre-commit>=4.7.0",
     "pytest>=9.1.1",

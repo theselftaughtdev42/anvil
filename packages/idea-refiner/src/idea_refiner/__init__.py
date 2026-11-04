@@ -14,7 +14,9 @@ from idea_refiner.base import (
     Subject,
 )
 from idea_refiner.gherkin import (
+    GherkinExamples,
     GherkinFeature,
+    GherkinRule,
     GherkinScenario,
     GherkinStep,
     StepKeyword,
@@ -25,7 +27,9 @@ from idea_refiner.stub import StubAgent
 __all__ = [
     "AgentUnavailable",
     "AskedQuestion",
+    "GherkinExamples",
     "GherkinFeature",
+    "GherkinRule",
     "GherkinScenario",
     "GherkinStep",
     "QuestionDraft",

@@ -1,6 +1,7 @@
 import time
 
 import pytest
+from gherkin.parser import Parser
 from idea_refiner import (
     AskedQuestion,
     GherkinFeature,
@@ -178,6 +179,16 @@ def test_writes_a_fixed_feature_that_renders() -> None:
     assert feature == other
     assert GherkinFeature.model_validate(feature.model_dump()) == feature
     assert render_gherkin(feature).startswith("Feature: ")
+
+
+def test_feature_uses_every_supported_keyword() -> None:
+    feature = StubAgent().write_gherkin(SUBJECT, [], None, [])
+
+    text = render_gherkin(feature)
+
+    Parser().parse(text)
+    for keyword in ("Background:", "Rule:", "Scenario:", "Scenario Outline:"):
+        assert f"  {keyword}" in text
 
 
 def test_gherkin_delay() -> None:
