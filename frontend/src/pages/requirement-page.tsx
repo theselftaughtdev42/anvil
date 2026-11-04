@@ -6,13 +6,16 @@ import { Crumb } from '@/components/app-shell'
 import { RequirementActions } from '@/components/requirement-actions'
 import { QuestionCard, ShortcutHint } from '@/components/question-card'
 import { CompleteCard, LooksReadyCard } from '@/components/refinement-outcome'
+import { RequirementOutput } from '@/components/requirement-output'
 import { RequirementProject } from '@/components/requirement-project'
 import { RequirementTitle } from '@/components/requirement-title'
 import { StatusBadge } from '@/components/status-badge'
 import { AnsweredPile, NextInStack, RefinementProgress } from '@/components/refinement-panels'
 import { Button } from '@/components/ui/button'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ApiError } from '@/lib/api'
 import type { QuestionStack } from '@/lib/api-schema'
+import { generateGherkin, generateKey, outputsQuery } from '@/lib/outputs'
 import { answerQuestion, putOffQuestion, questionsKey, questionsQuery } from '@/lib/questions'
 import {
   changeProjectKey,
@@ -35,8 +38,9 @@ const isNotFound = (error: Error | null) =>
   error instanceof ApiError && (error.status === 404 || error.status === 422)
 
 /**
- * Refinement: the Requirement's Questions as a stack of cards, answered one at a
- * time, until Anvil suggests it looks ready and the Point of Contact confirms it.
+ * A Requirement: its Refinement, where the Questions are answered as a stack of
+ * cards until Anvil suggests it looks ready and the Point of Contact confirms it,
+ * and its Outputs, generated once it's Complete.
  */
 export function RequirementPage() {
   const { id = '' } = useParams()
@@ -108,7 +112,7 @@ export function RequirementPage() {
           <span className="sr-only">Loading the requirement…</span>
         </div>
       ) : (
-        <Refinement requirement={requirement.data} stack={stack.data} />
+        <RequirementTabs requirement={requirement.data} stack={stack.data} />
       )}
     </>
   )
@@ -148,6 +152,80 @@ function RequirementMeta({ requirement }: { requirement: Requirement }) {
 function PageActions({ requirement, className }: { requirement: Requirement; className?: string }) {
   const navigate = useNavigate()
   return <RequirementActions requirement={requirement} onDeleted={() => void navigate('/')} className={className} />
+}
+
+const TAB_CLASS =
+  'px-3 font-medium data-[state=active]:shadow-none dark:data-[state=active]:border-border-strong dark:data-[state=active]:bg-input/60'
+
+/**
+ * Refinement | Output. Generating lives here rather than in the Output tab, so
+ * switching tabs mid-way keeps showing it.
+ */
+function RequirementTabs({ requirement, stack }: { requirement: Requirement; stack: QuestionStack }) {
+  const requirementId = requirement.id
+  const queryClient = useQueryClient()
+  const [tab, setTab] = useState('refinement')
+  const outputs = useQuery(outputsQuery(requirementId))
+  const gherkin = outputs.data?.items.find((output) => output.format === 'gherkin')
+  const generate = useMutation({
+    mutationKey: generateKey(requirementId, 'gherkin'),
+    mutationFn: () => generateGherkin(requirementId),
+    onSuccess: (output) =>
+      queryClient.setQueryData(outputsQuery(requirementId).queryKey, (list) => ({
+        items: [...(list?.items.filter((o) => o.format !== output.format) ?? []), output],
+      })),
+    // Reopened elsewhere: show its status as it is now.
+    onError: (error) => {
+      if (error instanceof ApiError && error.status === 409) {
+        void queryClient.invalidateQueries({ queryKey: requirementKey(requirementId), exact: true })
+      }
+    },
+  })
+
+  return (
+    <Tabs value={tab} onValueChange={setTab} className="gap-0 pt-6">
+      <TabsList aria-label="Requirement" className="self-center">
+        <TabsTrigger value="refinement" className={TAB_CLASS}>
+          Refinement
+        </TabsTrigger>
+        <TabsTrigger value="output" className={TAB_CLASS}>
+          Output
+          {gherkin && <span aria-hidden="true" className="size-1.5 rounded-full bg-status-complete" />}
+        </TabsTrigger>
+      </TabsList>
+      <TabsContent value="refinement">
+        <Refinement requirement={requirement} stack={stack} />
+      </TabsContent>
+      <TabsContent value="output">
+        {outputs.isError ? (
+          <div className="flex flex-col items-center gap-3 py-16 text-center">
+            <p role="alert" className="text-body-sm text-muted-foreground">
+              Couldn't load the Output.
+            </p>
+            <Button variant="outline" onClick={() => void outputs.refetch()}>
+              Retry
+            </Button>
+          </div>
+        ) : outputs.isPending ? (
+          <div role="status" className="flex justify-center py-24 text-muted-foreground">
+            <LoaderCircle className="size-6 animate-spin" aria-hidden="true" />
+            <span className="sr-only">Loading the Output…</span>
+          </div>
+        ) : (
+          <RequirementOutput
+            requirement={requirement}
+            answered={stack.answered.length}
+            gherkin={{
+              output: gherkin,
+              generating: generate.isPending,
+              failed: generate.isError,
+              onGenerate: () => generate.mutate(),
+            }}
+          />
+        )}
+      </TabsContent>
+    </Tabs>
+  )
 }
 
 function Refinement({ requirement, stack }: { requirement: Requirement; stack: QuestionStack }) {
