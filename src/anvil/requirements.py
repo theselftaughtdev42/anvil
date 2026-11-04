@@ -531,4 +531,5 @@ def generate_gherkin_output(
         )
     output = generate_gherkin(session, requirement, agent)
     session.commit()
-    return OutputPublic.of(output, last_reopened_at(session, requirement))
+    # Generated now, under the lock, so no Reopen note can be newer.
+    return OutputPublic.of(output, None)
