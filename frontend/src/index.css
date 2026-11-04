@@ -56,6 +56,14 @@
   --color-status-complete-background: var(--status-complete-background);
   --color-status-complete-border: var(--status-complete-border);
   --color-status-complete-foreground: var(--status-complete-foreground);
+
+  --color-gherkin-keyword: var(--gherkin-keyword);
+  --color-gherkin-step: var(--gherkin-step);
+  --color-gherkin-string: var(--gherkin-string);
+  --color-gherkin-placeholder: var(--gherkin-placeholder);
+  --color-gherkin-placeholder-background: var(--gherkin-placeholder-background);
+  --color-gherkin-punctuation: var(--gherkin-punctuation);
+  --color-gherkin-comment: var(--gherkin-comment);
 }
 
 @layer base {

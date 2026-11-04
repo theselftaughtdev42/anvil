@@ -83,3 +83,57 @@ test('an Output shows in monospace, with Regenerate', async () => {
   await page.getByRole('button', { name: 'Regenerate' }).click()
   expect(state.onGenerate).toHaveBeenCalledOnce()
 })
+
+test('an Output says when it was generated and from how many Answers', async () => {
+  show({ output: OUTPUT })
+
+  await expect.element(page.getByText(/^Generated 2 Nov 2026 at \d\d:\d\d · from 9 Answers$/)).toBeVisible()
+  expect(page.getByRole('time').element().getAttribute('datetime')).toBe(OUTPUT.generated_at)
+})
+
+test('the Gherkin is highlighted, line by line', async () => {
+  show({ output: { ...OUTPUT, content: 'Feature: A\n  # Note\n\n  Scenario: B\n    Given "<x>"\n      | a |\n' } })
+
+  await expect.element(page.getByLabelText('Gherkin', { exact: true })).toBeVisible()
+  const gherkin = page.getByLabelText('Gherkin', { exact: true }).element()
+  const kindOf = (text: string) =>
+    [...gherkin.querySelectorAll<HTMLElement>('[data-kind]')].find((el) => el.textContent === text)?.dataset.kind
+  expect(kindOf('Feature:')).toBe('keyword')
+  expect(kindOf('  # Note')).toBe('comment')
+  expect(kindOf('Given')).toBe('step')
+  expect(kindOf('<x>')).toBe('placeholder')
+  expect(kindOf('|')).toBe('pipe')
+  expect(kindOf('a')).toBe('cell')
+})
+
+test('the code bar names the file Download saves', async () => {
+  show({ output: OUTPUT })
+
+  await expect.element(page.getByText('rebook-a-missed-delivery.feature')).toBeVisible()
+  await expect.element(page.getByText('Read-only')).toBeVisible()
+})
+
+test('Copy puts the Gherkin on the clipboard and says so', async () => {
+  const writeText = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue()
+  show({ output: OUTPUT })
+
+  await page.getByRole('button', { name: 'Copy' }).click()
+
+  expect(writeText).toHaveBeenCalledWith(OUTPUT.content)
+  await expect.element(page.getByRole('button', { name: 'Copied', exact: true })).toBeVisible()
+  await expect.element(page.getByRole('status')).toHaveTextContent('Copied the Gherkin')
+  writeText.mockRestore()
+})
+
+test('Copy says when the clipboard refuses', async () => {
+  const writeText = vi.spyOn(navigator.clipboard, 'writeText').mockRejectedValue(new Error('denied'))
+  show({ output: OUTPUT })
+
+  await page.getByRole('button', { name: 'Copy' }).click()
+
+  await expect.element(page.getByRole('alert')).toHaveTextContent(
+    "Couldn't copy the Gherkin. Select it and copy it yourself, or Download it.",
+  )
+  await expect.element(page.getByRole('button', { name: 'Copy', exact: true })).toBeVisible()
+  writeText.mockRestore()
+})
