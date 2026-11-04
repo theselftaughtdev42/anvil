@@ -4,8 +4,8 @@
 import type { RuleTester } from 'oxlint/plugins-dev'
 
 type Rule = Parameters<RuleTester['run']>[1]
-type Context = Parameters<Rule['create'] & {}>[0]
-type Visitor = NonNullable<ReturnType<Rule['create'] & {}>[string]>
+type Context = Parameters<NonNullable<Rule['create']>>[0]
+type Visitor = NonNullable<ReturnType<NonNullable<Rule['create']>>[string]>
 type Node = Parameters<Visitor>[0]
 type Comment = ReturnType<Context['sourceCode']['getCommentsBefore']>[number]
 
