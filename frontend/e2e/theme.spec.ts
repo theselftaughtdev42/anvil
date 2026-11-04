@@ -1,4 +1,4 @@
-import { expect, type Page, test } from '@playwright/test'
+import { expect, type Page, test } from './test.ts'
 import { resolveColour } from './helpers.ts'
 
 test.beforeEach(async ({ page }) => {

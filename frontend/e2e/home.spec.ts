@@ -1,4 +1,4 @@
-import { expect, type Page, test } from '@playwright/test'
+import { expect, type Page, test } from './test.ts'
 import { measureText } from './helpers.ts'
 
 const statuses = ['draft', 'in_progress', 'complete'] as const

@@ -1,4 +1,4 @@
-import { expect, type Page, test } from '@playwright/test'
+import { expect, type Page, test } from './test.ts'
 import { measureText } from './helpers.ts'
 
 const question = (n: number, topic = ['Who it’s for', 'The problem', 'Success', 'Edge cases'][n % 4]) => ({
