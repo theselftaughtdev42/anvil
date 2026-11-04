@@ -101,6 +101,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+      security-events: write
     env:
       IMAGE: ghcr.io/theselftaughtdev42/anvil
     steps:
@@ -127,6 +128,34 @@ jobs:
 
       - name: Smoke test
         run: scripts/smoke-test-image.sh anvil:ci "$GITHUB_SHA"
+
+      # Trivy runs twice, with the settings in trivy.yaml: once to report
+      # findings to the Security tab, then again to fail the build. The second
+      # run reuses the first's install and database. The weekly rescan in
+      # trivy.yml shares the `trivy-image` category, so its results replace
+      # these on main.
+      - name: Scan image for the Security tab
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: anvil:ci
+          trivy-config: trivy.yaml
+          limit-severities-for-sarif: true
+          format: sarif
+          output: trivy-results.sarif
+          exit-code: 0
+      # Dependabot and fork PRs get a read-only token, so the upload would fail.
+      - if: github.actor != 'dependabot[bot]' && !github.event.pull_request.head.repo.fork
+        uses: github/codeql-action/upload-sarif@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
+        with:
+          sarif_file: trivy-results.sarif
+          category: trivy-image
+      - name: Fail on fixable HIGH or CRITICAL findings
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: anvil:ci
+          trivy-config: trivy.yaml
+          exit-code: 1
+          skip-setup-trivy: true
 
       - if: github.event_name == 'push'
         name: Push to GHCR

@@ -1,0 +1,8 @@
+# Trivy settings shared by CI's image scan and the weekly rescan (trivy.yml).
+scan:
+  scanners: [vuln, secret]
+severity: [HIGH, CRITICAL]
+vulnerability:
+  ignore-unfixed: true
+secret:
+  config: trivy-secret.yaml

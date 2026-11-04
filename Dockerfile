@@ -42,7 +42,10 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # --- Runtime -----------------------------------------------------------------
 FROM python:3.14-slim@sha256:a2b82f3c48559aa0a8446d9af49826b6e2b2016f4cd2afabfe6013ec53729170
 
-RUN useradd --system --uid 10001 --no-create-home anvil
+# The app runs from the uv-built venv and never needs the base image's pip,
+# whose vendored packages Trivy flags (#130).
+RUN useradd --system --uid 10001 --no-create-home anvil \
+    && python -m pip uninstall --yes --root-user-action=ignore pip
 
 # The image keeps the checkout layout under /app. anvil locates the SPA build
 # (and an optional .env) relative to its own source file, assuming it runs
