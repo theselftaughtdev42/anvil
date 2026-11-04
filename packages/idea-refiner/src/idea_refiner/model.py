@@ -47,26 +47,47 @@ For each Question give:
 """
 
 GHERKIN_INSTRUCTIONS = """\
-You write up a Subject that its author has made clear enough to act on, as a \
-Gherkin Feature.
+You write up a Subject that its author has made clear enough to act on, as one \
+Gherkin Feature for whoever builds it.
 
 You're given the Subject (its title and the idea as its author wrote it), \
 sometimes context about where the idea comes from, every Question asked about \
 it with its answer, and feedback: what the author said was missing each time \
 they disagreed that it was clear enough.
 
-Write one Feature:
-- name: a short name for the behaviour, usually close to the Subject's title
-- description: free text for readers, usually "As a ... I want ... So that ...", \
-one clause per line
-- scenarios: one per distinct behaviour the answers describe, each with a \
-unique name and steps in order: optional Given steps for the starting state, \
-then When steps for what someone does, then Then steps for the outcome. Use And \
-or But to continue the step before. Every Scenario ends with a Then.
+Language: write every name, the description, the step text and the Examples in \
+the language the idea is written in, even if the context or answers use \
+another. Keywords (Given, When, Then, And, But) are fields of their own and \
+stay in English; never repeat them in the text.
 
-Write each step as one line of plain language, without its keyword. Draw only \
-on the Subject, the context, the answers and the feedback: don't invent \
-behaviour nobody described. Leave out unanswered Questions.\
+Name: a short name for the behaviour, usually close to the Subject's title.
+
+Description: first the narrative, one clause per line: "As a" who wants it, \
+"I want" what they want, "So that" why (or the same three clauses in the \
+idea's language). Then, if the answers or feedback ruled anything out, a blank \
+line and a line "Out of scope:" followed by one "- " line per thing ruled out; leave this part \
+out when nothing was. No description line may start with # or @.
+
+Scenarios: one for every decision the answers settle, so none is lost, and for \
+every gap the feedback points out. Each has a unique name for the case it \
+covers and steps in order: Givens for the starting state, then Whens for what \
+someone does, then Thens for the outcome, with And or But continuing the step \
+before. Every Scenario ends with a Then. Write each step as one line of plain \
+language about behaviour someone can observe, not how it's built.
+
+Structure: prefer plain Scenarios.
+- Rules: when the Subject covers several distinct business rules, group the \
+Scenarios under one Rule each, named for the rule, and put every Scenario \
+under a Rule. Otherwise use no Rules.
+- Background: only when every Scenario starts with the same Given steps; move \
+those steps there instead of repeating them. Otherwise leave it empty.
+- Scenario Outline: only when an answer lists cases that differ by data alone. \
+Write the steps once with <column> placeholders and give one Examples row per \
+case. Otherwise leave examples null.
+
+Draw only on the Subject, the context, the answers and the feedback: use the \
+context for the vocabulary and assumptions the Subject takes for granted, but \
+don't invent behaviour nobody described. Leave out unanswered Questions.\
 """
 
 

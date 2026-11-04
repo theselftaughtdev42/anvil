@@ -9,7 +9,7 @@ from collections.abc import Iterable, Sequence
 from enum import StrEnum
 from typing import Annotated, Self
 
-from pydantic import AfterValidator, BaseModel, Field, model_validator
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field, model_validator
 
 
 def single_line(value: str) -> str:
@@ -62,8 +62,19 @@ STEP_ORDER = {StepKeyword.GIVEN: 0, StepKeyword.WHEN: 1, StepKeyword.THEN: 2}
 PLACEHOLDER = re.compile(r"<([^<>]+)>")
 
 
-class GherkinStep(BaseModel, frozen=True, str_strip_whitespace=True):
+class GherkinModel(BaseModel):
+    """Field docstrings go into the JSON schema, so a model writing a Feature as
+    structured output reads them as field descriptions."""
+
+    model_config = ConfigDict(
+        frozen=True, str_strip_whitespace=True, use_attribute_docstrings=True
+    )
+
+
+class GherkinStep(GherkinModel):
     keyword: StepKeyword
+    """Given for the starting state, When for what someone does, Then for the
+    outcome. And or But continues the kind of step before it."""
     text: Line
     """The step without its keyword, for example "I open the delivery text". In a
     Scenario Outline, `<column>` stands for a value from its Examples."""
@@ -91,13 +102,15 @@ def check_order(steps: Iterable[GherkinStep], where: str) -> int:
 Cell = Annotated[str, AfterValidator(single_line)]
 
 
-class GherkinExamples(BaseModel, frozen=True, str_strip_whitespace=True):
+class GherkinExamples(GherkinModel):
     """The table of cases for a Scenario Outline: one row per case, each as wide as
     the header.
     """
 
     header: tuple[Line, ...] = Field(min_length=1)
+    """The column names, each used in the steps as a `<column>` placeholder."""
     rows: tuple[tuple[Cell, ...], ...] = Field(min_length=1)
+    """The values for each case, in the header's column order."""
 
     @model_validator(mode="after")
     def rectangular(self) -> Self:
@@ -113,7 +126,7 @@ class GherkinExamples(BaseModel, frozen=True, str_strip_whitespace=True):
         return self
 
 
-class GherkinScenario(BaseModel, frozen=True, str_strip_whitespace=True):
+class GherkinScenario(GherkinModel):
     """One example of the behaviour: optional Givens, then Whens, then Thens.
 
     It ends in a Then, and And or But never comes first. With Examples it's a
@@ -121,8 +134,11 @@ class GherkinScenario(BaseModel, frozen=True, str_strip_whitespace=True):
     """
 
     name: Line
+    """Names the case it covers, unique across the Feature."""
     steps: tuple[GherkinStep, ...] = Field(min_length=1)
     examples: GherkinExamples | None = None
+    """Only for cases that differ by data alone, which makes this a Scenario
+    Outline. Null for a plain Scenario."""
 
     @model_validator(mode="after")
     def steps_in_order(self) -> Self:
@@ -146,28 +162,34 @@ class GherkinScenario(BaseModel, frozen=True, str_strip_whitespace=True):
         return self
 
 
-class GherkinRule(BaseModel, frozen=True, str_strip_whitespace=True):
+class GherkinRule(GherkinModel):
     """A business rule the Feature follows, with the Scenarios that illustrate it."""
 
     name: Line
+    """The rule itself, stated briefly."""
     description: Description = ""
+    """Free text explaining the rule, possibly empty."""
     scenarios: tuple[GherkinScenario, ...] = Field(min_length=1)
 
 
-class GherkinFeature(BaseModel, frozen=True, str_strip_whitespace=True):
+class GherkinFeature(GherkinModel):
     """A Gherkin Feature: a name, a free-text description, an optional Background,
     and Scenarios, directly or grouped into Rules. It has at least one Scenario, and
     their names are unique across the Feature.
     """
 
     name: Line
+    """A short name for the behaviour."""
     description: Description = ""
     """Free text under the Feature line, such as "As a … I want … So that …". May be
     several lines, or empty."""
     background: tuple[GherkinStep, ...] = ()
-    """Steps run before every Scenario, setting up state: no Thens."""
+    """Steps run before every Scenario, setting up state: no Thens. Empty unless
+    every Scenario starts the same way."""
     scenarios: tuple[GherkinScenario, ...] = ()
+    """Scenarios not under a Rule."""
     rules: tuple[GherkinRule, ...] = ()
+    """Business rules, each with the Scenarios that illustrate it."""
 
     def all_scenarios(self) -> list[GherkinScenario]:
         return [

@@ -312,3 +312,73 @@ def test_a_feature_that_stays_invalid_makes_the_agent_unavailable() -> None:
     with pytest.raises(AgentUnavailable):
         write(model)
     assert model.requests == 1 + ModelAgent.OUTPUT_RETRIES
+
+
+OUTLINE: dict[str, Any] = {
+    "name": "Pick a slot",
+    "steps": [
+        {"keyword": "When", "text": "I pick the <slot> slot"},
+        {"keyword": "Then", "text": "the driver comes <when>"},
+    ],
+    "examples": {
+        "header": ["slot", "when"],
+        "rows": [["morning", "before noon"], ["evening", "after 5pm"]],
+    },
+}
+
+STRUCTURED: dict[str, Any] = {
+    "name": "Rebook missed deliveries",
+    "description": "As a customer\nI want to rebook from the text\n"
+    "So that I get my parcel\n\nOut of scope:\n- Refunds",
+    "background": [{"keyword": "Given", "text": "I missed a delivery"}],
+    "rules": [
+        {"name": "Rebook within a week", "scenarios": [OUTLINE]},
+        {"name": "Only once", "scenarios": FEATURE["scenarios"]},
+    ],
+}
+
+
+def test_write_gherkin_can_return_rules_a_background_and_outlines() -> None:
+    feature = write(ScriptedModel(STRUCTURED))
+
+    assert feature.background[0].text == "I missed a delivery"
+    assert [rule.name for rule in feature.rules] == [
+        "Rebook within a week",
+        "Only once",
+    ]
+    examples = feature.rules[0].scenarios[0].examples
+    assert examples is not None
+    assert examples.rows[1] == ("evening", "after 5pm")
+
+
+def test_the_model_is_told_what_each_gherkin_field_means() -> None:
+    schemas: list[dict[str, Any]] = []
+
+    def capture(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+        schemas.append(info.output_tools[0].parameters_json_schema)
+        return ModelResponse(parts=[ToolCallPart(info.output_tools[0].name, FEATURE)])
+
+    ModelAgent(FunctionModel(capture)).write_gherkin(SUBJECT, [], None, [])
+
+    [schema] = schemas
+    feature = schema["properties"]
+    scenario = schema["$defs"]["GherkinScenario"]["properties"]
+    for field in (
+        feature["description"],
+        feature["background"],
+        feature["rules"],
+        scenario["examples"],
+        schema["$defs"]["GherkinStep"]["properties"]["keyword"],
+    ):
+        assert field.get("description")
+
+
+def test_an_outline_missing_a_column_is_sent_back_to_be_corrected() -> None:
+    no_when_column = {
+        **OUTLINE,
+        "examples": {"header": ["slot"], "rows": [["morning"], ["evening"]]},
+    }
+    model = ScriptedModel({**FEATURE, "scenarios": [no_when_column]}, STRUCTURED)
+
+    assert write(model).rules
+    assert model.requests == 2
