@@ -67,8 +67,15 @@ def check(source: str) -> list[Violation]:
 
 def main(paths: list[str]) -> int:
     failed = False
+    # Pre-commit runs from the repo root. resolve() follows symlinks, so a link
+    # pointing out of the repo is skipped too.
+    root = Path.cwd().resolve()
     for path in paths:
-        for violation in check(Path(path).read_text()):
+        file = Path(path).resolve()
+        if not file.is_relative_to(root):
+            print(f"{path}: outside the repo; skipped", file=sys.stderr)
+            continue
+        for violation in check(file.read_text()):
             failed = True
             print(
                 f"{path}:{violation.line}: comment above {violation.name!r}; "

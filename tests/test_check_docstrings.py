@@ -141,21 +141,36 @@ def test_skips(source: str) -> None:
     assert lines_flagged(source) == []
 
 
+def run_in(cwd: Path, *paths: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [sys.executable, SCRIPT, *paths],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=cwd,
+    )
+
+
 def test_cli_exits_nonzero_and_names_the_line(tmp_path: Path) -> None:
     bad = tmp_path / "bad.py"
     bad.write_text("# Explains f.\ndef f(): ...\n")
     good = tmp_path / "good.py"
     good.write_text('def f():\n    """A docstring."""\n')
 
-    result = subprocess.run(
-        [sys.executable, SCRIPT, good, bad],
-        check=False,
-        capture_output=True,
-        text=True,
-    )
-
+    result = run_in(tmp_path, "good.py", "bad.py")
     assert result.returncode == 1
-    assert result.stdout.startswith(f"{bad}:1: comment above 'f'")
+    assert result.stdout.startswith("bad.py:1: comment above 'f'")
 
-    result = subprocess.run([sys.executable, SCRIPT, good], check=False)
-    assert result.returncode == 0
+    assert run_in(tmp_path, "good.py").returncode == 0
+
+
+def test_cli_skips_files_outside_the_repo(tmp_path: Path) -> None:
+    repo, outside = tmp_path / "repo", tmp_path / "outside.py"
+    repo.mkdir()
+    outside.write_text("# Explains f.\ndef f(): ...\n")
+    (repo / "link.py").symlink_to(outside)
+
+    for path in ["link.py", str(outside)]:
+        result = run_in(repo, path)
+        assert result.returncode == 0
+        assert result.stderr == f"{path}: outside the repo; skipped\n"

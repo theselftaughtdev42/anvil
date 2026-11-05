@@ -184,3 +184,16 @@ def test_cli_compares_the_file_with_head(tmp_path: Path) -> None:
 
     (tmp_path / "new.py").write_text("# A new file.\n")
     assert run_in(tmp_path, "new.py").returncode == 0
+
+
+def test_cli_skips_files_outside_the_repo(tmp_path: Path) -> None:
+    repo, outside = tmp_path / "repo", tmp_path / "outside.py"
+    repo.mkdir()
+    git(repo, "init", "-q")
+    outside.write_text("# Explains a.\na = 1\n")
+    (repo / "link.py").symlink_to(outside)
+
+    for path in ["link.py", str(outside)]:
+        result = run_in(repo, path)
+        assert result.returncode == 0
+        assert result.stderr == f"{path}: outside the repo; skipped\n"
