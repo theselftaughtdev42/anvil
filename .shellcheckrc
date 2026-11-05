@@ -1,0 +1,2 @@
+# Matches SonarCloud's shell:S7688, so pre-commit catches it first.
+enable=require-double-brackets

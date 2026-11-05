@@ -74,6 +74,12 @@ repos:
         files: ^frontend/
         types_or: [ts, tsx, json]
         pass_filenames: false
+      # shellcheck from shellcheck-py in the venv, with .shellcheckrc.
+      - id: shellcheck
+        name: shellcheck
+        entry: uv run shellcheck
+        language: system
+        types: [shell]
       # Workflow mistakes (bad expressions, unknown keys) plus shellcheck on
       # `run:` scripts, using the shellcheck from shellcheck-py in the venv.
       - id: actionlint
