@@ -21,7 +21,9 @@ GENERATOR = (
 def main() -> int:
     # Settings requires DATABASE_URL, but dumping the spec never connects, and
     # CI's lint job has no .env.
-    os.environ.setdefault("DATABASE_URL", "postgresql+psycopg://spec@localhost/spec")
+    os.environ.setdefault(
+        "DATABASE_URL", "postgresql+psycopg://spec:spec@localhost/spec"
+    )
     # The app won't start without the frontend build, which CI's lint job
     # skips; the spec doesn't depend on it.
     (ROOT / "frontend" / "dist").mkdir(exist_ok=True)

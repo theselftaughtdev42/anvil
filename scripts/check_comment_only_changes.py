@@ -88,14 +88,22 @@ def comment_only_hunks(old: str, new: str, commentary: set[int]) -> list[int]:
 
 def at_head(path: str) -> str | None:
     result = subprocess.run(
-        ["git", "show", f"HEAD:./{path}"], check=False, capture_output=True
+        ["git", "show", "--end-of-options", f"HEAD:./{path}"],
+        check=False,
+        capture_output=True,
     )
     return result.stdout.decode() if result.returncode == 0 else None
 
 
 def main(paths: list[str]) -> int:
     failed = False
+    # Pre-commit runs from the repo root. resolve() follows symlinks, so a link
+    # pointing out of the repo is skipped too.
+    root = Path.cwd().resolve()
     for path in paths:
+        if not Path(path).resolve().is_relative_to(root):
+            print(f"{path}: outside the repo; skipped", file=sys.stderr)
+            continue
         old, file = at_head(path), Path(path)
         if old is None or not file.exists():
             continue
