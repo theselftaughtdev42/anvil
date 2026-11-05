@@ -30,9 +30,9 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: frontend/package-lock.json
-      - run: npm ci
+      - run: npm ci --ignore-scripts
         working-directory: frontend
-      - run: uv run pre-commit run --all-files --show-diff-on-failure
+      - run: uv run --locked pre-commit run --all-files --show-diff-on-failure
         env:
           SKIP: no-commit-to-branch # would fail on pushes to main
 
@@ -56,12 +56,12 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: frontend/package-lock.json
-      - run: npm ci && npm run build
+      - run: npm ci --ignore-scripts && npm run build
         working-directory: frontend
       # Joins the background pull if it's still running, then waits for the
       # healthcheck in compose.yaml.
       - run: docker compose up -d --wait
-      - run: uv run pytest
+      - run: uv run --locked pytest
 
   frontend-test:
     runs-on: ubuntu-latest
@@ -75,10 +75,10 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: frontend/package-lock.json
-      - run: npm ci
+      - run: npm ci --ignore-scripts
         working-directory: frontend
       # Headless only, so the shell is enough: skips the full Chromium download.
-      - run: npx playwright install --with-deps --only-shell chromium
+      - run: npm exec --no -- playwright install --with-deps --only-shell chromium
         working-directory: frontend
       - run: npm run test:unit
         working-directory: frontend
