@@ -78,7 +78,7 @@ jobs:
       - run: npm ci --ignore-scripts
         working-directory: frontend
       # Headless only, so the shell is enough: skips the full Chromium download.
-      - run: npm exec --no -- playwright install --with-deps --only-shell chromium
+      - run: ./node_modules/.bin/playwright install --with-deps --only-shell chromium
         working-directory: frontend
       - run: npm run test:unit
         working-directory: frontend
