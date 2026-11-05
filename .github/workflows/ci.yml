@@ -92,10 +92,46 @@ jobs:
           path: frontend/test-results/
           retention-days: 7
 
+  # Scans the checkout with the settings in trivy-repo.yaml, reporting to the
+  # Security tab then failing the build, as the image scan does. It isn't a
+  # required check itself: build needs it, and build is.
+  repo-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Scan repo for the Security tab
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: fs
+          trivy-config: trivy-repo.yaml
+          limit-severities-for-sarif: true
+          format: sarif
+          output: trivy-repo-results.sarif
+          exit-code: 0
+      # Dependabot and fork PRs get a read-only token, so the upload would fail.
+      - if: github.actor != 'dependabot[bot]' && !github.event.pull_request.head.repo.fork
+        uses: github/codeql-action/upload-sarif@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
+        with:
+          sarif_file: trivy-repo-results.sarif
+          category: trivy-repo
+      - name: Fail on fixable HIGH or CRITICAL findings
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: fs
+          trivy-config: trivy-repo.yaml
+          exit-code: 1
+          skip-setup-trivy: true
+
   # Builds and smoke-tests the production image on every run, so a PR that
   # breaks the image fails before merge. Only pushes to main publish to GHCR.
   build:
-    needs: [lint, backend-test, frontend-test]
+    needs: [lint, backend-test, frontend-test, repo-scan]
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:

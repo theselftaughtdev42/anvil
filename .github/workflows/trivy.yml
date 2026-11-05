@@ -1,7 +1,8 @@
 name: Trivy
 
-# Rescans the published main image weekly, because new vulnerabilities are
-# found in images that haven't changed. Reports to the Security tab only.
+# Rescans the published main image and the main branch weekly, because new
+# vulnerabilities are found in code that hasn't changed. Reports to the
+# Security tab only.
 on:
   schedule:
     - cron: "17 6 * * 1"
@@ -34,3 +35,27 @@ jobs:
         with:
           sarif_file: trivy-results.sarif
           category: trivy-image
+
+  # Shares CI's trivy-repo category, so its results replace CI's on main.
+  repo-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: fs
+          trivy-config: trivy-repo.yaml
+          limit-severities-for-sarif: true
+          format: sarif
+          output: trivy-repo-results.sarif
+          exit-code: 0
+      - uses: github/codeql-action/upload-sarif@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
+        with:
+          sarif_file: trivy-repo-results.sarif
+          category: trivy-repo

@@ -1,0 +1,17 @@
+# Trivy settings for the repo scan in CI and the weekly rescan (trivy.yml),
+# covering what the image scan (trivy.yaml) can't see: npm packages, which
+# ship bundled into the SPA rather than as installed packages, and
+# Dockerfile misconfigurations. Keep severity and ignore-unfixed in step
+# with trivy.yaml.
+scan:
+  scanners: [vuln, misconfig]
+  # The image scan already covers the Python packages; scanning the lock too
+  # would raise each finding twice.
+  skip-files: [uv.lock]
+# Below HIGH, the only Dockerfile finding is the missing HEALTHCHECK, which
+# is deliberate (see the Dockerfile).
+severity: [HIGH, CRITICAL]
+vulnerability:
+  ignore-unfixed: true
+# Trivy skips npm devDependencies by default: build tools such as Vite never
+# reach the browser, so only runtime dependencies fail the build.
