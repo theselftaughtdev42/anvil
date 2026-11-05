@@ -7,7 +7,7 @@ FROM node:25-slim@sha256:81db02c4b671288a03915da9534dbd54f96d0e7c24d80ccc54f5b36
 
 WORKDIR /app/frontend
 COPY frontend/package.json frontend/package-lock.json ./
-RUN --mount=type=cache,target=/root/.npm npm ci
+RUN --mount=type=cache,target=/root/.npm npm ci --ignore-scripts
 COPY frontend/ ./
 RUN npm run build
 
@@ -32,12 +32,12 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
     --mount=type=bind,source=packages/idea-refiner/pyproject.toml,target=packages/idea-refiner/pyproject.toml \
-    uv sync --locked --no-dev --no-install-workspace
+    uv sync --locked --no-dev --no-build --no-install-workspace
 COPY pyproject.toml uv.lock README.md ./
 COPY packages/ packages/
 COPY src/ src/
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --locked --no-dev
+    uv sync --locked --no-dev --no-build
 
 # --- Runtime -----------------------------------------------------------------
 FROM python:3.14-slim@sha256:a2b82f3c48559aa0a8446d9af49826b6e2b2016f4cd2afabfe6013ec53729170
