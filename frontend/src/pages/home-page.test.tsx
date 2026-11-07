@@ -5,7 +5,7 @@ import { render } from 'vitest-browser-react'
 import type { RequirementList } from '@/lib/api-schema'
 import type { Requirement } from '@/lib/requirements'
 import { HomePage } from '@/pages/home-page'
-import { requestUrl, requestPath } from '@/lib/mock-fetch'
+import { requestUrl, requestTarget } from '@/test/fetch-calls'
 
 /**
  * Real time, as the cards compare against it. Far enough from each boundary
@@ -64,7 +64,7 @@ function serve(requirements: Requirement[], response?: (url: URL) => Promise<Res
 
 const listRequests = (fetch: ReturnType<typeof serve>) =>
   fetch.mock.calls
-    .map(([input]) => requestPath(input))
+    .map(([input]) => requestTarget(input))
     .filter((url) => url !== '/api/config' && url !== '/api/projects')
 
 async function renderHome(path = '/') {

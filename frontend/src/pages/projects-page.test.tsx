@@ -4,7 +4,7 @@ import { afterEach, expect, test, vi } from 'vitest'
 import { render } from 'vitest-browser-react'
 import type { Project } from '@/lib/projects'
 import { ProjectsPage } from '@/pages/projects-page'
-import { requestJson } from '@/lib/mock-fetch'
+import { requestJson } from '@/test/fetch-calls'
 
 function project(overrides: Partial<Project>): Project {
   return {

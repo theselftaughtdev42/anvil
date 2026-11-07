@@ -6,7 +6,7 @@ import { render } from 'vitest-browser-react'
 import { IdeaPrompt } from '@/components/idea-prompt'
 import type { Project } from '@/lib/projects'
 import { requirementsKey } from '@/lib/requirements'
-import { requestJson } from '@/lib/mock-fetch'
+import { requestJson } from '@/test/fetch-calls'
 
 const requirement = {
   id: 'abc-123',
