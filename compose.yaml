@@ -38,9 +38,8 @@ services:
     image: *app-image
     environment:
       <<: *app-env
-      # Unset, these keep the app on the offline stub agent (as the image
-      # smoke test needs); set them in .env to try the model agent.
-      AGENT: ${AGENT:-stub}
+      # Unset, AGENT_MODEL keeps the app on the offline stub agent (as the image
+      # smoke test needs); set it in .env to try the model agent.
       AGENT_MODEL: ${AGENT_MODEL:-}
       AGENT_TIMEOUT_SECONDS: ${AGENT_TIMEOUT_SECONDS:-60}
       # No value: passed through only when set, since providers treat an empty

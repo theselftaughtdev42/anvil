@@ -100,9 +100,8 @@ Configuration comes only from environment variables; the image contains no `.env
   - a managed platform where only the platform's proxy can reach the container (e.g. Fly.io, Render, Cloud Run): `*`
   - no proxy in front: leave it unset. Never use `*` when clients can reach the container directly, or they can spoof their IP.
 - `STUB_USER_NAME` and `STUB_USER_EMAIL`: until there is authentication, every request acts as the Point of Contact with this email, created on first use. Default to `Dev User` and `dev@example.com`.
-- `AGENT`: the refinement agent that names and refines requirements: `stub` (the default), deterministic and offline, or `model`, which asks the language model in `AGENT_MODEL`. Any other value stops the app starting.
-- `AGENT_MODEL`: the model the `model` agent uses, as `provider:model` (e.g. `anthropic:claude-sonnet-5-5`, `ovhcloud:gpt-oss-20b` or `ollama:llama3.2`). Required when `AGENT=model`. The provider reads its API key and base URL from its own environment variables, such as `ANTHROPIC_API_KEY`, `OVHCLOUD_API_KEY` or `OLLAMA_BASE_URL`. For another OpenAI-compatible endpoint, use `openai-chat:<model>` with `OPENAI_API_KEY` and `OPENAI_BASE_URL`: plain `openai:` uses OpenAI's Responses API, which most compatible servers don't support. An unknown provider or missing key stops the app starting.
-- `AGENT_TIMEOUT_SECONDS`: how long the `model` agent may take over one call, retries included, before the request fails with a 503 and nothing is saved. Defaults to `60`; must be positive.
+- `AGENT_MODEL`: the language model the refinement agent asks to name and refine requirements, as `provider:model` (e.g. `anthropic:claude-sonnet-5-5`, `ovhcloud:gpt-oss-20b` or `ollama:llama3.2`). Unset or empty, Anvil uses the stub agent, which is deterministic and offline. The provider reads its API key and base URL from its own environment variables, such as `ANTHROPIC_API_KEY`, `OVHCLOUD_API_KEY` or `OLLAMA_BASE_URL`. For another OpenAI-compatible endpoint, use `openai-chat:<model>` with `OPENAI_API_KEY` and `OPENAI_BASE_URL`: plain `openai:` uses OpenAI's Responses API, which most compatible servers don't support. An unknown provider or missing key stops the app starting.
+- `AGENT_TIMEOUT_SECONDS`: how long the model agent may take over one call, retries included, before the request fails with a 503 and nothing is saved. Defaults to `60`; must be positive.
 - `STUB_AGENT_DELAY_MS`: makes every stub agent call this many milliseconds slow, to see the UI's loading states. Defaults to `0`.
 - `IDEA_PLACEHOLDER`: the example idea shown in the home page's empty prompt, served to the UI by `GET /api/config`. Defaults to `Drivers should see route changes on their phone without calling the depot`.
 
@@ -113,7 +112,6 @@ API keys and base URLs use each provider's standard environment variables; Anvil
 Hosted Claude:
 
 ```bash
-AGENT=model
 AGENT_MODEL=anthropic:claude-sonnet-5-5
 ANTHROPIC_API_KEY=sk-ant-...
 ```
@@ -121,7 +119,6 @@ ANTHROPIC_API_KEY=sk-ant-...
 Hosted OpenAI:
 
 ```bash
-AGENT=model
 AGENT_MODEL=openai:gpt-6.1-terra
 OPENAI_API_KEY=sk-...
 ```
@@ -129,7 +126,6 @@ OPENAI_API_KEY=sk-...
 An OpenAI-compatible endpoint, here OVHcloud AI Endpoints with gpt-oss-20b. pydantic-ai knows OVHcloud's base URL, so only the key is needed:
 
 ```bash
-AGENT=model
 AGENT_MODEL=ovhcloud:gpt-oss-20b
 OVHCLOUD_API_KEY=...
 ```

@@ -14,15 +14,11 @@ from anvil.settings import Settings, settings
 
 
 def create_agent(settings: Settings) -> RefinementAgent:
-    # Settings has already rejected any AGENT that isn't listed here.
-    match settings.agent:
-        case "stub":
-            return StubAgent(delay_ms=settings.stub_agent_delay_ms)
-        case "model":
-            assert settings.agent_model
-            return ModelAgent(
-                settings.agent_model, timeout_seconds=settings.agent_timeout_seconds
-            )
+    if settings.agent_model:
+        return ModelAgent(
+            settings.agent_model, timeout_seconds=settings.agent_timeout_seconds
+        )
+    return StubAgent(delay_ms=settings.stub_agent_delay_ms)
 
 
 # Built once, on import, so a bad configuration stops the app starting.
