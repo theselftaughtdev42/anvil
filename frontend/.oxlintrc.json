@@ -8,6 +8,12 @@
     "anvil/comment-above-declaration": "error",
     "react/rules-of-hooks": "error",
     "react/only-export-components": ["warn", { "allowConstantExport": true }],
+    "react/no-danger": "error",
+    "react/jsx-no-script-url": "error",
+    "react/jsx-no-target-blank": "error",
+    "no-eval": "error",
+    "no-new-func": "error",
+    "typescript/no-implied-eval": "error",
     "no-restricted-imports": [
       "error",
       {
