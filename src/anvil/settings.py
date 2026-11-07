@@ -1,8 +1,7 @@
 from pathlib import Path
-from typing import Literal, Self
 
 from dotenv import load_dotenv
-from pydantic import EmailStr, Field, PostgresDsn, model_validator
+from pydantic import EmailStr, Field, PostgresDsn
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from anvil import PROJECT_ROOT
@@ -21,11 +20,9 @@ class Settings(BaseSettings):
     stub_user_name: str = "Dev User"
     """The person every request acts as until there is authentication."""
     stub_user_email: EmailStr = "dev@example.com"
-    agent: Literal["stub", "model"] = "stub"
-    """Which RefinementAgent to use. Anything not listed fails validation."""
     agent_model: str | None = None
-    """The `provider:model` the model agent uses, such as
-    `anthropic:claude-sonnet-5-5`. Required when `agent` is `model`.
+    """The `provider:model`, such as `anthropic:claude-sonnet-5-5`, that the model
+    agent asks. Unset or empty, Anvil uses the offline StubAgent instead.
     """
     agent_timeout_seconds: float = Field(default=60, gt=0)
     """How long the model agent may take over one call, retries included."""
@@ -35,12 +32,6 @@ class Settings(BaseSettings):
         "Drivers should see route changes on their phone without calling the depot"
     )
     """The example idea in the home page's empty prompt, served by /api/config."""
-
-    @model_validator(mode="after")
-    def model_agent_needs_a_model(self) -> Self:
-        if self.agent == "model" and not self.agent_model:
-            raise ValueError("AGENT_MODEL is required when AGENT is model")
-        return self
 
 
 def load_settings(env_file: Path = PROJECT_ROOT / ".env") -> Settings:

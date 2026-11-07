@@ -69,27 +69,18 @@ def start_app(**env: str) -> subprocess.CompletedProcess[str]:
     )
 
 
-def test_unknown_agent_stops_the_app() -> None:
-    result = start_app(AGENT="unknown")
-
-    assert result.returncode != 0
-    assert "agent" in result.stderr
-    assert "'unknown'" in result.stderr
-
-
 def test_unknown_model_provider_stops_the_app() -> None:
-    result = start_app(AGENT="model", AGENT_MODEL="unknown:some-model")
+    result = start_app(AGENT_MODEL="unknown:some-model")
 
     assert result.returncode != 0
     assert "unknown:some-model" in result.stderr
 
 
-def test_the_stub_is_the_default_agent(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.delenv("AGENT", raising=False)
+@pytest.mark.parametrize("agent_model", [None, ""])
+def test_the_stub_is_the_agent_without_a_model(agent_model: str | None) -> None:
+    settings = Settings(_env_file=None, database_url=URL, agent_model=agent_model)
 
-    assert isinstance(
-        create_agent(Settings(_env_file=None, database_url=URL)), StubAgent
-    )
+    assert isinstance(create_agent(settings), StubAgent)
 
 
 def test_model_agent_uses_the_configured_model(
@@ -99,7 +90,6 @@ def test_model_agent_uses_the_configured_model(
     settings = Settings(
         _env_file=None,
         database_url=URL,
-        agent="model",
         agent_model="anthropic:claude-sonnet-5-5",
         agent_timeout_seconds=12.5,
     )
