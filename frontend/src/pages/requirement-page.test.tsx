@@ -6,7 +6,7 @@ import { render } from 'vitest-browser-react'
 import type { AnsweredQuestion, OpenQuestion, QuestionStack } from '@/lib/api-schema'
 import type { Requirement } from '@/lib/requirements'
 import { routes } from '@/routes'
-import { requestUrl, requestPath, requestJson } from '@/lib/mock-fetch'
+import { requestUrl, requestTarget, requestJson } from '@/test/fetch-calls'
 
 const ID = 'req-1'
 
@@ -555,11 +555,11 @@ test('in the text box 1–3 and L type, Shift + Enter adds a line, and Enter ans
 
   await expect.element(page.ownWords()).toHaveValue('L1 2 3\nlorries')
   await expect.element(page.suggestion('Customers')).toHaveAttribute('aria-checked', 'false')
-  expect(fetch.mock.calls.some(([input]) => /\/(answer|later)$/.test(requestPath(input)))).toBe(false)
+  expect(fetch.mock.calls.some(([input]) => /\/(answer|later)$/.test(requestTarget(input)))).toBe(false)
 
   await userEvent.keyboard('{Enter}')
   await expect.element(page.question('What happens today, without it?')).toBeVisible()
-  const answer = fetch.mock.calls.find(([input]) => requestPath(input).endsWith('/answer'))
+  const answer = fetch.mock.calls.find(([input]) => requestTarget(input).endsWith('/answer'))
   expect(requestJson(answer![1])).toEqual({ answer: 'L1 2 3\nlorries' })
 })
 
@@ -592,8 +592,8 @@ test('the shortcuts leave modifier keys and other controls alone', async () => {
   await userEvent.keyboard('{Enter}')
 
   await expect.element(page.question('What happens today, without it?')).toBeVisible()
-  const actions = fetch.mock.calls.filter(([input]) => /\/(answer|later)$/.test(requestPath(input)))
-  expect(actions.map(([input]) => requestPath(input).split('/').at(-1))).toEqual(['later'])
+  const actions = fetch.mock.calls.filter(([input]) => /\/(answer|later)$/.test(requestTarget(input)))
+  expect(actions.map(([input]) => requestTarget(input).split('/').at(-1))).toEqual(['later'])
 })
 
 test('your own words take priority over a picked suggestion', async () => {
@@ -607,7 +607,7 @@ test('your own words take priority over a picked suggestion', async () => {
 
   await expect.element(page.answeredPile()).toMatchTextContent('Depot managers')
   await expect.element(page.answeredPile()).not.toMatchTextContent('Customers')
-  const answer = fetch.mock.calls.find(([input]) => requestPath(input).endsWith('/answer'))
+  const answer = fetch.mock.calls.find(([input]) => requestTarget(input).endsWith('/answer'))
   expect(requestJson(answer![1])).toEqual({ answer: 'Depot managers' })
 })
 
@@ -619,7 +619,7 @@ test('Answer does nothing with nothing picked or typed', async () => {
   await page.ownWords().fill('   ')
   await page.answerButton().click()
 
-  expect(fetch.mock.calls.some(([input]) => requestPath(input).endsWith('/answer'))).toBe(false)
+  expect(fetch.mock.calls.some(([input]) => requestTarget(input).endsWith('/answer'))).toBe(false)
   await expect.element(page.question('Who will use this most?')).toBeVisible()
 })
 
@@ -640,7 +640,7 @@ test('while an Answer is sending the buttons are busy, not disabled, and ignore 
 
   await expect.element(page.question('What happens today, without it?')).toBeVisible()
   await expect.element(page.answerButton()).toHaveAttribute('aria-busy', 'false')
-  const actions = fetch.mock.calls.filter(([input]) => /\/(answer|later)$/.test(requestPath(input)))
+  const actions = fetch.mock.calls.filter(([input]) => /\/(answer|later)$/.test(requestTarget(input)))
   expect(actions).toHaveLength(1)
 })
 
@@ -752,7 +752,7 @@ test('Confirm makes it Complete on the page, its home page card and the status t
   expect(qAndA(page).elements()).toHaveLength(4)
   await expect.element(page.screen.getByRole('button', { name: 'Reopen' })).toBeVisible()
   await expect.element(page.screen.getByRole('banner').getByText('Complete')).toBeVisible()
-  expect(fetch.mock.calls.some(([input]) => requestPath(input).endsWith(`/requirements/${ID}/confirm`))).toBe(true)
+  expect(fetch.mock.calls.some(([input]) => requestTarget(input).endsWith(`/requirements/${ID}/confirm`))).toBe(true)
 
   await page.router.navigate('/')
   await expect.element(page.screen.getByRole('listitem').first()).toMatchTextContent('Complete')
@@ -812,7 +812,7 @@ test("Reopen can't be sent without a note, and says why", async () => {
 
   await expect.element(page.screen.getByRole('alert')).toHaveTextContent("Say what's missing to reopen it.")
   await expect.element(noteField(page)).toHaveAttribute('aria-invalid', 'true')
-  expect(fetch.mock.calls.some(([input]) => requestPath(input).endsWith('/reopen'))).toBe(false)
+  expect(fetch.mock.calls.some(([input]) => requestTarget(input).endsWith('/reopen'))).toBe(false)
   await expect.element(complete(page)).toBeVisible()
 })
 
