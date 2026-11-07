@@ -188,7 +188,7 @@ function GherkinOutput({
   }, [copied])
   const copy = () =>
     // Inside then() so a missing clipboard (an insecure context) fails like a refused one
-    Promise.resolve()
+    void Promise.resolve()
       .then(() => navigator.clipboard.writeText(output.content))
       .then(
         () => setCopied('copied'),
@@ -278,10 +278,12 @@ function GherkinCode({ content }: { content: string }) {
     >
       {lines.map((tokens, line) => (
         <span
+          // oxlint-disable-next-line react/no-array-index-key -- read-only text: lines can repeat, and only their order identifies them
           key={line}
           className="before:inline-block before:w-11 before:pr-4 before:text-right before:text-gherkin-punctuation before:content-[counter(line)] before:select-none before:[counter-increment:line]"
         >
           {tokens.map(({ text, kind }, i) => (
+            // oxlint-disable-next-line react/no-array-index-key -- as above, for tokens within a line
             <span key={i} className={kind && KIND_CLASSES[kind]} data-kind={kind}>
               {text}
             </span>

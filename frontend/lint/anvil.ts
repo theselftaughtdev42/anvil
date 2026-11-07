@@ -56,7 +56,6 @@ const commentAboveDeclaration: Rule = {
       PropertyDefinition: check,
       MethodDefinition: check,
       VariableDeclaration(node) {
-        if (node.type !== 'VariableDeclaration') return
         if (node.kind === 'const' && node.parent.type === 'ExportNamedDeclaration') check(node)
       },
     }

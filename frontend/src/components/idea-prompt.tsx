@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowRight, LoaderCircle } from 'lucide-react'
-import { type FormEvent, type KeyboardEvent, useId, useRef, useState } from 'react'
+import { type SubmitEvent, type KeyboardEvent, useId, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { ProjectPicker } from '@/components/project-picker'
 import { Button } from '@/components/ui/button'
@@ -50,7 +50,7 @@ export function IdeaPrompt({ showIntro = false }: { showIntro?: boolean }) {
     },
   })
 
-  const submit = (event?: FormEvent) => {
+  const submit = (event?: SubmitEvent) => {
     event?.preventDefault()
     if (isPending || !idea.trim()) return
     if (!projectId) {

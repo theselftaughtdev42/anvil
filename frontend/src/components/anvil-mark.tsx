@@ -6,5 +6,6 @@ import Logo from '@/assets/logo.svg?react'
  * beside it names the link, so drop the file's own label.
  */
 export function AnvilMark(props: ComponentProps<'svg'>) {
+  // oxlint-disable-next-line jsx-a11y/aria-role -- undefined removes the SVG's role="img"; it isn't a role
   return <Logo role={undefined} aria-label={undefined} aria-hidden="true" {...props} />
 }

@@ -29,7 +29,7 @@ afterEach(() => {
 })
 
 function show(gherkin: Partial<GherkinState>, requirement: Partial<Requirement> = {}) {
-  const state: GherkinState = { output: undefined, generating: false, failed: false, onGenerate: vi.fn(), ...gherkin }
+  const state: GherkinState = { output: undefined, generating: false, failed: false, onGenerate: vi.fn<GherkinState['onGenerate']>(), ...gherkin }
   return {
     state,
     screen: render(<RequirementOutput requirement={{ ...REQUIREMENT, ...requirement }} answered={9} gherkin={state} />),
