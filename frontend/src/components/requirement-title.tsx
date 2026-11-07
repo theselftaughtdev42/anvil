@@ -69,6 +69,7 @@ export function RequirementTitle({ requirement }: { requirement: Requirement }) 
   return (
     <Input
       aria-label="Title"
+      // oxlint-disable-next-line jsx-a11y/no-autofocus -- the box only appears when the user clicks Rename
       autoFocus
       value={draft}
       maxLength={TITLE_MAX_LENGTH}

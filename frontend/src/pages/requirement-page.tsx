@@ -168,12 +168,14 @@ function RequirementTabs({ requirement, stack }: { requirement: Requirement; sta
   const queryClient = useQueryClient()
   const [tab, setTab] = useState('refinement')
   const outputs = useQuery(outputsQuery(requirementId))
+  // oxlint-disable-next-line typescript/no-unnecessary-condition -- Gherkin is the only format for now
   const gherkin = outputs.data?.items.find((output) => output.format === 'gherkin')
   const generate = useMutation({
     mutationKey: generateKey(requirementId, 'gherkin'),
     mutationFn: () => generateGherkin(requirementId),
     onSuccess: (output) =>
       queryClient.setQueryData(outputsQuery(requirementId).queryKey, (list) => ({
+        // oxlint-disable-next-line typescript/no-unnecessary-condition -- Gherkin is the only format for now
         items: [...(list?.items.filter((o) => o.format !== output.format) ?? []), output],
       })),
     // Reopened elsewhere: show its status as it is now.

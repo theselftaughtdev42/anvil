@@ -1,5 +1,5 @@
 import { LoaderCircle } from 'lucide-react'
-import { type FormEvent, type ReactNode, type RefObject, useId, useRef, useState } from 'react'
+import { type SubmitEvent, type ReactNode, type RefObject, useId, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import { Button } from '@/components/ui/button'
 import type { AnsweredQuestion } from '@/lib/api-schema'
@@ -126,7 +126,7 @@ function ReopenForm({
   const [empty, setEmpty] = useState(false)
   const message = empty ? "Say what's missing to reopen it." : error
 
-  const submit = (event: FormEvent) => {
+  const submit = (event: SubmitEvent) => {
     event.preventDefault()
     if (busy) return
     const text = note.trim()

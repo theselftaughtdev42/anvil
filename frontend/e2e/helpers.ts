@@ -5,9 +5,9 @@ import type { Locator, Page } from '@playwright/test'
  * `#E8642C`. Comparing resolved values ignores how each was written.
  */
 export function resolveColour(page: Page, colour: string): Promise<string> {
-  return page.evaluate((colour) => {
+  return page.evaluate((value) => {
     const probe = document.createElement('div')
-    probe.style.color = colour
+    probe.style.color = value
     document.body.append(probe)
     const resolved = getComputedStyle(probe).color
     probe.remove()

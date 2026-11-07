@@ -18,7 +18,7 @@ test.each([
       [keyword, 'keyword'],
       [title && ' ', null],
       [title, 'title'],
-    ].filter(([text]) => text),
+    ].filter(([cell]) => cell),
   )
 })
 

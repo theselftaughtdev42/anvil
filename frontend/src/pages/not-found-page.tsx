@@ -30,7 +30,7 @@ export function NotFoundPage({
   // The first page of the visit has the key "default": going back from it
   // would leave Anvil, so go home instead.
   const { key } = useLocation()
-  const goBack = () => (key === 'default' ? navigate('/') : navigate(-1))
+  const goBack = () => void (key === 'default' ? navigate('/') : navigate(-1))
 
   return (
     <div className="flex flex-col items-center py-24 text-center">

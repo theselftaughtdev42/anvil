@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { LoaderCircle } from 'lucide-react'
-import { type FormEvent, useId, useState } from 'react'
+import { type SubmitEvent, useId, useState } from 'react'
 import { LeaveGuard } from '@/components/leave-guard'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -49,7 +49,7 @@ export function ProjectForm({ project }: { project: Project }) {
     if (save.isError) save.reset()
   }
 
-  const submit = (event: FormEvent) => {
+  const submit = (event: SubmitEvent) => {
     event.preventDefault()
     if (save.isPending || !dirty || !name.trim()) return
     save.mutate()
