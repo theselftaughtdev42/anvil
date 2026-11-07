@@ -13,6 +13,7 @@
     "react/jsx-no-target-blank": "error",
     "no-eval": "error",
     "no-new-func": "error",
+    // type-aware: only runs under `oxlint --type-aware`, as `npm run lint` does
     "typescript/no-implied-eval": "error",
     "no-restricted-imports": [
       "error",
