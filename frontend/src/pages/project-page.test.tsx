@@ -5,6 +5,7 @@ import { render } from 'vitest-browser-react'
 import type { Project } from '@/lib/projects'
 import type { Requirement } from '@/lib/requirements'
 import { ProjectPage } from '@/pages/project-page'
+import { requestUrl, requestPath, requestJson } from '@/lib/mock-fetch'
 
 const parcels: Project = {
   id: 'p1',
@@ -49,11 +50,11 @@ function serve({
   everyRequirement?: Requirement[]
 } = {}) {
   const fetch = vi.fn<typeof globalThis.fetch>(async (input, init) => {
-    const url = new URL(String(input), location.href)
+    const url = requestUrl(input)
     if (url.pathname === '/api/requirements') return Response.json({ items: requirements })
     if (init?.method === 'DELETE') return remove(url)
     if (url.pathname === '/api/projects/p1/requirements') return Response.json({ items: everyRequirement })
-    if (init?.method === 'PATCH' && patch) return patch(JSON.parse(String(init.body)))
+    if (init?.method === 'PATCH' && patch) return patch(requestJson(init) as Parameters<Patch>[0])
     return project instanceof Response ? project.clone() : Response.json(project)
   })
   vi.stubGlobal('fetch', fetch)
@@ -118,8 +119,8 @@ test('Save saves the name and Project Context together', async () => {
   await expect.element(screen.getByLabelText('Name')).toHaveValue('Parcel platform')
   await expect.element(screen.getByRole('button', { name: 'Save' })).toBeDisabled()
   const patch = fetch.mock.calls.find(([, init]) => init?.method === 'PATCH')
-  expect(String(patch?.[0])).toBe('/api/projects/p1')
-  expect(JSON.parse(String(patch?.[1]?.body))).toEqual({
+  expect(requestPath(patch![0])).toBe('/api/projects/p1')
+  expect(requestJson(patch?.[1])).toEqual({
     name: 'Parcel platform',
     context: 'Deliveries run Monday to Saturday.',
   })
@@ -205,8 +206,8 @@ test("lists this Project's Requirements, each linking to its Refinement", async 
     .toHaveAttribute('href', '/requirements/r1')
   await expect.element(side.getByRole('listitem').nth(0)).toMatchTextContent('In progress')
   await expect.element(side.getByRole('listitem').nth(1)).toMatchTextContent('Bulk import depotsDraft')
-  const list = fetch.mock.calls.find(([input]) => String(input).startsWith('/api/requirements'))
-  expect(String(list?.[0])).toBe('/api/requirements?project_id=p1')
+  const list = fetch.mock.calls.find(([input]) => requestPath(input).startsWith('/api/requirements'))
+  expect(requestPath(list![0])).toBe('/api/requirements?project_id=p1')
 })
 
 test('lists five Requirements, then says how many more', async () => {
@@ -265,7 +266,7 @@ test('keeps unsaved changes when the Project fails to reload', async () => {
 })
 
 const deletes = (fetch: ReturnType<typeof serve>) =>
-  fetch.mock.calls.filter(([, init]) => init?.method === 'DELETE').map(([input]) => String(input))
+  fetch.mock.calls.filter(([, init]) => init?.method === 'DELETE').map(([input]) => requestPath(input))
 
 async function openDelete(screen: Awaited<ReturnType<typeof renderProject>>['screen']) {
   const zone = screen.getByRole('region', { name: 'Danger zone' })
@@ -312,7 +313,7 @@ test('the delete dialog lists Requirements from other Points of Contact too', as
 
   await expect.element(dialog).toMatchTextContent(/Its 3 Requirements, and all their Questions/)
   await expect.element(dialog.getByRole('listitem').nth(2)).toMatchTextContent('Their own ideaComplete')
-  expect(fetch.mock.calls.map(([input]) => String(input))).toContain('/api/projects/p1/requirements')
+  expect(fetch.mock.calls.map(([input]) => requestPath(input))).toContain('/api/projects/p1/requirements')
 })
 
 test('reopening the delete dialog lists Requirements added since', async () => {
@@ -320,7 +321,7 @@ test('reopening the delete dialog lists Requirements added since', async () => {
   const fetch = serve()
   const base = fetch.getMockImplementation()!
   fetch.mockImplementation(async (input, init) =>
-    String(input) === '/api/projects/p1/requirements'
+    requestPath(input) === '/api/projects/p1/requirements'
       ? Response.json({ items: everyRequirement })
       : base(input, init),
   )
@@ -400,7 +401,7 @@ test('a Requirement added while the dialog is open is shown before anything is d
   })
   const base = fetch.getMockImplementation()!
   fetch.mockImplementation(async (input, init) =>
-    String(input) === '/api/projects/p1/requirements' ? Response.json({ items: everyRequirement }) : base(input, init),
+    requestPath(input) === '/api/projects/p1/requirements' ? Response.json({ items: everyRequirement }) : base(input, init),
   )
   const { screen, router } = await renderProject()
 

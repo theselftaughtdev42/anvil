@@ -5,6 +5,7 @@ import { render } from 'vitest-browser-react'
 import type { RequirementList } from '@/lib/api-schema'
 import type { Requirement } from '@/lib/requirements'
 import { HomePage } from '@/pages/home-page'
+import { requestUrl, requestPath } from '@/lib/mock-fetch'
 
 /**
  * Real time, as the cards compare against it. Far enough from each boundary
@@ -50,7 +51,7 @@ const everyRequirement = [routeAlerts, offlineSync, bulkImport]
  */
 function serve(requirements: Requirement[], response?: (url: URL) => Promise<Response>) {
   const fetch = vi.fn<typeof globalThis.fetch>(async (input) => {
-    const url = new URL(String(input), location.origin)
+    const url = requestUrl(input)
     if (url.pathname === '/api/config') return Response.json({ idea_placeholder: 'An idea' })
     if (url.pathname === '/api/projects') return Response.json({ items: [] })
     if (response) return response(url)
@@ -63,7 +64,7 @@ function serve(requirements: Requirement[], response?: (url: URL) => Promise<Res
 
 const listRequests = (fetch: ReturnType<typeof serve>) =>
   fetch.mock.calls
-    .map(([input]) => String(input))
+    .map(([input]) => requestPath(input))
     .filter((url) => url !== '/api/config' && url !== '/api/projects')
 
 async function renderHome(path = '/') {
@@ -175,7 +176,7 @@ test('a card opens its requirement', async () => {
 test("a card's delete button asks first, then removes it from the list", async () => {
   let remaining = everyRequirement
   const fetch = vi.fn<typeof globalThis.fetch>(async (input, init) => {
-    const url = new URL(String(input), location.origin)
+    const url = requestUrl(input)
     if (url.pathname === '/api/config') return Response.json({ idea_placeholder: 'An idea' })
     if (url.pathname === '/api/projects') return Response.json({ items: [] })
     if (init?.method === 'DELETE') {

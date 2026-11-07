@@ -6,6 +6,7 @@ import { render } from 'vitest-browser-react'
 import type { AnsweredQuestion, OpenQuestion, QuestionStack } from '@/lib/api-schema'
 import type { Requirement } from '@/lib/requirements'
 import { routes } from '@/routes'
+import { requestUrl, requestPath, requestJson } from '@/lib/mock-fetch'
 
 const ID = 'req-1'
 
@@ -72,7 +73,7 @@ function serveRefinement({
   })
 
   const fetch = vi.fn<typeof globalThis.fetch>(async (input, init) => {
-    const url = new URL(String(input), location.origin)
+    const url = requestUrl(input)
     await hold?.(url, init)
     const failure = fail?.(url, init)
     if (failure) return failure
@@ -85,7 +86,7 @@ function serveRefinement({
     if (path === '/api/projects') return Response.json({ items: PROJECTS })
     if (path === '/api/requirements') return Response.json({ items: [withProgress()] })
     if (path === `/api/requirements/${ID}` && init?.method === 'PATCH') {
-      const { project_id, title } = JSON.parse(String(init.body)) as { project_id?: string; title?: string }
+      const { project_id, title } = requestJson(init) as { project_id?: string; title?: string }
       if (project_id !== undefined && requirement.status !== 'draft') {
         return Response.json({ detail: 'The Project is locked once a Question is answered' }, { status: 409 })
       }
@@ -112,7 +113,7 @@ function serveRefinement({
       if (requirement.status !== 'complete') {
         return Response.json({ detail: 'Only a Complete Requirement can be reopened' }, { status: 409 })
       }
-      const { note } = JSON.parse(String(init?.body)) as { note: string }
+      const { note } = requestJson(init) as { note: string }
       requirement.status = 'in_progress'
       nothingNew = followUps.has(note)
       if (!nothingNew) {
@@ -132,7 +133,7 @@ function serveRefinement({
       if (verb === 'later') {
         open.push(question)
       } else {
-        const { answer } = JSON.parse(String(init?.body)) as { answer: string }
+        const { answer } = requestJson(init) as { answer: string }
         answered.push({ id: question.id, topic: question.topic, text: question.text, number: question.number, answer })
         if (requirement.status === 'draft') requirement.status = 'in_progress'
         nothingNew = false
@@ -229,8 +230,8 @@ test("changing a Draft's Project reloads the stack with new Questions", async ()
   await expect.element(picker).toHaveTextContent('ProjectWebsite')
   await expect.element(page.screen.getByRole('status')).toHaveTextContent('Asking new Questions for this Project…')
   await expect.element(page.question('Who will use this most?')).not.toBeInTheDocument()
-  const change = fetch.mock.calls.find(([input, init]) => isChange(new URL(String(input), location.origin), init))!
-  expect(JSON.parse(String(change[1]!.body))).toEqual({ project_id: 'p2' })
+  const change = fetch.mock.calls.find(([input, init]) => isChange(requestUrl(input), init))!
+  expect(requestJson(change[1])).toEqual({ project_id: 'p2' })
 
   release()
   await expect.element(page.question('Which pages should show it?')).toBeVisible()
@@ -304,7 +305,7 @@ test('a Project that has gone reloads the Projects', async () => {
   })
   const page = await renderPage()
   await page.screen.getByRole('banner').getByRole('combobox', { name: 'Project' }).click()
-  const loads = () => fetch.mock.calls.filter(([input]) => new URL(String(input), location.origin).pathname === '/api/projects').length
+  const loads = () => fetch.mock.calls.filter(([input]) => requestUrl(input).pathname === '/api/projects').length
   const before = loads()
   await page.screen.getByRole('option', { name: /^Website/ }).click()
 
@@ -313,8 +314,8 @@ test('a Project that has gone reloads the Projects', async () => {
 
 const renames = (fetch: ReturnType<typeof serveRefinement>) =>
   fetch.mock.calls
-    .filter(([input, init]) => isChange(new URL(String(input), location.origin), init))
-    .map(([, init]) => JSON.parse(String(init!.body)) as unknown)
+    .filter(([input, init]) => isChange(requestUrl(input), init))
+    .map(([, init]) => requestJson(init))
 
 const titleHeading = (page: Page, name: string) =>
   page.screen.getByRole('banner').getByRole('heading', { level: 1, name })
@@ -554,12 +555,12 @@ test('in the text box 1–3 and L type, Shift + Enter adds a line, and Enter ans
 
   await expect.element(page.ownWords()).toHaveValue('L1 2 3\nlorries')
   await expect.element(page.suggestion('Customers')).toHaveAttribute('aria-checked', 'false')
-  expect(fetch.mock.calls.some(([input]) => /\/(answer|later)$/.test(String(input)))).toBe(false)
+  expect(fetch.mock.calls.some(([input]) => /\/(answer|later)$/.test(requestPath(input)))).toBe(false)
 
   await userEvent.keyboard('{Enter}')
   await expect.element(page.question('What happens today, without it?')).toBeVisible()
-  const answer = fetch.mock.calls.find(([input]) => String(input).endsWith('/answer'))
-  expect(JSON.parse(String(answer![1]!.body))).toEqual({ answer: 'L1 2 3\nlorries' })
+  const answer = fetch.mock.calls.find(([input]) => requestPath(input).endsWith('/answer'))
+  expect(requestJson(answer![1])).toEqual({ answer: 'L1 2 3\nlorries' })
 })
 
 test('W moves to the text box and Esc leaves it, keeping what was typed', async () => {
@@ -591,8 +592,8 @@ test('the shortcuts leave modifier keys and other controls alone', async () => {
   await userEvent.keyboard('{Enter}')
 
   await expect.element(page.question('What happens today, without it?')).toBeVisible()
-  const actions = fetch.mock.calls.filter(([input]) => /\/(answer|later)$/.test(String(input)))
-  expect(actions.map(([input]) => String(input).split('/').at(-1))).toEqual(['later'])
+  const actions = fetch.mock.calls.filter(([input]) => /\/(answer|later)$/.test(requestPath(input)))
+  expect(actions.map(([input]) => requestPath(input).split('/').at(-1))).toEqual(['later'])
 })
 
 test('your own words take priority over a picked suggestion', async () => {
@@ -606,8 +607,8 @@ test('your own words take priority over a picked suggestion', async () => {
 
   await expect.element(page.answeredPile()).toMatchTextContent('Depot managers')
   await expect.element(page.answeredPile()).not.toMatchTextContent('Customers')
-  const answer = fetch.mock.calls.find(([input]) => String(input).endsWith('/answer'))
-  expect(JSON.parse(String(answer![1]!.body))).toEqual({ answer: 'Depot managers' })
+  const answer = fetch.mock.calls.find(([input]) => requestPath(input).endsWith('/answer'))
+  expect(requestJson(answer![1])).toEqual({ answer: 'Depot managers' })
 })
 
 test('Answer does nothing with nothing picked or typed', async () => {
@@ -618,7 +619,7 @@ test('Answer does nothing with nothing picked or typed', async () => {
   await page.ownWords().fill('   ')
   await page.answerButton().click()
 
-  expect(fetch.mock.calls.some(([input]) => String(input).endsWith('/answer'))).toBe(false)
+  expect(fetch.mock.calls.some(([input]) => requestPath(input).endsWith('/answer'))).toBe(false)
   await expect.element(page.question('Who will use this most?')).toBeVisible()
 })
 
@@ -639,7 +640,7 @@ test('while an Answer is sending the buttons are busy, not disabled, and ignore 
 
   await expect.element(page.question('What happens today, without it?')).toBeVisible()
   await expect.element(page.answerButton()).toHaveAttribute('aria-busy', 'false')
-  const actions = fetch.mock.calls.filter(([input]) => /\/(answer|later)$/.test(String(input)))
+  const actions = fetch.mock.calls.filter(([input]) => /\/(answer|later)$/.test(requestPath(input)))
   expect(actions).toHaveLength(1)
 })
 
@@ -751,7 +752,7 @@ test('Confirm makes it Complete on the page, its home page card and the status t
   expect(qAndA(page).elements()).toHaveLength(4)
   await expect.element(page.screen.getByRole('button', { name: 'Reopen' })).toBeVisible()
   await expect.element(page.screen.getByRole('banner').getByText('Complete')).toBeVisible()
-  expect(fetch.mock.calls.some(([input]) => String(input).endsWith(`/requirements/${ID}/confirm`))).toBe(true)
+  expect(fetch.mock.calls.some(([input]) => requestPath(input).endsWith(`/requirements/${ID}/confirm`))).toBe(true)
 
   await page.router.navigate('/')
   await expect.element(page.screen.getByRole('listitem').first()).toMatchTextContent('Complete')
@@ -811,7 +812,7 @@ test("Reopen can't be sent without a note, and says why", async () => {
 
   await expect.element(page.screen.getByRole('alert')).toHaveTextContent("Say what's missing to reopen it.")
   await expect.element(noteField(page)).toHaveAttribute('aria-invalid', 'true')
-  expect(fetch.mock.calls.some(([input]) => String(input).endsWith('/reopen'))).toBe(false)
+  expect(fetch.mock.calls.some(([input]) => requestPath(input).endsWith('/reopen'))).toBe(false)
   await expect.element(complete(page)).toBeVisible()
 })
 
@@ -925,7 +926,7 @@ test('deleting from the header asks first, then goes back to the list', async ()
   await dialog.getByRole('button', { name: 'Delete requirement' }).click()
 
   await expect.poll(() => page.router.state.location.pathname).toBe('/')
-  expect(fetch.mock.calls.filter(([input, init]) => isDelete(new URL(String(input), location.origin), init))).toHaveLength(1)
+  expect(fetch.mock.calls.filter(([input, init]) => isDelete(requestUrl(input), init))).toHaveLength(1)
 })
 
 test('a failed delete says so and stays on the page', async () => {

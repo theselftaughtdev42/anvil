@@ -6,6 +6,7 @@ import { render } from 'vitest-browser-react'
 import { IdeaPrompt } from '@/components/idea-prompt'
 import type { Project } from '@/lib/projects'
 import { requirementsKey } from '@/lib/requirements'
+import { requestJson } from '@/lib/mock-fetch'
 
 const requirement = {
   id: 'abc-123',
@@ -267,7 +268,7 @@ test('the idea is sent with the picked Project', async () => {
   await userEvent.keyboard('{Enter}')
 
   await expect.element(screen.getByText('Requirement abc-123')).toBeVisible()
-  expect(JSON.parse(String(fetch.mock.calls[0][1]?.body))).toMatchObject({ project_id: 'p2' })
+  expect(requestJson(fetch.mock.calls[0][1])).toMatchObject({ project_id: 'p2' })
 })
 
 test("with no Projects, the prompt links to creating one and won't submit", async () => {

@@ -4,6 +4,7 @@ import { afterEach, expect, test, vi } from 'vitest'
 import { render } from 'vitest-browser-react'
 import type { Project } from '@/lib/projects'
 import { ProjectsPage } from '@/pages/projects-page'
+import { requestJson } from '@/lib/mock-fetch'
 
 function project(overrides: Partial<Project>): Project {
   return {
@@ -32,7 +33,7 @@ function serve(
   post?: (body: { name: string }) => Response,
 ) {
   const fetch = vi.fn<typeof globalThis.fetch>(async (_input, init) => {
-    if (init?.method === 'POST' && post) return post(JSON.parse(String(init.body)))
+    if (init?.method === 'POST' && post) return post(requestJson(init) as { name: string })
     return typeof projects === 'function' ? projects() : Response.json({ items: projects })
   })
   vi.stubGlobal('fetch', fetch)
@@ -125,7 +126,7 @@ test('New project creates the Project and opens it', async () => {
   await expect.element(screen.getByText('Opened p9')).toBeVisible()
   expect(router.state.location.pathname).toBe('/projects/p9')
   const post = fetch.mock.calls.find(([, init]) => init?.method === 'POST')
-  expect(JSON.parse(String(post?.[1]?.body))).toEqual({ name: 'Driver app' })
+  expect(requestJson(post?.[1])).toEqual({ name: 'Driver app' })
 })
 
 test("a taken name shows the API's message in the dialog", async () => {
