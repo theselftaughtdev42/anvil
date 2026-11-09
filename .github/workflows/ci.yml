@@ -22,7 +22,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
       - run: uv sync --locked
       # The oxlint and tsc hooks need frontend/node_modules.
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -48,7 +48,7 @@ jobs:
       - run: cp .env.example .env
       # Pull the image in the background so it overlaps with the steps below.
       - run: docker compose pull --quiet > /dev/null 2>&1 &
-      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
       - run: uv sync --locked
       # Build the frontend so the /api 404 test runs instead of skipping.
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -116,7 +116,7 @@ jobs:
           exit-code: 0
       # Dependabot and fork PRs get a read-only token, so the upload would fail.
       - if: github.actor != 'dependabot[bot]' && !github.event.pull_request.head.repo.fork
-        uses: github/codeql-action/upload-sarif@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
+        uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
         with:
           sarif_file: trivy-repo-results.sarif
           category: trivy-repo
@@ -181,7 +181,7 @@ jobs:
           exit-code: 0
       # Dependabot and fork PRs get a read-only token, so the upload would fail.
       - if: github.actor != 'dependabot[bot]' && !github.event.pull_request.head.repo.fork
-        uses: github/codeql-action/upload-sarif@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
+        uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
         with:
           sarif_file: trivy-results.sarif
           category: trivy-image
